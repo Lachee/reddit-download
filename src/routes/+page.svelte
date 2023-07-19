@@ -28,11 +28,18 @@
             : post.variants[0].gif[0].url;
 
           downloadStage = "Downloading Gif...";
-          const blob = await fetch(gifURL).then((res) => res.blob());
+          try {
+            const blob = await fetch(gifURL).then((res) => res.blob());
 
-          isVideo = false;
-          downloadLink = URL.createObjectURL(blob);
-          downloadStage = "Done. Gifs only.";
+            isVideo = false;
+            downloadLink = URL.createObjectURL(blob);
+            downloadStage = "Done. Gifs only.";
+          } catch (e) {
+            isVideo = false;
+            downloadLink = gifURL;
+            //@ts-ignore
+            downloadStage = "Done. Failed to embed gif: " + e.message;
+          }
         } else {
           downloadStage = "Done. No media.";
         }
