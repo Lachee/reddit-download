@@ -49,17 +49,37 @@
   }
 
   async function share() {
+    let shareData: ShareData;
+    console.log("preparing to share...");
+
     if (extension == "mp4") {
-      await navigator.share({
+      shareData = {
         title: post.title,
-        files: [new File([dataArr], fileName)],
-      });
+        files: [new File([dataArr], fileName, { type: "video/mp4" })],
+        url: post.url,
+      };
     } else {
-      const blob = await fetch(dataURL).then((b) => b.arrayBuffer());
-      await navigator.share({
+      const response = await fetch(dataURL);
+      const body = await response.arrayBuffer();
+      shareData = {
         title: post.title,
-        files: [new File([blob], fileName)],
+        files: [
+          new File([body], fileName, {
+            type: response.headers.get("content-type") || "image/gif",
+          }),
+        ],
         url: dataURL,
+      };
+    }
+
+    if (navigator.canShare(shareData)) {
+      console.log("can share", shareData);
+      await navigator.share(shareData);
+    } else {
+      console.log("cannot share data. trying something simpler", shareData);
+      await navigator.share({
+        title: shareData.title,
+        url: shareData.url,
       });
     }
   }
@@ -86,7 +106,11 @@
       <a href={dataURL} download={fileName} class="btn variant-filled"
         >Download</a
       >
-      <button on:click={() => share()} class="btn variant-ghost">Share</button>
+
+      {#if navigator.share != undefined}
+        <button on:click={() => share()} class="btn variant-ghost">Share</button
+        >
+      {/if}
     </footer>
   {/if}
 </div>

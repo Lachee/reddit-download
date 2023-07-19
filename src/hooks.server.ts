@@ -5,8 +5,13 @@ export const handle = (async ({ event, resolve }) => {
     if (url.pathname.startsWith('/download')) {
         const file = url.searchParams.get('get');
         if (file != null) {
-            const body = await fetch(file).then(f => f.arrayBuffer());
-            return new Response(body);
+            const response = await fetch(file);
+            const body = await response.body;
+            return new Response(body, { 
+                headers: {
+                    'content-type': response.headers.get('content-type') || 'image/gif',
+                }
+            });
         }
     }
 
