@@ -7,9 +7,16 @@
   let downloadStage = "";
   let isVideo = false;
 
+  function trimParameters(url: string): string {
+    const indexOfParam = url.indexOf("?");
+    if (indexOfParam > 0) return url.slice(0, indexOfParam - 1);
+    return url;
+  }
+
   async function downloadSecureMedia() {
     try {
       downloadStage = "Extracting Reddit Video";
+      redditPostURL = trimParameters(redditPostURL);
 
       const post = await fetchPost(redditPostURL);
       console.log("Reddit Post", post);
