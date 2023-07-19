@@ -86,10 +86,7 @@
       <a href={dataURL} download={fileName} class="btn variant-filled"
         >Download</a
       >
-      {#if navigator.canShare()}
-        <button on:click={() => share()} class="btn variant-ghost">Share</button
-        >
-      {/if}
+      <button on:click={() => share()} class="btn variant-ghost">Share</button>
     </footer>
   {/if}
 </div>
