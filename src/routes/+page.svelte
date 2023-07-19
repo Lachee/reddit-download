@@ -7,6 +7,27 @@
   let downloadStage = "";
   let isVideo = false;
 
+  async function createObjectURLFromGif(
+    gif: string,
+    retry = true
+  ): Promise<string> {
+    try {
+      const blob = await fetch(gif).then((res) => res.blob());
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      if (retry) {
+        console.warn("Failed to download gif directly, proxying: ", e);
+        return await createObjectURLFromGif(
+          "/download?gif=" + encodeURIComponent(gif),
+          false
+        );
+      } else {
+        console.error("Failed to download gif: ", e);
+        throw e;
+      }
+    }
+  }
+
   function trimParameters(url: string): string {
     const indexOfParam = url.indexOf("?");
     if (indexOfParam > 0) return url.slice(0, indexOfParam - 1);
@@ -29,12 +50,12 @@
 
           downloadStage = "Downloading Gif...";
           try {
-            const blob = await fetch(gifURL).then((res) => res.blob());
-
+            // Try to fetch it from reddit and ourselves (via proxy)
             isVideo = false;
-            downloadLink = URL.createObjectURL(blob);
+            downloadLink = await createObjectURLFromGif(gifURL, true);
             downloadStage = "Done. Gifs only.";
           } catch (e) {
+            // We failed, lets just log it
             isVideo = false;
             downloadLink = gifURL;
             //@ts-ignore
