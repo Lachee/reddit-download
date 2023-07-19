@@ -13,6 +13,7 @@
   let processing = false;
   let sharing = false;
   let spoiler = true;
+  $: spoiler = post.nsfw;
 
   let dataURL: string = "";
   let dataArr: Uint8Array;
@@ -123,14 +124,16 @@
           <button on:click={() => share()} class="btn variant-ghost"
             >Share
           </button>
-          <div class="mt-3">
-            <label>Save as Spoiler: </label>
-            <SlideToggle
-              name="spoiler_toggle"
-              bind:checked={spoiler}
-              size="sm"
-            />
-          </div>
+          {#if post.nsfw}
+            <div class="mt-3">
+              <label>Save as Spoiler: </label>
+              <SlideToggle
+                name="spoiler_toggle"
+                bind:checked={spoiler}
+                size="sm"
+              />
+            </div>
+          {/if}
         {:else}
           <button disabled class="btn variant-ringed">Share</button>
           <div class="mt-2">

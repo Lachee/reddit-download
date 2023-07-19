@@ -7,6 +7,8 @@ export type RedditPost = {
     url : string
     /** unique identifier for hte post */
     name : string
+    /** The post is marked NSFW */
+    nsfw: boolean
     /** The subreddit it's from */
     subreddit : string
     /** Title of the post */
@@ -72,6 +74,7 @@ export async function fetchPost(url : string) : Promise<RedditPost> {
         name: rawPost.name,
         subreddit: rawPost.subreddit,
         title: rawPost.title,
+        nsfw: rawPost.over_18,
         
         thumbnail: rawPost.thumbnail,
 
