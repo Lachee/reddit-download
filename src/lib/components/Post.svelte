@@ -8,8 +8,10 @@
 
   let processing = false;
   let dataURL: string = "";
+  let dataArr: Uint8Array;
   let extension: string = "";
-
+  let fileName = "";
+  $: fileName = `${post.name || post.title}.${extension}`;
   $: console.log("reddit post", post);
 
   onMount(() => {
@@ -24,8 +26,8 @@
     if (post.streams == null) return;
 
     processing = true;
-    const data = await downloadStream(post.streams);
-    dataURL = URL.createObjectURL(new Blob([data]));
+    dataArr = await downloadStream(post.streams);
+    dataURL = URL.createObjectURL(new Blob([dataArr]));
     extension = "mp4";
     processing = false;
   }
@@ -44,6 +46,22 @@
       extension = "gif";
     }
     processing = false;
+  }
+
+  async function share() {
+    if (extension == "mp4") {
+      await navigator.share({
+        title: post.title,
+        files: [new File([dataArr], fileName)],
+      });
+    } else {
+      const blob = await fetch(dataURL).then((b) => b.arrayBuffer());
+      await navigator.share({
+        title: post.title,
+        files: [new File([blob], fileName)],
+        url: dataURL,
+      });
+    }
   }
 </script>
 
@@ -65,11 +83,13 @@
 
   {#if !processing}
     <footer class="card-footer">
-      <a
-        href={dataURL}
-        download={`${post.name || post.title}.${extension}`}
-        class="btn variant-filled">Download</a
+      <a href={dataURL} download={fileName} class="btn variant-filled"
+        >Download</a
       >
+      {#if navigator.canShare()}
+        <button on:click={() => share()} class="btn variant-ghost">Share</button
+        >
+      {/if}
     </footer>
   {/if}
 </div>
