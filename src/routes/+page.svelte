@@ -18,7 +18,7 @@
       if (retry) {
         console.warn("Failed to download gif directly, proxying: ", e);
         return await createObjectURLFromGif(
-          "/download?gif=" + encodeURIComponent(gif),
+          "/download?get=" + encodeURIComponent(gif),
           false
         );
       } else {
@@ -117,13 +117,18 @@
 </script>
 
 <h1>Welcome to SvelteKit</h1>
-<input
-  type="text"
-  placeholder="https://reddit.com/r/..../"
-  bind:value={redditPostURL}
-/>
-<button on:click={() => downloadSecureMedia()}>Download Reddit Video</button>
-<p>Status: {downloadStage}</p>
+<p>
+  <input
+    style="width: 90%"
+    type="text"
+    placeholder="https://reddit.com/r/..../"
+    bind:value={redditPostURL}
+  />
+</p>
+<p>
+  <button on:click={() => downloadSecureMedia()}>Download Reddit Video</button>
+  {downloadStage}
+</p>
 
 {#if downloadLink != ""}
   <p><a href={downloadLink} target="_blank">Download File</a></p>
