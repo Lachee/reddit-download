@@ -106,9 +106,9 @@
         track="stroke-primary-500/30"
       />
     {:else if extension == "mp4"}
-      <video src={dataURL} autoplay controls muted />
+      <video src={dataURL} autoplay controls muted class:blur-lg={spoiler} />
     {:else}
-      <img src={dataURL} alt={post.title} />
+      <img src={dataURL} alt={post.title} class:blur-lg={spoiler} />
     {/if}
   </section>
 
@@ -121,7 +121,7 @@
           <button on:click={() => share()} class="btn variant-ghost"
             >Share
           </button>
-          {#if post.nsfw}
+          {#if spoiler || post.nsfw}
             <div class="mt-3">
               <label>Save as Spoiler: </label>
               <SlideToggle
