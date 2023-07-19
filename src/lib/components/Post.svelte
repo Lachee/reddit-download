@@ -1,17 +1,26 @@
 <script lang="ts">
   import { downloadStream } from "$lib/process";
   import type { RedditPost } from "$lib/reddit";
-  import { ProgressRadial } from "@skeletonlabs/skeleton";
+  import {
+    ProgressBar,
+    ProgressRadial,
+    SlideToggle,
+  } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
 
   export let post: RedditPost;
 
   let processing = false;
+  let sharing = false;
+  let spoiler = true;
+
   let dataURL: string = "";
   let dataArr: Uint8Array;
   let extension: string = "";
   let fileName = "";
-  $: fileName = `${post.name || post.title}.${extension}`;
+  $: fileName = `${spoiler ? "SPOILER_" : ""}${
+    post.name || post.title
+  }.${extension}`;
   $: console.log("reddit post", post);
 
   onMount(() => {
@@ -51,36 +60,38 @@
   async function share() {
     let shareData: ShareData;
     console.log("preparing to share...");
+    sharing = true;
+    try {
+      if (extension == "mp4") {
+        shareData = {
+          title: post.title,
+          files: [new File([dataArr], fileName, { type: "video/mp4" })],
+        };
+      } else {
+        const response = await fetch(dataURL);
+        const body = await response.arrayBuffer();
+        shareData = {
+          title: post.title,
+          files: [
+            new File([body], fileName, {
+              type: response.headers.get("content-type") || "image/gif",
+            }),
+          ],
+        };
+      }
 
-    if (extension == "mp4") {
-      shareData = {
-        title: post.title,
-        files: [new File([dataArr], fileName, { type: "video/mp4" })],
-        url: post.url,
-      };
-    } else {
-      const response = await fetch(dataURL);
-      const body = await response.arrayBuffer();
-      shareData = {
-        title: post.title,
-        files: [
-          new File([body], fileName, {
-            type: response.headers.get("content-type") || "image/gif",
-          }),
-        ],
-        url: dataURL,
-      };
-    }
-
-    if (navigator.canShare(shareData)) {
-      console.log("can share", shareData);
-      await navigator.share(shareData);
-    } else {
-      console.log("cannot share data. trying something simpler", shareData);
-      await navigator.share({
-        title: shareData.title,
-        url: shareData.url,
-      });
+      if (navigator.canShare(shareData)) {
+        console.log("can share", shareData);
+        await navigator.share(shareData);
+      } else {
+        console.log("cannot share data. trying something simpler", shareData);
+        await navigator.share({
+          title: post.title,
+          url: post.url,
+        });
+      }
+    } finally {
+      sharing = false;
     }
   }
 </script>
@@ -108,8 +119,24 @@
       >
 
       {#if navigator.share != undefined}
-        <button on:click={() => share()} class="btn variant-ghost">Share</button
-        >
+        {#if !sharing}
+          <button on:click={() => share()} class="btn variant-ghost"
+            >Share
+          </button>
+          <div class="mt-3">
+            <label>Save as Spoiler: </label>
+            <SlideToggle
+              name="spoiler_toggle"
+              bind:checked={spoiler}
+              size="sm"
+            />
+          </div>
+        {:else}
+          <button disabled class="btn variant-ringed">Share</button>
+          <div class="mt-2">
+            <ProgressBar />
+          </div>
+        {/if}
       {/if}
     </footer>
   {/if}
