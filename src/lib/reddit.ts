@@ -3,8 +3,21 @@
 import { XMLParser } from 'fast-xml-parser';
 
 export type RedditPost = {
+    /** The permalink to the post */
     url : string
+    /** unique identifier for hte post */
+    name : string
+    /** The subreddit it's from */
+    subreddit : string
+    /** Title of the post */
+    title: string
+    /** The base url for the vreddit videos */
+    vBaseUrl : string
+    /** Preview image */
+    thumbnail : string,
+    /** Video & Audio streams */
     streams : Streams|null
+    /** Variants */
     variants : Variants[]|null
 };
 
@@ -21,7 +34,7 @@ export type Variant = {
     height : number;
 }
 
-type Streams = {
+export type Streams = {
     video : Record<string, VideoStream>,
     audio : Stream
 }
@@ -38,31 +51,48 @@ type VideoStream = Stream & {
     maxFormat : boolean
 }
 
+function trimParameters(url: string): string {
+    const indexOfParam = url.indexOf("?");
+    if (indexOfParam > 0) return url.slice(0, indexOfParam - 1);
+    const indexOfJson = url.indexOf('.json');
+    if (indexOfJson > 0) return url.slice(0, indexOfJson - 1);
+    return url;
+}
+  
 export async function fetchPost(url : string) : Promise<RedditPost> {
     
     // Fetching base url and dash file from reddit API
     // Return "was not video" error if it cannot find video urls 
-    const redditObject = await fetch(`${url}.json`).then(res => res.json());
-    const redditPost = redditObject[0].data.children[0].data;
-    const result : RedditPost = {
-        url:  redditPost.url,
+    const rawPost = await fetch(`${trimParameters(url)}.json`)
+        .then(res => res.json())
+        .then(dat => dat[0].data.children[0].data);
+        
+    const post : RedditPost = {
+        url: `https://www.reddit.com${rawPost.permalink}`,
+        name: rawPost.name,
+        subreddit: rawPost.subreddit,
+        title: rawPost.title,
+        
+        thumbnail: rawPost.thumbnail,
+
+        vBaseUrl:  rawPost.url,
         variants: null,
         streams : null,
     }
 
     // Load the video
-    if (isVideo(redditPost)) {
-        const dashURL = redditPost.secure_media.reddit_video.dash_url;
+    if (isVideo(rawPost)) {
+        const dashURL = rawPost.secure_media.reddit_video.dash_url;
         const dashFile = await fetch(dashURL).then(res => res.text());
-        result.streams = await parseDASH(dashFile, result.url);
+        post.streams = await parseDASH(dashFile, post.vBaseUrl);
     }
 
     // Load the GIF
-    if (isImage(redditPost)) {
-        result.variants = parseVariants(redditPost);
+    if (isImage(rawPost)) {
+        post.variants = parseVariants(rawPost);
     }
 
-    return result;
+    return post;
 }
 
 function parseDASH(mdpContents : string, baseURL : string) : Streams {
