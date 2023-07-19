@@ -2,23 +2,35 @@
 // source: https://github.com/Guuzzeji/vidzit-dl/blob/main/src/redditFetch.js
 import { XMLParser } from 'fast-xml-parser';
 
-export type VRedditObject = {
+export type RedditPost = {
     url : string
-    streams : Streams
+    streams : Streams|null
+    variants : Variants[]|null
 };
+
+export type Variants = {
+    image: Variant[],
+    blur: Variant[],
+    gif: Variant[],
+    mp4: Variant[],
+}
+
+export type Variant = {
+    url : string;
+    width : number;
+    height : number;
+}
 
 type Streams = {
     video : Record<string, VideoStream>,
     audio : Stream
 }
-
-export type Stream = {
+type Stream = {
     type: "video"|"audio"
     /** MP4 source URL */
     url: string
 }
-
-export type VideoStream = Stream & {
+type VideoStream = Stream & {
     type: "video",
     /** The format (dimension) of the video */
     format : string,
@@ -26,41 +38,31 @@ export type VideoStream = Stream & {
     maxFormat : boolean
 }
 
-export async function videos(url : string) : Promise<VRedditObject> {
-    let redditVideo;
-
+export async function fetchPost(url : string) : Promise<RedditPost> {
+    
     // Fetching base url and dash file from reddit API
     // Return "was not video" error if it cannot find video urls 
-    try {
-        redditVideo = await fetch(url + '.json').then(function (res) {
-            return res.json();
-        }).then(function (json) {
-            let redditAPIData = json[0].data.children[0].data;
-
-            if (isVideo(redditAPIData)) {
-                return {
-                    baseURL: redditAPIData.url,
-                    dashURL: redditAPIData.secure_media.reddit_video.dash_url
-                };
-            } else {
-                throw new Error("Was not a video");
-            }
-        });
-    } catch (e) {
-        throw e;
+    const redditObject = await fetch(`${url}.json`).then(res => res.json());
+    const redditPost = redditObject[0].data.children[0].data;
+    const result : RedditPost = {
+        url:  redditPost.url,
+        variants: null,
+        streams : null,
     }
 
-    // Fetching dash XML file
-    let dashFile = await fetch(redditVideo.dashURL).then(function (res) {
-        return res.text();
-    }).then(function (data) {
-        return data;
-    });
+    // Load the video
+    if (isVideo(redditPost)) {
+        const dashURL = redditPost.secure_media.reddit_video.dash_url;
+        const dashFile = await fetch(dashURL).then(res => res.text());
+        result.streams = await parseDASH(dashFile, result.url);
+    }
 
-    return {
-        url: redditVideo.baseURL,
-        streams: parseDASH(dashFile, redditVideo.baseURL)
-    };
+    // Load the GIF
+    if (isImage(redditPost)) {
+        result.variants = parseVariants(redditPost);
+    }
+
+    return result;
 }
 
 function parseDASH(mdpContents : string, baseURL : string) : Streams {
@@ -100,9 +102,37 @@ function parseAudioStream(xml : any, baseURL : string) : Stream {
     };
 }
 
-function isVideo(json : any) : boolean {
-    if (!json.is_video || json.secure_media == undefined || json.secure_media == null) {
+function parseVariants(xml : any) : Variants[] {
+    return xml.preview.images.map((img : any) => {
+        return {
+            images: parseVariantCollection(img),
+            gif: parseVariantCollection(img.variants.gif),
+            mp4: parseVariantCollection(img.variants.mp4),
+            nsfw: parseVariantCollection(img.variants.nsfw),
+        }
+    });
+}
+
+function parseVariantCollection(collection : any) : Variant[] {
+    const list : Variant[] = [];
+    if (collection == null || collection == undefined)
+        return list;
+    
+    list.push(collection.source as Variant);
+    for(const v of collection.resolutions) {
+        list.push(v as Variant);
+    }
+    return list;
+}
+
+
+function isVideo(xml : any) : boolean {
+    if (!xml.is_video || xml.secure_media == undefined || xml.secure_media == null) {
         return false;
     }
     return true;
+}
+
+function isImage(xml : any) : boolean {
+    return xml.preview && xml.preview.images;
 }

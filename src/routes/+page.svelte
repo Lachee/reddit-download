@@ -1,24 +1,41 @@
 <script lang="ts">
   import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
-  import { videos } from "$lib/vreddit";
+  import { fetchPost } from "$lib/vreddit";
+
+  let redditPost = "";
   let downloadLink = "";
   let downloadStage = "";
+  let isVideo = false;
 
   async function fetchVideos() {}
 
   async function downloadSecureMedia() {
     downloadStage = "Extracting Reddit Video";
-    const url =
-      "https://www.reddit.com/r/Unity3D/comments/1537msz/ama_i_made_a_prototype_with_my_friend_got_a/";
-    const vreddit = await videos(url);
+    const post = await fetchPost(redditPost);
+    console.log("Reddit Post", post);
+    if (post.streams == null) {
+      if (post.variants != null) {
+        downloadStage = "Downloading Gif...";
+        const blob = await fetch(post.variants[0].gif[0].url).then((res) =>
+          res.blob()
+        );
 
-    downloadStage = "Initializing FFMPEG";
-    const ffmpeg = createFFmpeg({ log: true });
+        isVideo = false;
+        downloadLink = URL.createObjectURL(blob);
+        downloadStage = "Done. Gifs only.";
+      } else {
+        downloadStage = "Done. No media.";
+      }
+      return;
+    }
+
+    downloadStage = "Initializing FFMPEG...";
+    const ffmpeg = createFFmpeg({ log: false });
     await ffmpeg.load();
 
-    downloadStage = "Downloading VReddit Sources";
-    const audio = vreddit.streams.audio;
-    const video = Object.values(vreddit.streams.video).filter(
+    downloadStage = "Downloading MP4 Streams...";
+    const audio = post.streams.audio;
+    const video = Object.values(post.streams.video).filter(
       (v) => v.maxFormat
     )[0];
 
@@ -27,7 +44,7 @@
       fetchFile(video.url).then((f) => ffmpeg.FS("writeFile", "video.mp4", f)),
     ]);
 
-    downloadStage = "Running FFMPEG";
+    downloadStage = "Combining Audio & Video streams...";
     await ffmpeg.run(
       "-i",
       "video.mp4",
@@ -40,10 +57,11 @@
       "output.mp4"
     );
 
-    downloadStage = "Extracting FFMPEG Result";
+    downloadStage = "Creating MP4 from results...";
     const data = await ffmpeg.FS("readFile", "output.mp4");
-    downloadLink = URL.createObjectURL(new Blob([data]));
 
+    isVideo = true;
+    downloadLink = URL.createObjectURL(new Blob([data]));
     downloadStage = "Done!";
 
     // Termine ffmpeg
@@ -52,11 +70,19 @@
 </script>
 
 <h1>Welcome to SvelteKit</h1>
+<input
+  type="text"
+  placeholder="https://reddit.com/r/..../"
+  bind:value={redditPost}
+/>
 <button on:click={() => downloadSecureMedia()}>Download Reddit Video</button>
-
 <p>Status: {downloadStage}</p>
 
 {#if downloadLink != ""}
-  <a href={downloadLink} target="_blank">Download File</a>
-  <video src={downloadLink} controls autoplay muted />
+  <p><a href={downloadLink} target="_blank">Download File</a></p>
+  {#if isVideo}
+    <video src={downloadLink} controls autoplay muted />
+  {:else}
+    <img src={downloadLink} alt="reddit-post" />
+  {/if}
 {/if}
