@@ -37,6 +37,16 @@
   {:then post}
     {#if post != null}
       <Post {post} />
+    {:else}
+      <p>Just paste your reddit link above and hit go!</p>
+      <p>
+        Your browser will download and process the videos / gifs. They will
+        appear here ready for sharing or saving to file.
+      </p>
+      <p>
+        <strong>"RapidSave" is garbage</strong>, don't use that adware, use this
+        instead.
+      </p>
     {/if}
   {/await}
 </div>

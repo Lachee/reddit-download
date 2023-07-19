@@ -115,9 +115,7 @@
 
   {#if !processing}
     <footer class="card-footer">
-      <a href={dataURL} download={fileName} class="btn variant-filled"
-        >Download</a
-      >
+      <a href={dataURL} download={fileName} class="btn variant-filled">Save</a>
 
       {#if navigator.share != undefined}
         {#if !sharing}
