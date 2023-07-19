@@ -12,8 +12,7 @@
 
   let processing = false;
   let sharing = false;
-  let spoiler = true;
-  $: spoiler = post.nsfw;
+  let spoiler = post.nsfw;
 
   let dataURL: string = "";
   let dataArr: Uint8Array;
