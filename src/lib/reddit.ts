@@ -2,9 +2,20 @@
 // source: https://github.com/Guuzzeji/vidzit-dl/blob/main/src/redditFetch.js
 import { XMLParser } from 'fast-xml-parser';
 
+export const rootDomain = (url : string) => (new URL(url)).hostname.split('.').reverse().splice(0,2).reverse().join('.')
+
+export const AllowedRootDomains = [
+    'reddit.com',
+    'redd.it',
+    'redditstatic.com',
+    'redditmedia.com',
+];
+
 export type RedditPost = {
-    /** The permalink to the post */
+    /** The address the post points too */
     url : string
+    /** The permalink to the post */
+    permalink : string
     /** unique identifier for hte post */
     name : string
     /** The post is marked NSFW */
@@ -67,22 +78,29 @@ export async function fetchPost(url : string) : Promise<RedditPost> {
     
     // Fetching base url and dash file from reddit API
     // Return "was not video" error if it cannot find video urls 
-    const rawPost = await fetch(`${trimParameters(url)}.json`)
+    const rawPost = await fetch(`${trimParameters(url)}.json?raw_json=1`)
         .then(res => res.json())
         .then(dat => dat[0].data.children[0].data);
         
     const post : RedditPost = {
-        url: `https://www.reddit.com${rawPost.permalink}`,
+        url: rawPost.url,
+        permalink: `https://www.reddit.com${rawPost.permalink}`,
         name: rawPost.name,
         subreddit: rawPost.subreddit,
         title: rawPost.title,
         nsfw: rawPost.over_18,
-        
+
         thumbnail: rawPost.thumbnail,
 
         vBaseUrl:  rawPost.url,
         variants: null,
         streams : null,
+    }
+
+    // We are not the root post, lets delve deeper if its a reddit post
+    if (!post.url.startsWith(post.permalink) && post.url.startsWith("https://www.reddit.com")) {
+        console.log('getting cross-post');
+        return await fetchPost(rawPost.url);
     }
 
     // Load the video
@@ -146,10 +164,10 @@ function parseAudioStream(xml : any, baseURL : string) : Stream {
 function parseVariants(xml : any) : Variants[] {
     return xml.preview.images.map((img : any) => {
         return {
-            images: parseVariantCollection(img),
+            image: parseVariantCollection(img),
             gif: parseVariantCollection(img.variants.gif),
             mp4: parseVariantCollection(img.variants.mp4),
-            nsfw: parseVariantCollection(img.variants.nsfw),
+            blur: parseVariantCollection(img.variants.nsfw),
         }
     });
 }

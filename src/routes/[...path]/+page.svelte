@@ -20,7 +20,7 @@
 
   function search() {
     postPromise = fetchPost(searchBox).then((post) => {
-      searchBox = post.url;
+      searchBox = post.permalink;
       return post;
     });
   }

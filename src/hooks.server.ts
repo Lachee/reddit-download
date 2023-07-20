@@ -1,13 +1,7 @@
+import { AllowedRootDomains, rootDomain } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
 
-export const AllowedRootDomains = [
-    'reddit.com',
-    'redd.it',
-    'redditstatic.com',
-    'redditmedia.com',
-];
 
-const rootDomain = (url : string) => (new URL(url)).hostname.split('.').reverse().splice(0,2).reverse().join('.')
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;

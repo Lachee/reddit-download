@@ -1,6 +1,6 @@
 <script lang="ts">
   import { downloadStream } from "$lib/process";
-  import type { RedditPost } from "$lib/reddit";
+  import { rootDomain, type RedditPost, AllowedRootDomains } from "$lib/reddit";
   import {
     ProgressBar,
     ProgressRadial,
@@ -24,14 +24,21 @@
   $: console.log("reddit post", post);
 
   onMount(() => {
+    const root = rootDomain(post.url);
+    const inRootDomain = AllowedRootDomains.includes(root);
+    console.log("inRoot?", root, inRootDomain);
+
     if (post.streams != null) {
       processStream();
+    } else if (!inRootDomain) {
+      processGif();
     } else {
       processGif();
     }
   });
 
   async function processStream() {
+    console.log("processing stream");
     if (post.streams == null) return;
 
     processing = true;
@@ -43,18 +50,37 @@
 
   async function processGif() {
     processing = true;
+    console.log("processing gif");
 
     let gif = post.vBaseUrl;
     if (!gif.endsWith(".gif")) {
-      if (post.variants == null) gif = post.thumbnail;
-      else gif = post.variants[0].gif[0].url;
+      if (post.variants == null || post.variants.length == 0) {
+        gif = post.thumbnail;
+      } else if (post.variants[0].gif.length) {
+        gif = post.variants[0].gif[0].url;
+      } else if (post.variants[0].mp4.length) {
+        gif = post.variants[0].mp4[0].url;
+      } else if (post.variants[0].image.length) {
+        gif = post.variants[0].image[0].url;
+      } else {
+        gif = post.thumbnail;
+      }
     }
 
     if (gif != null) {
       dataURL = "/download?get=" + encodeURIComponent(gif);
       extension = "gif";
     }
+
     processing = false;
+  }
+
+  //TODO: Handle Imgur responses
+  async function processThirdParty() {
+    console.log("processing third-party");
+    processing = false;
+    dataURL = "/download?get=" + encodeURIComponent(post.thumbnail);
+    extension = "jpg";
   }
 
   async function share() {
@@ -87,7 +113,7 @@
         console.log("cannot share data. trying something simpler", shareData);
         await navigator.share({
           title: post.title,
-          url: post.url,
+          url: post.permalink,
         });
       }
     } finally {
@@ -121,22 +147,18 @@
           <button on:click={() => share()} class="btn variant-ghost"
             >Share
           </button>
-          {#if spoiler || post.nsfw}
-            <div class="mt-3">
-              <label>Save as Spoiler: </label>
-              <SlideToggle
-                name="spoiler_toggle"
-                bind:checked={spoiler}
-                size="sm"
-              />
-            </div>
-          {/if}
         {:else}
           <button disabled class="btn variant-ringed">Share</button>
           <div class="mt-2">
             <ProgressBar />
           </div>
         {/if}
+      {/if}
+      {#if spoiler || post.nsfw}
+        <div class="mt-3">
+          <label>Save as Spoiler: </label>
+          <SlideToggle name="spoiler_toggle" bind:checked={spoiler} size="sm" />
+        </div>
       {/if}
     </footer>
   {/if}
