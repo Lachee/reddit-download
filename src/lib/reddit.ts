@@ -38,7 +38,7 @@ export type Variant = {
 
 export type Streams = {
     video : Record<string, VideoStream>,
-    audio : Stream
+    audio : Stream|null,
 }
 export type Stream = {
     type: "video"|"audio"
@@ -105,19 +105,25 @@ function parseDASH(mdpContents : string, baseURL : string) : Streams {
     const xmlObject = parser.parse(mdpContents);
     const videoFormat : Record<string, VideoStream> = {};
 
+    console.log(xmlObject);
+
+    const isAudioVideo = xmlObject.MPD.Period.AdaptationSet.length > 0;
+    const videoAdaptationSet = isAudioVideo ? xmlObject.MPD.Period.AdaptationSet[0] : xmlObject.MPD.Period.AdaptationSet;
+    const audioAdaptationSet = isAudioVideo ? xmlObject.MPD.Period.AdaptationSet[1] : null;
+
     // @ts-ignore
-    xmlObject.MPD.Period.AdaptationSet[0].Representation.forEach(element => {
+    videoAdaptationSet.Representation.forEach(element => {
         const stream = parseVideoStream(element, baseURL);
         videoFormat[stream.format] = stream;
     });
 
     // Getting max video
-    const maxStream = parseVideoStream(xmlObject.MPD.Period.AdaptationSet[0], baseURL);
+    const maxStream = parseVideoStream(videoAdaptationSet, baseURL);
     videoFormat[maxStream.format] = maxStream;
-
+    
     return {
         video: videoFormat,
-        audio: parseAudioStream(xmlObject.MPD.Period.AdaptationSet[1], baseURL)
+        audio: isAudioVideo ? parseAudioStream(audioAdaptationSet, baseURL) : null
     };
 }
 
