@@ -40,18 +40,20 @@ export type Streams = {
     video : Record<string, VideoStream>,
     audio : Stream
 }
-type Stream = {
+export type Stream = {
     type: "video"|"audio"
     /** MP4 source URL */
     url: string
 }
-type VideoStream = Stream & {
+export type VideoStream = Stream & {
     type: "video",
     /** The format (dimension) of the video */
     format : string,
     /** Is this the largest sized video? */
     maxFormat : boolean
 }
+
+
 
 function trimParameters(url: string): string {
     const indexOfParam = url.indexOf("?");
