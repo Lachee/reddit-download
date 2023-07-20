@@ -1,12 +1,22 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
   import Post from "$lib/components/Post.svelte";
   import { fetchPost, type RedditPost } from "$lib/reddit";
 
   import { ProgressBar } from "@skeletonlabs/skeleton";
+  import { onMount } from "svelte";
+  import type { PageData } from "./$types";
 
-  let searchBox: string = "";
+  export let data: PageData;
+
+  let searchBox: string =
+    $page.url.searchParams.get("share") || data.postUrl || "";
   let postPromise: Promise<RedditPost>;
+
+  onMount(() => {
+    if (searchBox != "") search();
+  });
 
   function search() {
     postPromise = fetchPost(searchBox).then((post) => {
@@ -21,7 +31,7 @@
   <p>Download Reddit videos & gifs without the ads!</p>
   <section>
     <div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
-      <div class="input-group-shim">https://</div>
+      <div class="input-group-shim">🔗</div>
       <input
         type="search"
         placeholder="reddit.com/r/..."
