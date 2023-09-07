@@ -53,6 +53,18 @@
     console.log("processing gif");
 
     let gif = post.vBaseUrl;
+
+    // Check if third-party gif actually exists.
+    // If not, we will need to default to a variant.
+    if (
+      gif.endsWith(".gif") &&
+      !AllowedRootDomains.includes(rootDomain(post.url))
+    ) {
+      const response = await fetch(gif, { method: "HEAD" });
+      gif = response.ok ? response.url : "";
+    }
+
+    // If we are not hot linked, lets use a variant
     if (!gif.endsWith(".gif")) {
       if (post.variants == null || post.variants.length == 0) {
         gif = post.thumbnail;

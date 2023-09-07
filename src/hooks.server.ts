@@ -1,7 +1,9 @@
 import { AllowedRootDomains, rootDomain, trimParameters } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
 
-
+const AllowedThirdPartyDomains = [
+    'imgur.com',
+]
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;
@@ -9,7 +11,7 @@ export const handle = (async ({ event, resolve }) => {
     if (proxyUrl != null) {
         // Proxies the content and downloads the content.
         if (url.pathname.startsWith('/download')) {
-            if (AllowedRootDomains.includes(rootDomain(proxyUrl))) {
+            if (AllowedRootDomains.includes(rootDomain(proxyUrl)) || AllowedThirdPartyDomains.includes(rootDomain(proxyUrl))) {
                 const response = await fetch(proxyUrl);
                 const body = await response.body;
                 return new Response(body, { 
