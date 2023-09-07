@@ -33,13 +33,6 @@ export const handle = (async ({ event, resolve }) => {
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
                     }
                 });
-                
-                console.log({
-                    url: response.url,
-                    status: response.status,
-                    redirected: response.redirected,
-                    headers: response.headers,
-                });
                 return new Response(response.url, { headers: { 'content-type': 'text/plain' } });
             }
         }

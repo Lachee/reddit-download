@@ -56,13 +56,15 @@
 
     // Check if third-party gif actually exists.
     // If not, we will need to default to a variant.
-    if (
-      gif.endsWith(".gif") &&
-      !AllowedRootDomains.includes(rootDomain(post.url))
-    ) {
-      console.log("validating if the third-party has the image still");
-      const response = await fetch(gif, { method: "HEAD" });
-      gif = response.ok ? response.url : "";
+    if (!AllowedRootDomains.includes(rootDomain(post.url))) {
+      try {
+        console.log("validating if the third-party has the image still");
+        const response = await fetch(gif, { method: "HEAD" });
+        gif = response.ok ? response.url : "";
+      } catch (e) {
+        console.warn("failed to validate the third-party image:", e?.message);
+        gif = "";
+      }
     }
 
     // If we are not hot linked, lets use a variant
