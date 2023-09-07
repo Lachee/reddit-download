@@ -25,7 +25,13 @@ export const handle = (async ({ event, resolve }) => {
         // Follows reddit links and gets their actual url
         if (url.pathname.startsWith('/follow')) {
             if (AllowedRootDomains.includes(rootDomain(proxyUrl))) {
-                const response = await fetch(proxyUrl);
+                const response = await fetch(proxyUrl, { method: 'HEAD', redirect: 'follow' });
+                console.log({
+                    url: response.url,
+                    status: response.status,
+                    redirected: response.redirected,
+                    headers: response.headers,
+                });
                 return new Response(response.url, { headers: { 'content-type': 'text/plain' } });
             }
         }
