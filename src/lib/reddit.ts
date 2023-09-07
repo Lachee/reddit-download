@@ -66,19 +66,31 @@ export type VideoStream = Stream & {
 
 
 
-function trimParameters(url: string): string {
+export function trimParameters(url: string): string {
     const indexOfParam = url.indexOf("?");
     if (indexOfParam > 0) return url.slice(0, indexOfParam - 1);
     const indexOfJson = url.indexOf('.json');
     if (indexOfJson > 0) return url.slice(0, indexOfJson - 1);
     return url;
 }
+
+/** Follows any URL shortening that reddit does. */
+async function followPostURL(url : string) : Promise<string> {
+    const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
+    if (!shareLinkRegex.test(url)) 
+        return trimParameters(url);
+
+    const response = await fetch('/follow?get=' + encodeURIComponent(url));
+    url = await response.text();
+    return trimParameters(url);
+}
   
 export async function fetchPost(url : string) : Promise<RedditPost> {
     
     // Fetching base url and dash file from reddit API
     // Return "was not video" error if it cannot find video urls 
-    const rawPost = await fetch(`${trimParameters(url)}.json?raw_json=1`)
+    url = await followPostURL(url);
+    const rawPost = await fetch(`${url}.json?raw_json=1`)
         .then(res => res.json())
         .then(dat => dat[0].data.children[0].data);
         

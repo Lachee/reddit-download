@@ -1,13 +1,14 @@
-import { AllowedRootDomains, rootDomain } from '$lib/reddit';
+import { AllowedRootDomains, rootDomain, trimParameters } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
 
 
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;
-    if (url.pathname.startsWith('/download')) {
-        const proxyUrl = url.searchParams.get('get');
-        if (proxyUrl != null) {
+    const proxyUrl = url.searchParams.get('get');
+    if (proxyUrl != null) {
+        // Proxies the content and downloads the content.
+        if (url.pathname.startsWith('/download')) {
             if (AllowedRootDomains.includes(rootDomain(proxyUrl))) {
                 const response = await fetch(proxyUrl);
                 const body = await response.body;
@@ -16,6 +17,14 @@ export const handle = (async ({ event, resolve }) => {
                         'content-type': response.headers.get('content-type') || 'image/gif',
                     }
                 });
+            }
+        }
+
+        // Follows reddit links and gets their actual url
+        if (url.pathname.startsWith('/follow')) {
+            if (AllowedRootDomains.includes(rootDomain(proxyUrl))) {
+                const response = await fetch(proxyUrl);
+                return new Response(response.url, { headers: { 'content-type': 'text/plain' } });
             }
         }
     }
