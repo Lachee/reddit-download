@@ -60,6 +60,7 @@
       gif.endsWith(".gif") &&
       !AllowedRootDomains.includes(rootDomain(post.url))
     ) {
+      console.log("validating if the third-party has the image still");
       const response = await fetch(gif, { method: "HEAD" });
       gif = response.ok ? response.url : "";
     }
@@ -84,6 +85,7 @@
       extension = "gif";
     }
 
+    console.log(`processing recommends ${extension}:`, dataURL);
     processing = false;
   }
 
