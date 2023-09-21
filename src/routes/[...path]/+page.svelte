@@ -1,28 +1,53 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import Post from "$lib/components/Post.svelte";
-  import { fetchPost, type RedditPost } from "$lib/reddit";
+  import RedditResult from "$lib/components/RedditResult.svelte";
+
+  import {
+    fetchPost as fetchRedditPost,
+    rootDomain,
+    type RedditPost,
+  } from "$lib/reddit";
 
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
   import type { PageData } from "./$types";
+  import {
+    fetchProxy as fetchRedGif,
+    redgif,
+    type Gif as RedGif,
+  } from "$lib/redgifs";
 
   export let data: PageData;
 
+  type Result = {
+    reddit?: RedditPost;
+    redgif?: RedGif;
+  };
+
   let searchBox: string =
     $page.url.searchParams.get("share") || data.postUrl || "";
-  let postPromise: Promise<RedditPost>;
+
+  let resultPromise: Promise<Result>;
 
   onMount(() => {
     if (searchBox != "") search();
   });
 
   function search() {
-    postPromise = fetchPost(searchBox).then((post) => {
-      searchBox = post.permalink;
-      return post;
-    });
+    const domain = rootDomain(searchBox);
+    if (domain.includes("reddit")) {
+      console.log("searching reddit post");
+      resultPromise = fetchRedditPost(searchBox).then((reddit) => {
+        searchBox = reddit.permalink;
+        return { reddit };
+      });
+    } else if (domain.includes("redgif")) {
+      console.log("searching redgif");
+      resultPromise = fetchRedGif(searchBox).then((redgif) => {
+        return { redgif };
+      });
+    }
   }
 </script>
 
@@ -42,11 +67,13 @@
       >
     </div>
   </section>
-  {#await postPromise}
+  {#await resultPromise}
     <ProgressBar />
-  {:then post}
-    {#if post != null}
-      <Post {post} />
+  {:then result}
+    {#if result?.reddit !== undefined}
+      <RedditResult post={result.reddit} />
+    {:else if result?.redgif !== undefined}
+      horni
     {:else}
       <p>Just paste your reddit link above and hit go!</p>
       <p>

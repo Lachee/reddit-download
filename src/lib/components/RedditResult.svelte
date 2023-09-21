@@ -29,10 +29,10 @@
     console.log("inRoot?", root, inRootDomain);
 
     if (post.streams != null) {
+      console.log("processing stream");
       processStream();
-    } else if (!inRootDomain) {
-      processGif();
     } else {
+      console.log("processing reddit");
       processGif();
     }
   });
@@ -53,50 +53,56 @@
     console.log("processing gif");
 
     let gif = post.vBaseUrl;
+    const domain = rootDomain(post.url);
 
-    // Check if third-party gif actually exists.
-    // If not, we will need to default to a variant.
-    if (!AllowedRootDomains.includes(rootDomain(post.url))) {
-      try {
-        console.log("validating if the third-party has the image still");
-        const response = await fetch(gif, { method: "HEAD" });
-        gif = response.ok ? response.url : "";
-      } catch (e) {
-        console.warn("failed to validate the third-party image:", e?.message);
-        gif = "";
-      }
-    }
-
-    // If we are not hot linked, lets use a variant
-    if (!gif.endsWith(".gif")) {
-      if (post.variants == null || post.variants.length == 0) {
-        gif = post.thumbnail;
-      } else if (post.variants[0].gif.length) {
-        gif = post.variants[0].gif[0].url;
-      } else if (post.variants[0].mp4.length) {
-        gif = post.variants[0].mp4[0].url;
-      } else if (post.variants[0].image.length) {
-        gif = post.variants[0].image[0].url;
-      } else {
-        gif = post.thumbnail;
-      }
-    }
-
-    if (gif != null) {
+    // If we are a redgif then lets just allow it
+    if (domain.includes("redgif")) {
+      console.log("User is submitting a redgif");
       dataURL = "/download?get=" + encodeURIComponent(gif);
-      extension = "gif";
+      extension = "mp4";
+    } else {
+      // Check if third-party gif actually exists.
+      // If not, we will need to default to a variant.
+      // == This is for IMGUR
+      if (!AllowedRootDomains.includes(domain)) {
+        try {
+          console.log("validating if the third-party has the image still", {
+            domain,
+          });
+          const response = await fetch(gif, { method: "HEAD" });
+          gif = response.ok ? response.url : "";
+        } catch (e) {
+          console.warn(
+            "failed to validate the third-party image:",
+            (e as any).message
+          );
+          gif = "";
+        }
+      }
+
+      // If we are not hot linked, lets use a variant
+      if (!gif.endsWith(".gif")) {
+        if (post.variants == null || post.variants.length == 0) {
+          gif = post.thumbnail;
+        } else if (post.variants[0].gif.length) {
+          gif = post.variants[0].gif[0].url;
+        } else if (post.variants[0].mp4.length) {
+          gif = post.variants[0].mp4[0].url;
+        } else if (post.variants[0].image.length) {
+          gif = post.variants[0].image[0].url;
+        } else {
+          gif = post.thumbnail;
+        }
+      }
+
+      if (gif != null) {
+        dataURL = "/download?get=" + encodeURIComponent(gif);
+        extension = "gif";
+      }
     }
 
     console.log(`processing recommends ${extension}:`, dataURL);
     processing = false;
-  }
-
-  //TODO: Handle Imgur responses
-  async function processThirdParty() {
-    console.log("processing third-party");
-    processing = false;
-    dataURL = "/download?get=" + encodeURIComponent(post.thumbnail);
-    extension = "jpg";
   }
 
   async function share() {
