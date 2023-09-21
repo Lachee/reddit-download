@@ -1,5 +1,6 @@
 import type { Stream, Streams, VideoStream } from '$lib/reddit'
-import { createFFmpeg, type FFmpeg } from "@ffmpeg/ffmpeg";
+import type { FFmpeg } from '@ffmpeg/ffmpeg';
+import { getFFmpeg } from './gif';
 
 export async function downloadStream(streams: Streams, quality?: string): Promise<Uint8Array> {
 
@@ -8,36 +9,29 @@ export async function downloadStream(streams: Streams, quality?: string): Promis
         return await downloadVideoFile(streams);
     
     // It's a audio video, so we need to combine them with FFMPEG
-    const ffmpeg = createFFmpeg();
-    await ffmpeg.load();
-    try {
-        console.log('[process]', 'downloading files...');
-        await Promise.all([
-            // @ts-ignore ignoring here because streams _is_ checked to ensure it's not null early.
-            loadAudioFile(ffmpeg, streams),
-            loadVideoFile(ffmpeg, streams)
-        ]);
+    const ffmpeg = await getFFmpeg();
+    console.log('[process]', 'downloading files...');
+    await Promise.all([
+        // @ts-ignore ignoring here because streams _is_ checked to ensure it's not null early.
+        loadAudioFile(ffmpeg, streams),
+        loadVideoFile(ffmpeg, streams)
+    ]);
 
-        console.log('[process]', 'combining files...');
-        await ffmpeg.run(
-            "-i",
-            "video.mp4",
-            "-i",
-            "audio.mp4",
-            "-c:v",
-            "copy",
-            "-c:a",
-            "copy",
-            "output.mp4"
-        );
+    console.log('[process]', 'combining files...');
+    await ffmpeg.run(
+        "-i",
+        "video.mp4",
+        "-i",
+        "audio.mp4",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "copy",
+        "output.mp4"
+    );
 
-        console.log('[process]', 'reading files...')
-        return await ffmpeg.FS('readFile', 'output.mp4');
-    }
-    finally {
-        console.log('[process]', 'Done');
-        ffmpeg.exit();
-    }
+    console.log('[process]', 'reading files...')
+    return await ffmpeg.FS('readFile', 'output.mp4');
 }
 
 /** Loads the associated audio file. */
