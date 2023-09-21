@@ -17,6 +17,7 @@
     redgif,
     type Gif as RedGif,
   } from "$lib/redgifs";
+  import RedGifResults from "$lib/components/RedGifResults.svelte";
 
   export let data: PageData;
 
@@ -73,7 +74,7 @@
     {#if result?.reddit !== undefined}
       <RedditResult post={result.reddit} />
     {:else if result?.redgif !== undefined}
-      horni
+      <RedGifResults gif={result.redgif} />
     {:else}
       <p>Just paste your reddit link above and hit go!</p>
       <p>

@@ -25,6 +25,7 @@ interface URLCollection {
 
 export interface Gif {
     id : string
+    permalink : string
     client_id : string|null
     createDate : number
     hasAudio : boolean
@@ -70,7 +71,8 @@ class API {
     }
     
     async fetchGif(id : string) : Promise<Gif> {
-        return (await this.request<GifResponse>(`/v2/gifs/${cleanID(id)}`)).gif;
+        const gif = (await this.request<GifResponse>(`/v2/gifs/${cleanID(id)}`)).gif;
+        return { ...gif, permalink: `https://www.redgifs.com/watch/${gif.id}` };
     }
 
     async downloadGif(id : string|Gif) : Promise<ReadableStream<Uint8Array>|null> {
