@@ -1,6 +1,6 @@
 
 const BASE_URI : string = "https://api.redgifs.com";
-
+const USER_AGENT : string = "redgifs (https://github.com/lachee/reddit-downloader 1.0.0) TypeScript/2.4.1"
 interface AuthToken {
     token : string
     addr : string
@@ -63,7 +63,11 @@ class API {
     private async login() : Promise<AuthToken> {
         // Username & Password login not yet available
         console.log('[REDGIFS] Creating a temporary auth token');
-        const response = await fetch(`${BASE_URI}/v2/auth/temporary`).then(r => r.json());
+        const response = await fetch(`${BASE_URI}/v2/auth/temporary`, {
+            headers: {
+                "User-Agent":USER_AGENT
+            }
+        }).then(r => r.json());
         if (!response['token']) 
             throw new Error('Failed to fetch the temporary auth token');
         this.auth = response as AuthToken;
@@ -100,7 +104,8 @@ class API {
                 
         const response = await fetch(url, {
             headers: {
-                'authorization': `Bearer ${this.auth.token}`
+                'authorization': `Bearer ${this.auth.token}`,
+                "User-Agent":USER_AGENT,
             }
         });
 
@@ -126,7 +131,8 @@ class API {
         // Make the request
         const response = await fetch(`${BASE_URI}${endpoint}`, {
             headers: {
-                'authorization': `Bearer ${this.auth.token}`
+                'authorization': `Bearer ${this.auth.token}`,
+                "User-Agent":USER_AGENT,
             }
         });
 
