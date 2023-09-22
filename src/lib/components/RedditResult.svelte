@@ -96,12 +96,8 @@
       }
 
       if (gif != null) {
+        dataURL = `/download?get=${encodeURIComponent(gif)}`;
         extension = "gif";
-        dataURL = `/download?get=${encodeURIComponent(
-          gif
-        )}&fileName=${encodeURIComponent(
-          `${post.name || post.title}.${extension}`
-        )}`;
       }
     }
 
