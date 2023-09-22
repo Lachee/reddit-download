@@ -58,7 +58,7 @@
     // If we are a redgif then lets just allow it
     if (domain.includes("redgif")) {
       console.log("User is submitting a redgif");
-      dataURL = "/download?get=" + encodeURIComponent(gif);
+      dataURL = `/download?get=${encodeURIComponent(gif)}`;
       extension = "mp4";
     } else {
       // Check if third-party gif actually exists.
@@ -96,8 +96,12 @@
       }
 
       if (gif != null) {
-        dataURL = "/download?get=" + encodeURIComponent(gif);
         extension = "gif";
+        dataURL = `/download?get=${encodeURIComponent(
+          gif
+        )}&fileName=${encodeURIComponent(
+          `${post.name || post.title}.${extension}`
+        )}`;
       }
     }
 

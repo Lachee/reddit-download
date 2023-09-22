@@ -25,7 +25,7 @@ export const handle = (async ({ event, resolve }) => {
                 return new Response(body);
             } else if (AllowedRootDomains.includes(rootDomain(proxyUrl)) || AllowedThirdPartyDomains.includes(rootDomain(proxyUrl))) {
                 // Download other third-parties like imgur
-                const fileName = (new URL(proxyUrl)).pathname.replace('/', '');
+                const fileName = url.searchParams.get('fileName') || (new URL(proxyUrl)).pathname.replace('/', '');
                 const response = await fetch(proxyUrl);
                 const body = await response.body;
                 return new Response(body, { 
