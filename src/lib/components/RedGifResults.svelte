@@ -15,7 +15,7 @@
 
   let processing = false;
   let sharing = false;
-  let spoiler = true;
+  let spoiler = false;
 
   let videoURL: string = "";
   let videoData: ArrayBuffer | null;
@@ -103,6 +103,7 @@
         <img src={gifDataUrl} alt="Video Gif" />
       {/await}
     {/if}
+    {fileName}
   </section>
 
   {#if !processing}

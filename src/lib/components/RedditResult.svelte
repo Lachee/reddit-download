@@ -12,7 +12,7 @@
 
   let processing = false;
   let sharing = false;
-  let spoiler = post.nsfw;
+  let spoiler = false;
 
   let dataURL: string = "";
   let dataArr: Uint8Array;
@@ -158,6 +158,7 @@
     {:else}
       <img src={dataURL} alt={post.title} class:blur-lg={spoiler} />
     {/if}
+    {fileName}
   </section>
 
   {#if !processing}
