@@ -20,12 +20,33 @@ export async function convertToGif(gif : Uint8Array) : Promise<Uint8Array> {
     
     const ffmpeg = await getFFmpeg();
 
+    let fps = -1;
+    let scale = -1;
+
+    if (gif.byteLength >= 4 * 1024 * 1024)
+    {
+        console.log('Large GIF detected, minimising to reduce filesize')
+        fps = 10;
+        scale = 320;
+    } 
+    else if (gif.byteLength >= 1 * 1024 * 1024)
+    {
+        console.log('Medium GIF detected, minimising to reduce filesize')
+        fps = 15;
+        scale = 480;
+    }
+    
+    //`fps={fps},scale=${size}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+
     console.log('[2gif] combining...');
     await ffmpeg.FS('writeFile', 'video.mp4', gif);
     await ffmpeg.run(
         "-i", "video.mp4",
-        "-vf", "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
-        "-loop", "-1",
+        "-vf", 
+            (fps >= 0 ? `fps=${fps},` : '') + 
+            (scale >= 0 ? `scale=${scale}:-1:flags=lanczos,` : '') + 
+            `split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+        "-loop", "0",
         "output.gif"
     );
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { convertToGif } from "$lib/gif";
   import { downloadStream } from "$lib/process";
   import { rootDomain, type RedditPost, AllowedRootDomains } from "$lib/reddit";
   import {
@@ -13,6 +14,11 @@
   let processing = false;
   let sharing = false;
   let spoiler = false;
+
+  let videoURL: string = "";
+  let videoData: ArrayBuffer | null;
+  let gifPromise: Promise<Uint8Array> | null = null;
+  let gifDataUrl: string = "";
 
   let dataURL: string = "";
   let dataArr: Uint8Array;
@@ -109,6 +115,21 @@
     processing = false;
   }
 
+  async function convertMP4() {
+    gifPromise = (async () => {
+      if (videoData == null) {
+        console.log("downloading video data...");
+        videoData = await (await fetch(dataURL)).arrayBuffer();
+      }
+
+      const result = await convertToGif(new Uint8Array(videoData));
+      dataURL = URL.createObjectURL(new Blob([result]));
+      extension = "gif";
+      console.log("finished conversion", result, gifDataUrl);
+      return result;
+    })();
+  }
+
   async function share() {
     let shareData: ShareData;
     console.log("preparing to share...");
@@ -168,6 +189,18 @@
   {#if !processing}
     <footer class="card-footer">
       <a href={dataURL} download={fileName} class="btn variant-filled">Save</a>
+
+      {#if gifPromise == null && extension == "mp4"}
+        <button on:click={() => convertMP4()} class="btn variant-filled-surface"
+          >Convert to Gif</button
+        >
+      {:else if gifPromise != null}
+        {#await gifPromise}
+          converting...
+        {:then}
+          done
+        {/await}
+      {/if}
 
       {#if navigator.share != undefined}
         {#if !sharing}
