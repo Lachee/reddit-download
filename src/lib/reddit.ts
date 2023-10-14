@@ -2,7 +2,7 @@
 // source: https://github.com/Guuzzeji/vidzit-dl/blob/main/src/redditFetch.js
 import { XMLParser } from 'fast-xml-parser';
 
-export const rootDomain = (url : string) => (new URL(url)).hostname.split('.').reverse().splice(0,2).reverse().join('.')
+export const rootDomain = (url: string) => (new URL(url)).hostname.split('.').reverse().splice(0, 2).reverse().join('.')
 
 export const AllowedRootDomains = [
     'reddit.com',
@@ -13,25 +13,25 @@ export const AllowedRootDomains = [
 
 export type RedditPost = {
     /** The address the post points too */
-    url : string
+    url: string
     /** The permalink to the post */
-    permalink : string
+    permalink: string
     /** unique identifier for hte post */
-    name : string
+    name: string
     /** The post is marked NSFW */
     nsfw: boolean
     /** The subreddit it's from */
-    subreddit : string
+    subreddit: string
     /** Title of the post */
     title: string
     /** The base url for the vreddit videos */
-    vBaseUrl : string
+    vBaseUrl: string
     /** Preview image */
-    thumbnail : string,
+    thumbnail: string,
     /** Video & Audio streams */
-    streams : Streams|null
+    streams: Streams | null,
     /** Variants */
-    variants : Variants[]|null
+    variants: Variants[] | null,
 };
 
 export type Variants = {
@@ -42,29 +42,27 @@ export type Variants = {
 }
 
 export type Variant = {
-    url : string;
-    width : number;
-    height : number;
+    url: string;
+    width: number;
+    height: number;
 }
 
 export type Streams = {
-    video : Record<string, VideoStream>,
-    audio : Stream|null,
+    video: Record<string, VideoStream>,
+    audio: Stream | null,
 }
 export type Stream = {
-    type: "video"|"audio"
+    type: "video" | "audio"
     /** MP4 source URL */
     url: string
 }
 export type VideoStream = Stream & {
     type: "video",
     /** The format (dimension) of the video */
-    format : string,
+    format: string,
     /** Is this the largest sized video? */
-    maxFormat : boolean
+    maxFormat: boolean
 }
-
-
 
 export function trimParameters(url: string): string {
     const indexOfParam = url.indexOf("?");
@@ -75,26 +73,26 @@ export function trimParameters(url: string): string {
 }
 
 /** Follows any URL shortening that reddit does. */
-async function followPostURL(url : string) : Promise<string> {
+async function followPostURL(url: string): Promise<string> {
     const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
-    if (!shareLinkRegex.test(url)) 
+    if (!shareLinkRegex.test(url))
         return trimParameters(url);
 
     const response = await fetch('/follow?get=' + encodeURIComponent(url));
     url = await response.text();
     return trimParameters(url);
 }
-  
-export async function fetchPost(url : string) : Promise<RedditPost> {
-    
+
+export async function fetchPost(url: string): Promise<RedditPost> {
+
     // Fetching base url and dash file from reddit API
     // Return "was not video" error if it cannot find video urls 
     url = await followPostURL(url);
     const rawPost = await fetch(`${url}.json?raw_json=1`)
         .then(res => res.json())
         .then(dat => dat[0].data.children[0].data);
-        
-    const post : RedditPost = {
+
+    const post: RedditPost = {
         url: rawPost.url,
         permalink: `https://www.reddit.com${rawPost.permalink}`,
         name: rawPost.name,
@@ -104,9 +102,9 @@ export async function fetchPost(url : string) : Promise<RedditPost> {
 
         thumbnail: rawPost.thumbnail,
 
-        vBaseUrl:  rawPost.url,
+        vBaseUrl: rawPost.url,
         variants: null,
-        streams : null,
+        streams: null,
     }
 
     // We are not the root post, lets delve deeper if its a reddit post
@@ -117,9 +115,7 @@ export async function fetchPost(url : string) : Promise<RedditPost> {
 
     // Load the video
     if (isVideo(rawPost)) {
-        const dashURL = rawPost.secure_media.reddit_video.dash_url;
-        const dashFile = await fetch(dashURL).then(res => res.text());
-        post.streams = await parseDASH(dashFile, post.vBaseUrl);
+        post.streams = await parseStreamsAsync(rawPost);
     }
 
     // Load the GIF
@@ -130,10 +126,32 @@ export async function fetchPost(url : string) : Promise<RedditPost> {
     return post;
 }
 
-function parseDASH(mdpContents : string, baseURL : string) : Streams {
+async function parseStreamsAsync(xml : any): Promise<Streams> {    
+
+    if (xml.preview && xml.preview.reddit_video_preview) {
+        const stream = xml.preview.reddit_video_preview;
+        return {
+            audio: null,
+            video: {
+                "default": {
+                    format: "default",
+                    maxFormat: true,
+                    type: "video",
+                    url: stream.fallback_url
+                }
+            }
+        }
+    } 
+    
+    const dashURL = xml.secure_media.reddit_video.dash_url;
+    const dashFile = await fetch(dashURL).then(res => res.text());
+    return await parseDASH(dashFile, xml.url);
+}
+
+function parseDASH(mdpContents: string, baseURL: string): Streams {
     const parser = new XMLParser({ ignoreAttributes: false });
     const xmlObject = parser.parse(mdpContents);
-    const videoFormat : Record<string, VideoStream> = {};
+    const videoFormat: Record<string, VideoStream> = {};
 
     console.log(xmlObject);
 
@@ -150,14 +168,14 @@ function parseDASH(mdpContents : string, baseURL : string) : Streams {
     // Getting max video
     const maxStream = parseVideoStream(videoAdaptationSet, baseURL);
     videoFormat[maxStream.format] = maxStream;
-    
+
     return {
         video: videoFormat,
         audio: isAudioVideo ? parseAudioStream(audioAdaptationSet, baseURL) : null
     };
 }
 
-function parseVideoStream(xml : any, baseURL : string ) : VideoStream {
+function parseVideoStream(xml: any, baseURL: string): VideoStream {
     return {
         type: "video",
         url: (xml.BaseURL != undefined) ? `${baseURL}/${xml.BaseURL}` : `${baseURL}/DASH_${xml['@_maxHeight']}.mp4`,
@@ -166,15 +184,15 @@ function parseVideoStream(xml : any, baseURL : string ) : VideoStream {
     };
 }
 
-function parseAudioStream(xml : any, baseURL : string) : Stream {
+function parseAudioStream(xml: any, baseURL: string): Stream {
     return {
         type: "audio",
         url: `${baseURL}/${xml.Representation.BaseURL}`,
     };
 }
 
-function parseVariants(xml : any) : Variants[] {
-    return xml.preview.images.map((img : any) => {
+function parseVariants(xml: any): Variants[] {
+    return xml.preview.images.map((img: any) => {
         return {
             image: parseVariantCollection(img),
             gif: parseVariantCollection(img.variants.gif),
@@ -184,26 +202,28 @@ function parseVariants(xml : any) : Variants[] {
     });
 }
 
-function parseVariantCollection(collection : any) : Variant[] {
-    const list : Variant[] = [];
+function parseVariantCollection(collection: any): Variant[] {
+    const list: Variant[] = [];
     if (collection == null || collection == undefined)
         return list;
-    
+
     list.push(collection.source as Variant);
-    for(const v of collection.resolutions) {
+    for (const v of collection.resolutions) {
         list.push(v as Variant);
     }
     return list;
 }
 
+function isVideo(xml: any): boolean {
+    if (xml.preview && xml.preview.reddit_video_preview) 
+        return true;
 
-function isVideo(xml : any) : boolean {
     if (!xml.is_video || xml.secure_media == undefined || xml.secure_media == null) {
         return false;
     }
     return true;
 }
 
-function isImage(xml : any) : boolean {
+function isImage(xml: any): boolean {
     return xml.preview && xml.preview.images;
 }

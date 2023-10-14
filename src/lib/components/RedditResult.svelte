@@ -62,13 +62,13 @@
       extension = "mp4";
     } else {
       // Check if third-party gif actually exists.
-      // If not, we will need to default to a variant.
-      // == This is for IMGUR
+      // If it fails we need the default variants / previews
       if (!AllowedRootDomains.includes(domain)) {
         try {
-          console.log("validating if the third-party has the image still", {
-            domain,
-          });
+          console.log(
+            "validating if the third-party has the image still: ",
+            domain
+          );
           const response = await fetch(gif, { method: "HEAD" });
           gif = response.ok ? response.url : "";
         } catch (e) {
@@ -105,7 +105,7 @@
       }
     }
 
-    console.log(`processing recommends ${extension}:`, dataURL);
+    console.log(`processing recommends ${extension}:`, dataURL, post);
     processing = false;
   }
 
