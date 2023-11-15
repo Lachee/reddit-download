@@ -68,6 +68,7 @@
       >
     </div>
   </section>
+
   {#await resultPromise}
     <ProgressBar />
   {:then result}
@@ -76,15 +77,36 @@
     {:else if result?.redgif !== undefined}
       <RedGifResults gif={result.redgif} />
     {:else}
-      <p>Just paste your reddit link above and hit go!</p>
       <p>
         Your browser will download and process the videos / gifs. They will
-        appear here ready for sharing or saving to file.
-      </p>
-      <p>
+        appear here ready for sharing or saving to file.<br />
         <strong>"RapidSave" is garbage</strong>, don't use that adware, use this
         instead.
       </p>
     {/if}
   {/await}
+
+  <div class="block card card-hover p-4">
+    <header class="card-header">
+      <span class="h3">Hotlink Directly Here!</span>
+    </header>
+    <section class="p-4">
+      Add the <strong>DL-</strong> prefix to the <strong>reddit.com</strong>
+      to download the video quickly and easily!<br />
+      {#await resultPromise}
+        <code>https://www.dl-reddit.com/r/...</code>
+      {:then result}
+        {#if result?.reddit !== undefined}
+          <code
+            >{result?.reddit.permalink.replace(
+              "reddit.com",
+              "dl-reddit.com"
+            )}</code
+          >
+        {:else}
+          <code>https://www.dl-reddit.com/r/...</code>
+        {/if}
+      {/await}
+    </section>
+  </div>
 </div>
