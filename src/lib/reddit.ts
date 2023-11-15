@@ -152,13 +152,12 @@ function parseDASH(mdpContents: string, baseURL: string): Streams {
     const parser = new XMLParser({ ignoreAttributes: false });
     const xmlObject = parser.parse(mdpContents);
     const videoFormat: Record<string, VideoStream> = {};
-
-    console.log(xmlObject);
-
+    console.log('Parsing DASH file', xmlObject);
+    
     const isAudioVideo = xmlObject.MPD.Period.AdaptationSet.length > 0;
     const videoAdaptationSet = isAudioVideo ? xmlObject.MPD.Period.AdaptationSet[0] : xmlObject.MPD.Period.AdaptationSet;
     const audioAdaptationSet = isAudioVideo ? xmlObject.MPD.Period.AdaptationSet[1] : null;
-
+    
     // @ts-ignore
     videoAdaptationSet.Representation.forEach(element => {
         const stream = parseVideoStream(element, baseURL);
@@ -168,7 +167,7 @@ function parseDASH(mdpContents: string, baseURL: string): Streams {
     // Getting max video
     const maxStream = parseVideoStream(videoAdaptationSet, baseURL);
     videoFormat[maxStream.format] = maxStream;
-
+    
     return {
         video: videoFormat,
         audio: isAudioVideo ? parseAudioStream(audioAdaptationSet, baseURL) : null
@@ -184,10 +183,22 @@ function parseVideoStream(xml: any, baseURL: string): VideoStream {
     };
 }
 
-function parseAudioStream(xml: any, baseURL: string): Stream {
+function parseAudioStream(xml: any, baseURL: string): Stream|null {
+    let representation = xml.Representation;
+    if (representation == null) 
+        return null;
+
+    // If the audio representations are an array, we will get the last item from that arrray.
+    if (representation[0] !== undefined && typeof representation[0] === 'object' && representation.length) {        
+        representation = representation[representation.length - 1];        
+        if (representation == null) 
+            return null;
+    }
+
+    // Build the audio stream fromt he given representation
     return {
         type: "audio",
-        url: `${baseURL}/${xml.Representation.BaseURL}`,
+        url: `${baseURL}/${representation.BaseURL}`,
     };
 }
 
