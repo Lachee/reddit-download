@@ -18,6 +18,7 @@
     type Gif as RedGif,
   } from "$lib/redgifs";
   import RedGifResults from "$lib/components/RedGifResults.svelte";
+  import Footer from "$lib/components/Footer.svelte";
 
   export let data: PageData;
 
@@ -109,4 +110,5 @@
       {/await}
     </section>
   </div>
+  <Footer />
 </div>

@@ -9,11 +9,14 @@
   // Finally, your application's global stylesheet (sometimes labeled 'app.css')
   import "../app.postcss";
   import { AppShell } from "@skeletonlabs/skeleton";
+  import Footer from "$lib/components/Footer.svelte";
 </script>
 
 <AppShell>
   <slot />
-  <svelte:fragment slot="pageFooter"
-    ><div class="p-4">🏳️‍⚧️ Created by Lachee in 2023</div></svelte:fragment
-  >
+  <svelte:fragment slot="pageFooter">
+    <div class="container mx-auto p-8 space-y-8">
+      <!--<Footer />-->
+    </div>
+  </svelte:fragment>
 </AppShell>
