@@ -1,6 +1,7 @@
 import { AllowedRootDomains, rootDomain, trimParameters } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
 import { redgif } from '$lib/redgifs';
+import mime from 'mime-types';
 
 const AllowedThirdPartyDomains = [
     'imgur.com',
@@ -28,9 +29,11 @@ export const handle = (async ({ event, resolve }) => {
                 const fileName = url.searchParams.get('fileName') || (new URL(proxyUrl)).pathname.replace('/', '');
                 const response = await fetch(proxyUrl);
                 const body = await response.body;
+                
+                const contentType = mime.contentType(fileName) || response.headers.get('content-type') || 'image/gif';
                 return new Response(body, { 
                     headers: {
-                        'content-type': response.headers.get('content-type') || 'image/gif',
+                        'content-type':  contentType,
                         'content-disposition': `attachment;filename="${fileName}"`
                     }
                 });
