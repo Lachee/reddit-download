@@ -1,7 +1,8 @@
-import { AllowedRootDomains, rootDomain, trimParameters } from '$lib/reddit';
+import { RedditDomains } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
 import { redgif } from '$lib/redgifs';
 import mime from 'mime-types';
+import { rootDomain } from '$lib/helpers';
 
 const AllowedThirdPartyDomains = [
     'imgur.com',
@@ -24,7 +25,7 @@ export const handle = (async ({ event, resolve }) => {
                 // Download redgifs
                 const body = await redgif.downloadGif(proxyUrl);
                 return new Response(body);
-            } else if (AllowedRootDomains.includes(rootDomain(proxyUrl)) || AllowedThirdPartyDomains.includes(rootDomain(proxyUrl))) {
+            } else if (RedditDomains.includes(rootDomain(proxyUrl)) || AllowedThirdPartyDomains.includes(rootDomain(proxyUrl))) {
                 // Download other third-parties like imgur
                 const fileName = url.searchParams.get('fileName') || (new URL(proxyUrl)).pathname.replace('/', '');
                 const response = await fetch(proxyUrl);
@@ -42,7 +43,7 @@ export const handle = (async ({ event, resolve }) => {
 
         // Follows reddit links and gets their actual url
         if (url.pathname.startsWith('/follow')) {
-            if (AllowedRootDomains.includes(rootDomain(proxyUrl))) {
+            if (RedditDomains.includes(rootDomain(proxyUrl))) {
                 const response = await fetch(proxyUrl, { 
                     method: 'HEAD', 
                     redirect: 'follow' ,

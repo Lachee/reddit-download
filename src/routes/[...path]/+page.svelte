@@ -3,11 +3,7 @@
   import { page } from "$app/stores";
   import RedditResult from "$lib/components/RedditResult.svelte";
 
-  import {
-    fetchPost as fetchRedditPost,
-    rootDomain,
-    type RedditPost,
-  } from "$lib/reddit";
+  import { fetchPost as fetchRedditPost, type RedditPost } from "$lib/reddit";
 
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
@@ -19,6 +15,7 @@
   } from "$lib/redgifs";
   import RedGifResults from "$lib/components/RedGifResults.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import { rootDomain } from "$lib/helpers";
 
   export let data: PageData;
 

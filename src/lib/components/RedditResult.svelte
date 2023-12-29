@@ -1,7 +1,9 @@
 <script lang="ts">
+  import mime from "mime-types";
   import { convertToGif } from "$lib/gif";
+  import { extname, proxy, rootDomain } from "$lib/helpers";
   import { downloadStream } from "$lib/process";
-  import { rootDomain, type RedditPost, AllowedRootDomains } from "$lib/reddit";
+  import { type RedditPost, RedditDomains } from "$lib/reddit";
   import {
     ProgressBar,
     ProgressRadial,
@@ -20,9 +22,14 @@
   let gifPromise: Promise<Uint8Array> | null = null;
   let gifDataUrl: string = "";
 
+  /** the URL used to embed the content, either the data b64 encoded or a url to the data */
   let dataURL: string = "";
-  let dataArr: Uint8Array;
+  /** file type of the media */
   let extension: string = "";
+  /** cache copy of the media */
+  let dataArr: Uint8Array;
+
+  /** prefered filename of the media */
   let fileName = "";
   $: fileName = `${spoiler ? "SPOILER_" : ""}${
     post.name || post.title
@@ -30,89 +37,91 @@
   $: console.log("reddit post", post);
 
   onMount(() => {
-    const root = rootDomain(post.url);
-    const inRootDomain = AllowedRootDomains.includes(root);
-    console.log("inRoot?", root, inRootDomain);
-
+    processing = true;
     if (post.streams != null) {
-      console.log("processing stream");
-      processStream();
+      fetchStreamURL().then(() => (processing = false));
     } else {
-      console.log("processing reddit");
-      processGif();
+      fetchGifURL().then(() => (processing = false));
     }
   });
 
-  async function processStream() {
-    console.log("processing stream");
+  async function fetchStreamURL() {
     if (post.streams == null) return;
 
-    processing = true;
+    console.log("Fetching the stream data...", post.streams);
     dataArr = await downloadStream(post.streams);
     dataURL = URL.createObjectURL(new Blob([dataArr]));
     extension = "mp4";
-    processing = false;
   }
 
-  async function processGif() {
-    processing = true;
-    console.log("processing gif");
+  async function fetchGifURL() {
+    const name = post.name || post.title;
+    console.log("Fetching the image data...", name);
 
-    let gif = post.vBaseUrl;
+    // == RedGifs should just go straight the proxy
     const domain = rootDomain(post.url);
-
-    // If we are a redgif then lets just allow it
     if (domain.includes("redgif")) {
       console.log("User is submitting a redgif");
-      dataURL = `/download?get=${encodeURIComponent(gif)}`;
       extension = "mp4";
-    } else {
-      // Check if third-party gif actually exists.
-      // If it fails we need the default variants / previews
-      if (!AllowedRootDomains.includes(domain)) {
-        try {
-          console.log(
-            "validating if the third-party has the image still: ",
-            domain
-          );
-          const response = await fetch(gif, { method: "HEAD" });
-          gif = response.ok ? response.url : "";
-        } catch (e) {
-          console.warn(
-            "failed to validate the third-party image:",
-            (e as any).message
-          );
-          gif = "";
-        }
-      }
+      dataURL = proxy(post.vBaseUrl, `${name}.${extension}`);
+      return;
+    }
 
-      // If we are not hot linked, lets use a variant
-      if (!gif.endsWith(".gif")) {
-        if (post.variants == null || post.variants.length == 0) {
-          gif = post.thumbnail;
-        } else if (post.variants[0].gif.length) {
-          gif = post.variants[0].gif[0].url;
-        } else if (post.variants[0].mp4.length) {
-          gif = post.variants[0].mp4[0].url;
-        } else if (post.variants[0].image.length) {
-          gif = post.variants[0].image[0].url;
-        } else {
-          gif = post.thumbnail;
+    // == Third-Party gifs are manually searched and checked.
+    if (!RedditDomains.includes(domain)) {
+      try {
+        console.log(
+          "validating if the third-party has the image still: ",
+          domain
+        );
+        const response = await fetch(post.url, { method: "HEAD" });
+        if (response.ok) {
+          extension = extname(dataURL);
+          dataURL = proxy(response.url, `${name}.${extension}`);
+          return;
         }
-      }
-
-      if (gif != null) {
-        extension = "gif";
-        dataURL = `/download?get=${encodeURIComponent(
-          gif
-        )}&fileName=${encodeURIComponent(
-          `${post.name || post.title}.${extension}`
-        )}`;
+      } catch (e: any) {
+        console.warn("failed to validate the third-party image:", e.message);
       }
     }
 
-    console.log(`processing recommends ${extension}:`, dataURL, post);
-    processing = false;
+    // == We are not a hotlinked gif, lets find a variant
+    if (!post.vBaseUrl.endsWith(".gif")) {
+      let url = post.thumbnail || post.vBaseUrl;
+      let ext = extname(url);
+
+      if (post.variants != null && post.variants.length == 0) {
+        if (post.variants[0].gif.length) {
+          url = post.variants[0].gif[0].url;
+          ext = "gif";
+        } else if (post.variants[0].mp4.length) {
+          url = post.variants[0].mp4[0].url;
+          ext = "mp4";
+        } else if (post.variants[0].image.length) {
+          url = post.variants[0].image[0].url;
+          ext = extname(url);
+        }
+      }
+
+      extension = ext || extname(url) || "gif";
+      dataURL = proxy(url, `${name}.${extension}`);
+      console.log(
+        "-  Found data from one of the variants",
+        extension,
+        url,
+        dataURL
+      );
+    } else {
+      extension = extname(post.vBaseUrl);
+      dataURL = proxy(post.vBaseUrl, `${name}.${extension}`);
+
+      console.log(
+        "-  Found data from one of the variants",
+        extension,
+        post.vBaseUrl,
+        dataURL
+      );
+    }
   }
 
   async function convertMP4() {

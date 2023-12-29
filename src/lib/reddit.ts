@@ -2,9 +2,9 @@
 // source: https://github.com/Guuzzeji/vidzit-dl/blob/main/src/redditFetch.js
 import { XMLParser } from 'fast-xml-parser';
 
-export const rootDomain = (url: string) => (new URL(url)).hostname.split('.').reverse().splice(0, 2).reverse().join('.')
 
-export const AllowedRootDomains = [
+
+export const RedditDomains = [
     'reddit.com',
     'redd.it',
     'redditstatic.com',
@@ -92,9 +92,15 @@ export async function fetchPost(url: string): Promise<RedditPost> {
         .then(res => res.json())
         .then(dat => dat[0].data.children[0].data);
 
+    if (rawPost.crosspost_parent_list && rawPost.crosspost_parent_list.length > 0) {
+        const crossPost = rawPost.crosspost_parent_list[rawPost.crosspost_parent_list.length - 1];
+        return await fetchPost(`https://www.reddit.com${crossPost.permalink}`)
+    }
+
+    const permalink = `https://www.reddit.com${rawPost.permalink}`;
     const post: RedditPost = {
-        url: rawPost.url,
-        permalink: `https://www.reddit.com${rawPost.permalink}`,
+        url: rawPost.url || permalink,
+        permalink: permalink,
         name: rawPost.name,
         subreddit: rawPost.subreddit,
         title: rawPost.title,
