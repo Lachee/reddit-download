@@ -32,7 +32,15 @@ export type RedditPost = {
     streams: Streams | null,
     /** Variants */
     variants: Variants[] | null,
+    /** Sliding gallery of images */
+    carousel: Carousel[] | null,
 };
+
+export type Carousel = {
+    url : string;
+    position : [ number, number ];
+    type : string;
+}
 
 export type Variants = {
     image: Variant[],
@@ -97,6 +105,7 @@ export async function fetchPost(url: string): Promise<RedditPost> {
         return await fetchPost(`https://www.reddit.com${crossPost.permalink}`)
     }
 
+    console.log('fetched post', rawPost);
     const permalink = `https://www.reddit.com${rawPost.permalink}`;
     const post: RedditPost = {
         url: rawPost.url || permalink,
@@ -111,6 +120,7 @@ export async function fetchPost(url: string): Promise<RedditPost> {
         vBaseUrl: rawPost.url,
         variants: null,
         streams: null,
+        carousel: null
     }
 
     // Load the video
@@ -121,6 +131,11 @@ export async function fetchPost(url: string): Promise<RedditPost> {
     // Load the GIF
     if (isImage(rawPost)) {
         post.variants = parseVariants(rawPost);
+    }
+
+    // Load the coursoul
+    if (isCarousel(rawPost)) {
+        post.carousel = parseCarousel(rawPost);
     }
 
     return post;
@@ -203,7 +218,7 @@ function parseAudioStream(xml: any, baseURL: string): Stream|null {
 }
 
 function parseVariants(xml: any): Variants[] {
-    return xml.preview.images.map((img: any) => {
+    return xml?.prview?.images?.map((img: any) => {
         return {
             image: parseVariantCollection(img),
             gif: parseVariantCollection(img.variants.gif),
@@ -225,6 +240,18 @@ function parseVariantCollection(collection: any): Variant[] {
     return list;
 }
 
+function parseCarousel(post : any) : Carousel[] { 
+    const carousel : Carousel[] = [];
+    for(const metadata of Object.values(post.media_metadata) as any[]) {
+        carousel.push({
+            type: metadata.m,
+            position: [metadata.s.x, metadata.s.y],
+            url: metadata.s.gif || metadata.s.mp4 || metadata.s.u
+        });
+    }
+    return carousel;
+}
+
 function isVideo(xml: any): boolean {
     if (xml.preview && xml.preview.reddit_video_preview) 
         return true;
@@ -236,5 +263,9 @@ function isVideo(xml: any): boolean {
 }
 
 function isImage(xml: any): boolean {
-    return xml.preview && xml.preview.images;
+    return (xml.preview && xml.preview.images);
+}
+
+function isCarousel(xml : any) : boolean {
+    return xml.media_metadata && Object.keys(xml.media_metadata).length > 0;
 }
