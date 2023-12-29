@@ -79,6 +79,9 @@
           extension = extname(dataURL);
           dataURL = proxy(response.url, `${name}.${extension}`);
           return;
+        } else {
+          // FIXME: We will have to brute force the content
+          //        There is the /page but it is currently broken as it needs a login
         }
       } catch (e: any) {
         console.warn("failed to validate the third-party image:", e.message);
@@ -101,6 +104,9 @@
           url = post.variants[0].image[0].url;
           ext = extname(url);
         }
+      } else if (post.thumbnail == null || post.thumbnail == "default") {
+        // Variants are null, we have no thumbnail, likely no other information...
+        // We will brute force this damn url!
       }
 
       extension = ext || extname(url) || "gif";

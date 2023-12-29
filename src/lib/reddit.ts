@@ -113,12 +113,6 @@ export async function fetchPost(url: string): Promise<RedditPost> {
         streams: null,
     }
 
-    // We are not the root post, lets delve deeper if its a reddit post
-    if (!post.url.startsWith(post.permalink) && post.url.startsWith("https://www.reddit.com")) {
-        console.log('getting cross-post');
-        return await fetchPost(rawPost.url);
-    }
-
     // Load the video
     if (isVideo(rawPost)) {
         post.streams = await parseStreamsAsync(rawPost);
