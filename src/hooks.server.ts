@@ -1,12 +1,12 @@
 import type { Handle } from '@sveltejs/kit';
-import mime from 'mime-types';
 
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
-import { rootDomain } from '$lib/helpers';
+import { extname, rootDomain } from '$lib/helpers';
 import { redgif } from '$lib/redgifs';
 import { RedditDomains } from '$lib/reddit';
 import { type AuthToken, authenticate, getPost } from '$lib/reddit2';
 import { get, writable } from 'svelte/store';
+import { MIME } from '$lib/mime';
 
 // User-Agent because reddit will block CloudFlare's Worker user agent.
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
@@ -44,8 +44,9 @@ export const handle = (async ({ event, resolve }) => {
                     }
                 });
 
+                const ext = extname(fileName);
                 const body = await response.body;
-                const contentType = mime.contentType(fileName) || response.headers.get('content-type') || 'image/gif';
+                const contentType = MIME[ext] || response.headers.get('content-type') || 'image/gif';
                 return new Response(body, {
                     headers: {
                         'content-type': contentType,

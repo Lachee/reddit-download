@@ -1,5 +1,4 @@
 <script lang="ts">
-  import mime from "mime-types";
   import { convertToGif } from "$lib/gif";
   import { extname, proxyDownload, rootDomain } from "$lib/helpers";
   import { downloadStream } from "$lib/process";
