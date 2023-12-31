@@ -1,15 +1,22 @@
-import { RedditDomains } from '$lib/reddit';
 import type { Handle } from '@sveltejs/kit';
-import { redgif } from '$lib/redgifs';
 import mime from 'mime-types';
+
+import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { rootDomain } from '$lib/helpers';
+import { redgif } from '$lib/redgifs';
+import { RedditDomains } from '$lib/reddit';
+import { type AuthToken, authenticate, getPost } from '$lib/reddit2';
+import { get, writable } from 'svelte/store';
 
 // User-Agent because reddit will block CloudFlare's Worker user agent.
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
-
 const AllowedThirdPartyDomains = [
     'imgur.com',
 ]
+
+// State Management of the authentication.
+// It is done this way to allow hot reloading easier.
+let authentication = writable<AuthToken & { expires_at : number } | null>(null);
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;
@@ -31,7 +38,7 @@ export const handle = (async ({ event, resolve }) => {
             } else if (RedditDomains.includes(rootDomain(proxyUrl)) || AllowedThirdPartyDomains.includes(rootDomain(proxyUrl))) {
                 // Download other third-parties like imgur
                 const fileName = url.searchParams.get('fileName') || (new URL(proxyUrl)).pathname.replace('/', '');
-                const response = await fetch(proxyUrl, { 
+                const response = await fetch(proxyUrl, {
                     headers: {
                         "User-Agent": UserAgent,
                     }
@@ -39,9 +46,9 @@ export const handle = (async ({ event, resolve }) => {
 
                 const body = await response.body;
                 const contentType = mime.contentType(fileName) || response.headers.get('content-type') || 'image/gif';
-                return new Response(body, { 
+                return new Response(body, {
                     headers: {
-                        'content-type':  contentType,
+                        'content-type': contentType,
                         'content-disposition': `attachment;filename="${fileName}"`
                     }
                 });
@@ -51,9 +58,9 @@ export const handle = (async ({ event, resolve }) => {
         // Follows reddit links and gets their actual url
         if (url.pathname.startsWith('/follow')) {
             if (RedditDomains.includes(rootDomain(proxyUrl))) {
-                const response = await fetch(proxyUrl, { 
-                    method: 'HEAD', 
-                    redirect: 'follow' ,
+                const response = await fetch(proxyUrl, {
+                    method: 'HEAD',
+                    redirect: 'follow',
                     headers: {
                         "User-Agent": UserAgent,
                     }
@@ -65,20 +72,28 @@ export const handle = (async ({ event, resolve }) => {
         // We have to pull the page data from a post
         // This is theoretically possible, but account data needs to be included.
         // See the local test/TESTME.md for a example
-        if (url.pathname.startsWith('/page')) {
-            if (RedditDomains.includes(rootDomain(proxyUrl))) {
-                console.log(proxyUrl);
-                const response = await fetch(proxyUrl, { 
-                    method: 'GET', 
+        if (url.pathname.startsWith('/media')) {
+            if (proxyUrl.startsWith('/r/')) {
+
+                let auth = get(authentication);
+                if (auth == null || Date.now() >= auth.expires_at) {
+                    const authToken = await authenticate(BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
+                    if (authToken instanceof Error)
+                        return new Response(JSON.stringify({ error: authToken.message }), { headers: { 'content-type': 'application/json' } });
+
+                    auth = { ...authToken, expires_at: Date.now() + (authToken.expires_in*1000) };
+                    authentication.set(auth);
+                }
+
+                const post = await getPost(proxyUrl, {
+                    baseUrl: 'https://oauth.reddit.com',
                     headers: {
-                        "User-Agent": UserAgent,
-                        "Host": "www.reddit.com",
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+                        'User-Agent': 'LacheesClient/0.1 by Lachee',
+                        'Authorization': `${auth.token_type} ${auth.access_token}`
                     }
                 });
-                const text =  await response.text();
-                console.log(text.indexOf('external-preview'));
-                return new Response(text, { headers: { 'content-type': 'text/plain' } });
+
+                return new Response(JSON.stringify(post), { headers: { 'content-type': 'application/json' } });
             }
         }
     }

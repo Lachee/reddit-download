@@ -1,7 +1,7 @@
 <script lang="ts">
   import mime from "mime-types";
   import { convertToGif } from "$lib/gif";
-  import { extname, proxy, rootDomain } from "$lib/helpers";
+  import { extname, proxyDownload, rootDomain } from "$lib/helpers";
   import { downloadStream } from "$lib/process";
   import { type RedditPost, RedditDomains } from "$lib/reddit";
   import {
@@ -34,7 +34,7 @@
   $: fileName = `${spoiler ? "SPOILER_" : ""}${
     post.name || post.title
   }.${extension}`;
-  $: console.log("reddit post", post);
+  $: console.log("reddit post: ", post);
 
   onMount(() => {
     processing = true;
@@ -63,7 +63,7 @@
     if (domain.includes("redgif")) {
       console.log("User is submitting a redgif");
       extension = "mp4";
-      dataURL = proxy(post.vBaseUrl, `${name}.${extension}`);
+      dataURL = proxyDownload(post.vBaseUrl, `${name}.${extension}`);
       return;
     }
 
@@ -77,7 +77,7 @@
         const response = await fetch(post.url, { method: "HEAD" });
         if (response.ok) {
           extension = extname(dataURL);
-          dataURL = proxy(response.url, `${name}.${extension}`);
+          dataURL = proxyDownload(response.url, `${name}.${extension}`);
           return;
         } else {
           // FIXME: We will have to brute force the content
@@ -110,7 +110,7 @@
       }
 
       extension = ext || extname(url) || "gif";
-      dataURL = proxy(url, `${name}.${extension}`);
+      dataURL = proxyDownload(url, `${name}.${extension}`);
       console.log(
         "-  Found data from one of the variants",
         extension,
@@ -119,7 +119,7 @@
       );
     } else {
       extension = extname(post.vBaseUrl);
-      dataURL = proxy(post.vBaseUrl, `${name}.${extension}`);
+      dataURL = proxyDownload(post.vBaseUrl, `${name}.${extension}`);
 
       console.log(
         "-  Found data from one of the variants",

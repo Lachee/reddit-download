@@ -4,6 +4,7 @@
   import RedditResult from "$lib/components/RedditResult.svelte";
 
   import { fetchPost as fetchRedditPost, type RedditPost } from "$lib/reddit";
+  import { getPost as fetchImprovedPost } from "$lib/reddit2";
 
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
@@ -37,6 +38,9 @@
     const domain = rootDomain(searchBox);
     if (domain.includes("reddit")) {
       console.log("searching reddit post");
+      fetchImprovedPost(searchBox);
+
+      return;
       resultPromise = fetchRedditPost(searchBox).then((reddit) => {
         searchBox = reddit.permalink;
         return { reddit };
