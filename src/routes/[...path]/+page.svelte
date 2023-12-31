@@ -38,9 +38,9 @@
     const domain = rootDomain(searchBox);
     if (domain.includes("reddit")) {
       console.log("searching reddit post");
-      fetchImprovedPost(searchBox);
 
-      return;
+      // fetchImprovedPost(searchBox); return;
+
       resultPromise = fetchRedditPost(searchBox).then((reddit) => {
         searchBox = reddit.permalink;
         return { reddit };
