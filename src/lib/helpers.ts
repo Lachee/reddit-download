@@ -20,7 +20,8 @@ export function rootDomain(url: string) : string {
     return (new URL(url)).hostname.split('.').reverse().splice(0, 2).reverse().join('.');
 } 
 
-export function proxy(url : string|URL, fileName? : string) : string {
+/** Creates a download proxy url */
+export function proxyDownload(url : string|URL, fileName? : string) : string {
     if (typeof url !== 'string') 
         url = url.toString();
 
@@ -32,4 +33,15 @@ export function proxy(url : string|URL, fileName? : string) : string {
         params.fileName = fileName;
 
     return `/download?` + new URLSearchParams(params).toString();
+}
+
+/**
+ * Strips the query parameters
+ * @param url The URL to string the query from
+ * @returns 
+ */
+export function stripQueryParameters(url : string) : string {
+    const indexOfParam = url.indexOf("?");
+    if (indexOfParam > 0) return url.slice(0, indexOfParam - 1);
+    return url;
 }
