@@ -1,23 +1,34 @@
-import type { Stream, Streams, VideoStream } from '$lib/reddit'
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { getFFmpeg } from './gif';
 
-export async function downloadStream(streams: Streams, quality?: string): Promise<Uint8Array> {
+export type Stream = {
+    video : string;
+    audio? : string;
+}
+
+function log(...args: any[]) {
+    console.log('[STREAM]', ...args);
+}
+function warn(...args: any[]) {
+    console.warn('[STREAM]', ...args);
+}
+
+export async function downloadStream(stream : Stream): Promise<Uint8Array> {
 
     // If this is a video only stream, lets just download it immediately.
-    if (streams.audio == null)
-        return await downloadVideoFile(streams);
+    if (!stream.audio)
+        return await fetchFile(stream.video);
     
     // It's a audio video, so we need to combine them with FFMPEG
     const ffmpeg = await getFFmpeg();
-    console.log('[process]', 'downloading files...');
+
+    log('downloading files...');
     await Promise.all([
-        // @ts-ignore ignoring here because streams _is_ checked to ensure it's not null early.
-        loadAudioFile(ffmpeg, streams),
-        loadVideoFile(ffmpeg, streams)
+        loadAudioFile(ffmpeg, stream.audio),
+        loadVideoFile(ffmpeg, stream.video)
     ]);
 
-    console.log('[process]', 'combining files...');
+    log('combining files...');
     await ffmpeg.run(
         "-i",
         "video.mp4",
@@ -30,38 +41,26 @@ export async function downloadStream(streams: Streams, quality?: string): Promis
         "output.mp4"
     );
 
-    console.log('[process]', 'reading files...')
+    log('reading files...')
     return await ffmpeg.FS('readFile', 'output.mp4');
 }
 
 /** Loads the associated audio file. */
-async function loadAudioFile(ffmpeg: FFmpeg, streams: Streams & { audio : Stream }): Promise<void> {
-    const data = await fetchFile(streams.audio.url);
+async function loadAudioFile(ffmpeg: FFmpeg, file : string): Promise<void> {
+    const data = await fetchFile(file);
     await ffmpeg.FS('writeFile', 'audio.mp4', data);
 }
 
 /** Downloads and Loads the best video stream money can access (zero money to be precise) */
-async function loadVideoFile(ffmpeg: FFmpeg, streams: Streams): Promise<void> {
-    const data = await downloadVideoFile(streams);
+async function loadVideoFile(ffmpeg: FFmpeg, file : string): Promise<void> {
+    const data = await fetchFile(file);
     await ffmpeg.FS('writeFile', 'video.mp4', data);
 }
 
-async function downloadVideoFile(streams: Streams): Promise<Uint8Array> {
-    const videos = Object.values(streams.video).sort((a, b) => (+b.format) - (+a.format));
-    for (const video of videos) {
-        try {
-            return await fetchFile(video.url);
-        } catch(e) {
-            // @ts-ignore
-            console.warn('[process]', 'Failed to download video.', e.message);
-        }
-    }
-    throw new Error('Failed to download any video stream');
-}
 
 /* Fetches the file. Similar to FFMPEG's but it actually throws exceptions. */
 async function fetchFile(input: RequestInfo | URL, init?: RequestInit | undefined) : Promise<Uint8Array> {
-    console.log('[process]', 'downloading: ', input);
+    log('downloading: ', input);
     const response = await fetch(input, init);
     if (response.status != 200)
         throw new Error(`HTTP Exception ${response.status}: ${response.statusText}`);

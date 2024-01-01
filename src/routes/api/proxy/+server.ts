@@ -2,13 +2,13 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { validateUrl, extname, UserAgent } from '$lib/helpers';
 import { MIME } from '$lib/mime';
-import { RedditDomains } from '$lib/reddit';
+import { Domains } from '$lib/reddit2';
 
 
 export const GET: RequestHandler = async (request) => {
     const query = request.url.searchParams;
 
-    const href = validateUrl(query.get('href') || '', ['imgur.com', 'redgifs.com', ...RedditDomains]);
+    const href = validateUrl(query.get('href') || '', ['imgur.com', 'redgifs.com', ...Domains]);
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
