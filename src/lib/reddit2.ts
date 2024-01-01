@@ -2,6 +2,7 @@ import { UserAgent, extname, stripQueryParameters, validateUrl } from './helpers
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
+import { writable } from 'svelte/store';
 
 /** Root Domains reddit operates */
 export const Domains = [
@@ -63,6 +64,25 @@ export type Media = {
     dimension?: { width: number, height?: number }
 }
 
+
+
+/** Authorization Tokens */
+export type AuthToken = RedditAuthToken & {
+    expires_at : number;
+}
+type RedditAuthToken = {
+    access_token: string;
+    scope: string;
+    token_type: string;
+    expires_in: number;
+}
+
+/** Configuration for HTTP requests to reddit */
+export type ReqInit = {
+    baseUrl: string;
+    headers: Record<string, string>;
+}
+
 function debug(...args: any[]) {
     if (browser) log(...args);
 }
@@ -74,31 +94,31 @@ function error(...args: any[]) {
 }
 
 /** Follows the shortened links */
-export async function follow(href: string): Promise<URL> {
+export async function follow(href: string, init? : ReqInit): Promise<URL> {
     const url = validateUrl(href, Domains);
     if (url === null)
         throw new Error('cannot follow an invalid URL');
 
     const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
     if (shareLinkRegex.test(url.toString())) {
+        
         // The browser cannot follow the link because CORS,
         // so instead, we will make a request to the API to follow the link.
         if (browser) {
             log(`requesting shorthand ${url}`);
             const shorthand = await fetch('/api/reddit/follow?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+            log('shorthand response:', shorthand);
             return new URL(shorthand.href);
         }
 
 
         log(`following shorthand ${url}`);
-        const response = await fetch(href, {
+        if (!init) init = { baseUrl: url.origin, headers: { 'User-Agent': UserAgent  } };
+        const response = await fetch(`${init.baseUrl}${url.pathname}`, {
             method: 'HEAD',
             redirect: 'follow',
-            headers: { 'User-Agent': UserAgent }
+            headers: init.headers
         });
-
-        if (response.status !== 200)
-            throw new Error('Failed to follow the shorthand url');
 
         return new URL(response.url);
     }
@@ -106,15 +126,12 @@ export async function follow(href: string): Promise<URL> {
     return url;
 }
 
-export type AuthToken = {
-    access_token: string;
-    expires_in: number;
-    scope: string;
-    token_type: string;
-}
+// State Management of the authentication.
+// It is done this way to allow hot reloading easier.
+export const authentication = writable<AuthToken & { expires_at: number } | null>(null);
 
 /** Authenticates the API for oauth2 usage. */
-export async function authenticate(username: string, password: string, clientId: string, clientSecret: string): Promise<AuthToken | Error> {
+export async function authenticate(username: string, password: string, clientId: string, clientSecret: string): Promise<AuthToken> {
     const form = new FormData();
     form.append('grant_type', 'password');
     form.append('username', username);
@@ -130,15 +147,14 @@ export async function authenticate(username: string, password: string, clientId:
         },
     }).then(r => r.json());
 
-    if ('error' in response)
-        return new Error(response.error);
+    if ('error' in response) {
+        error('failed to authenticate', response);
+        throw new Error(response.error);
+    }
 
-    return response as AuthToken;
-}
-
-export type PostReqInit = {
-    baseUrl: string;
-    headers: Record<string, string>;
+    const authToken : AuthToken = { ...response, expires_at: Date.now() + (response.expires_in * 1000) };
+    authentication.set(authToken);
+    return authToken;
 }
 
 /**
@@ -146,9 +162,9 @@ export type PostReqInit = {
  * @param url the link to the reddit post
  * @returns 
  */
-export async function getPost(link: string, init?: PostReqInit): Promise<Post> {
+export async function getPost(link: string, init?: ReqInit): Promise<Post> {
     // Prepare the request settings.
-    const url = await follow(link);
+    const url = await follow(link, init);
 
     let request: Promise<Response | fetchJsonp.Response>;
 
