@@ -1,6 +1,7 @@
 import { UserAgent, extname, stripQueryParameters, validateUrl } from './helpers';
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
+import fetchJsonp from 'fetch-jsonp';
 
 /** Root Domains reddit operates */
 export const Domains = [
@@ -75,14 +76,14 @@ function error(...args: any[]) {
 /** Follows the shortened links */
 export async function follow(href: string): Promise<URL> {
     const url = validateUrl(href, Domains);
-    if (url === null) 
+    if (url === null)
         throw new Error('cannot follow an invalid URL');
-    
+
     const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
     if (shareLinkRegex.test(url.toString())) {
         // The browser cannot follow the link because CORS,
         // so instead, we will make a request to the API to follow the link.
-        if (browser) {  
+        if (browser) {
             log(`requesting shorthand ${url}`);
             const shorthand = await fetch('/api/reddit/follow?href=' + encodeURIComponent(url.toString())).then(r => r.json());
             return new URL(shorthand.href);
@@ -96,7 +97,7 @@ export async function follow(href: string): Promise<URL> {
             headers: { 'User-Agent': UserAgent }
         });
 
-        if (response.status !== 200) 
+        if (response.status !== 200)
             throw new Error('Failed to follow the shorthand url');
 
         return new URL(response.url);
@@ -148,25 +149,30 @@ export type PostReqInit = {
 export async function getPost(link: string, init?: PostReqInit): Promise<Post> {
     // Prepare the request settings.
     const url = await follow(link);
-    if (init == null) {
-        init = {
-            baseUrl: url.origin,
-            headers: {}
-        };
+
+    let request: Promise<Response | fetchJsonp.Response>;
+
+    // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
+    if (browser && !init) {
+        request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
+        log('getting reddit post via jsonp');
+    } else {
+        if (!init) init = { baseUrl: url.origin, headers: {} };
+        request = fetch(`${init.baseUrl}${url.pathname}.json?raw_json=1`, { headers: init.headers });
+        log('getting reddit post via fetch');
     }
 
-    // fetch a regular post
-    const postShortlink = url.pathname;
-    log('fetching', `${init.baseUrl}${postShortlink}.json?raw_json=1`);
-    let data = await fetch(`${init.baseUrl}${postShortlink}.json?raw_json=1`, { headers: init.headers })
-                .then(res => res.json())
-                .then(dat => dat[0].data.children[0].data)
-                .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
-                .catch(cor => cor);
+    // Await the request
+    const data = await request
+        .then(res => res.json())
+        .then(dat => dat[0].data.children[0].data)
+        .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
+        .catch(cor => cor);
 
     // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
     if (browser && (data instanceof Error || !('preview' in data))) {
-        const post = await fetch(`/media?get=${encodeURIComponent(postShortlink)}`)
+        log('getting reddit post via proxy');
+        const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
             .then(res => res.json());
 
         log('downloaded post: ', post);
@@ -251,8 +257,8 @@ async function getAllMediaVariantCollections(data: unknown): Promise<MediaVarian
         const previewCollection = getPreviewCollection(data.preview);
         if (previewCollection.length > 0)
             collections.push(previewCollection);
-    }    
-    
+    }
+
     // post.secure_media
     if ('secure_media' in data && data.secure_media != null && typeof data.secure_media === 'object') {
         if ('url' in data && typeof data.url === 'string') {
@@ -372,7 +378,7 @@ async function getSecureMediaCollectionAsync(secureMedia: unknown, baseUrl: stri
 }
 /** parses a DASH file and gets the collection */
 function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCollection {
-    const collection : MediaVariantCollection = [];
+    const collection: MediaVariantCollection = [];
     const parser = new XMLParser({ ignoreAttributes: false });
     const document = parser.parse(mpdContent);
     log('parsed MPD, covnerting to MediaVariantCollection', browser ? document : '');
@@ -381,7 +387,7 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
         error('mpd file does not contain the root level MPD object', document);
         return [];
     }
-    
+
     // At this point i gave up on type checking. This hasnt failed yet.
     const MPD = document.MPD;
     const isAudioVideo = MPD.Period.AdaptationSet.length > 0;
@@ -390,7 +396,7 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
 
     // Add video sources
     if ('Representation' in videoAdaptationSet && Array.isArray(videoAdaptationSet.Representation)) {
-        for(const representation of videoAdaptationSet.Representation) {
+        for (const representation of videoAdaptationSet.Representation) {
             let url = `${baseUrl}/DASH_${representation['@_maxHeight']}.mp4`;
             if ('BaseURL' in representation && typeof representation.BaseURL === 'string') {
                 url = `${baseUrl}/${representation.BaseURL}`;
@@ -410,7 +416,7 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
 
     // Add Audio Sources
     if ('Representation' in audioAdaptationSet && Array.isArray(audioAdaptationSet.Representation)) {
-        for(const representation of audioAdaptationSet.Representation) {
+        for (const representation of audioAdaptationSet.Representation) {
             collection.push({
                 mime: 'audio/mp4',
                 variant: Variant.PartialAudio,
