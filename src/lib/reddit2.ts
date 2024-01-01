@@ -4,6 +4,9 @@ import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
 import { writable } from 'svelte/store';
 
+/** Enables the MP4 previews that are generated from gifs */
+const INCLUDE_MP4_IN_VARIANTS = false;
+
 /** Root Domains reddit operates */
 export const Domains = [
     'reddit.com',
@@ -228,7 +231,7 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
     }
 
     // Parse the url_overriden_by_dest. This maybe a special case
-    if ('url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
+    if (post.media.length == 0 && 'url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
         const overridden: string = data.url_overridden_by_dest;
         if (overridden.includes('.', overridden.lastIndexOf('/'))) {
             const collection: MediaVariantCollection = [];
@@ -472,7 +475,7 @@ function getPreviewImageCollection(images: any): MediaVariantCollection {
     if ('variants' in images && images.variants != null && typeof images.variants === 'object') {
         if ('gif' in images.variants && images.variants.gif != null && typeof images.variants.gif === 'object')
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.gif, 'image/gif', Variant.GIF));
-        if ('mp4' in images.variants && images.variants.mp4 != null && typeof images.variants.mp4 === 'object')
+        if (INCLUDE_MP4_IN_VARIANTS && 'mp4' in images.variants && images.variants.mp4 != null && typeof images.variants.mp4 === 'object')
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.mp4, 'video/mp4', Variant.Video));
     }
 
@@ -505,7 +508,6 @@ function getPreviewImageCollectionFromObject(images: any, mime: Mime, variant: V
 
     // All the small thumbnails
     if ('resolutions' in images && images.resolutions != null && Array.isArray(images.resolutions)) {
-        debug('resolutions', images.resolutions);
         for (const obj of images.resolutions) {
             const resMedia = parseMediaObject(obj, mime, variant);
             if (resMedia) collection.push(resMedia);

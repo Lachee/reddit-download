@@ -84,27 +84,9 @@
     return best;
   }
 
-  function moveCarousel(direction: "left" | "right"): void {
-    let x = 0;
-    if (direction === "left") {
-      x =
-        elemCarousel.scrollLeft === 0
-          ? elemCarousel.clientWidth * elemCarousel.childElementCount // loop
-          : elemCarousel.scrollLeft - elemCarousel.clientWidth; // step left
-    } else {
-      x =
-        elemCarousel.scrollLeft ===
-        elemCarousel.scrollWidth - elemCarousel.clientWidth
-          ? 0 // loop
-          : elemCarousel.scrollLeft + elemCarousel.clientWidth; // step right
-    }
-    elemCarousel.scroll(x, 0);
-  }
   function jumpCarousel(index: number) {
-    console.log(elemCarousel.clientWidth, elemCarousel.clientWidth * index);
     const child = elemCarousel.children.item(index) as HTMLElement;
     if (child == null) return;
-    console.log(child);
     child.scrollIntoView({ block: "nearest", inline: "center" });
   }
 </script>
