@@ -348,7 +348,7 @@ function getMediaMetadataMediaFromObject(data: unknown, defaultMime: Mime, defau
 
     // Ensure all the properties are set. 
     // We do an as cast because typescript is dumb
-    if ('url' in media && 'mime' in media && 'variant' in media)
+    if ('href' in media && 'mime' in media && 'variant' in media)
         return media as Media;
 
     error('missing critical fields in the media from the metadata', media, data);
