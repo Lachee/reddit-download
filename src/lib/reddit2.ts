@@ -1,4 +1,4 @@
-import { extname, stripQueryParameters } from './helpers';
+import { UserAgent, extname, stripQueryParameters, validateUrl } from './helpers';
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 
@@ -73,18 +73,36 @@ function error(...args: any[]) {
 }
 
 /** Follows the shortened links */
-async function follow(url: string): Promise<string> {
-    if (url.startsWith('/r/'))
-        url = `https://www.reddit.com${url}`;
-
+export async function follow(href: string): Promise<URL> {
+    const url = validateUrl(href, Domains);
+    if (url === null) 
+        throw new Error('cannot follow an invalid URL');
+    
     const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
-    if (!shareLinkRegex.test(url))
-        return stripQueryParameters(url);
+    if (shareLinkRegex.test(url.toString())) {
+        // The browser cannot follow the link because CORS,
+        // so instead, we will make a request to the API to follow the link.
+        if (browser) {  
+            log(`requesting shorthand ${url}`);
+            const shorthand = await fetch('/api/reddit/follow?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+            return new URL(shorthand.href);
+        }
 
-    log('following shorthand', url);
-    const response = await fetch('/follow?get=' + encodeURIComponent(url));
-    url = await response.text();
-    return stripQueryParameters(url);
+
+        log(`following shorthand ${url}`);
+        const response = await fetch(href, {
+            method: 'HEAD',
+            redirect: 'follow',
+            headers: { 'User-Agent': UserAgent }
+        });
+
+        if (response.status !== 200) 
+            throw new Error('Failed to follow the shorthand url');
+
+        return new URL(response.url);
+    }
+
+    return url;
 }
 
 export type AuthToken = {
@@ -127,24 +145,24 @@ export type PostReqInit = {
  * @param url the link to the reddit post
  * @returns 
  */
-export async function getPost(url: string, init?: PostReqInit): Promise<Post> {
-    url = await follow(url);
-
+export async function getPost(link: string, init?: PostReqInit): Promise<Post> {
+    // Prepare the request settings.
+    const url = await follow(link);
     if (init == null) {
         init = {
-            baseUrl: 'https://www.reddit.com',
+            baseUrl: url.origin,
             headers: {}
         };
     }
 
     // fetch a regular post
-    const postShortlink = url.substring(url.indexOf('/r/'));
-    log('fetching', postShortlink);
+    const postShortlink = url.pathname;
+    log('fetching', `${init.baseUrl}${postShortlink}.json?raw_json=1`);
     let data = await fetch(`${init.baseUrl}${postShortlink}.json?raw_json=1`, { headers: init.headers })
-        .then(res => res.json())
-        .then(dat => dat[0].data.children[0].data)
-        .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
-        .catch(cor => cor);
+                .then(res => res.json())
+                .then(dat => dat[0].data.children[0].data)
+                .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
+                .catch(cor => cor);
 
     // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
     if (browser && (data instanceof Error || !('preview' in data))) {
