@@ -89,6 +89,13 @@
     if (child == null) return;
     child.scrollIntoView({ block: "nearest", inline: "center" });
   }
+
+  function onImageError(evt: Event) {
+    const elm = evt.target;
+    if (elm == null || !(elm instanceof HTMLImageElement)) return;
+    if (elm.src.startsWith("/")) return;
+    elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
+  }
 </script>
 
 <h3>{post.title}</h3>
@@ -103,6 +110,7 @@
           <img
             class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
             src={media.thumbnail?.href}
+            on:error={onImageError}
             alt="thumbnail"
             loading="lazy"
           />
