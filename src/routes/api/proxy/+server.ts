@@ -22,7 +22,7 @@ export const GET: RequestHandler = async (request) => {
     const fileExt = extname(fileName);
 
     // Fetch the content
-    const response = await fetch(href, { headers: { 'User-Agent': UserAgent } });
+    const response = await fetch(href, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
     const body = await response.body;
     if (response.status != 200)
         return new Response(body, { status: response.status });

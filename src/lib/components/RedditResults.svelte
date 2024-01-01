@@ -5,6 +5,7 @@
   import { downloadStream } from "$lib/process";
   import { type Post, type Media, Variant } from "$lib/reddit2";
   import RedditMedia from "./RedditMedia.svelte";
+  import { extmime } from "$lib/mime";
 
   let elemCarousel: HTMLDivElement;
   const unsplashIds = [
@@ -93,7 +94,7 @@
   function onImageError(evt: Event) {
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
-    if (elm.src.startsWith("/")) return;
+    if (elm.src.includes("/api/proxy")) return;
     elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
   }
 </script>
@@ -123,15 +124,18 @@
       bind:this={elemCarousel}
       class="snap-x snap-mandatory scroll-smooth flex gap-4 overflow-x-auto"
     >
-      {#each collection as media}
+      {#each collection as media, i}
         <div class="snap-start shrink-0 card w-[100%] text-center">
-          <RedditMedia {media} />
+          <RedditMedia {media} fileName="{post.id}_{i}.{extmime(media.mime)}" />
         </div>
       {/each}
     </div>
   {:else}
     <div class="card p-4">
-      <RedditMedia media={collection[0]} />
+      <RedditMedia
+        media={collection[0]}
+        fileName="{post.id}.{extmime(collection[0].mime)}"
+      />
     </div>
   {/if}
 {/await}

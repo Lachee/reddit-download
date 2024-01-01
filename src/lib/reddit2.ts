@@ -6,6 +6,7 @@ import { writable } from 'svelte/store';
 
 /** Enables the MP4 previews that are generated from gifs */
 const INCLUDE_MP4_IN_VARIANTS = false;
+const USE_JSONP = false;
 
 /** Root Domains reddit operates */
 export const Domains = [
@@ -16,6 +17,8 @@ export const Domains = [
 ];
 
 export type Post = {
+    /** ID of the reddit post */
+    id : string;
     /** The address the post points too */
     url: URL
     /** The permalink to the post */
@@ -172,7 +175,7 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
     let request: Promise<Response | fetchJsonp.Response>;
 
     // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
-    if (browser && !init) {
+    if (USE_JSONP && browser && !init) {
         request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
         log('getting reddit post via jsonp');
     } else {
@@ -188,8 +191,11 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
         .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
         .catch(cor => cor);
 
+        
     // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
-    if (browser && (data instanceof Error || !('preview' in data))) {
+    // We are checking for preview because if they aint giving us that they probably gonna be stingy fucks
+    // ( removing the preview check breaks  https://www.reddit.com/r/egg_irl/comments/18vimr6/egg_irl/ ??? )
+    if (browser && (data instanceof Error )) {
         log('getting reddit post via proxy');
         const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
             .then(res => res.json());
@@ -205,6 +211,7 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
     debug('downloaded json, parsing: ', data);
     const permalink = `https://www.reddit.com${data.permalink}`;
     const post: Post = {
+        id: data.id,
         url: new URL(data.url || permalink),
         permalink: new URL(permalink),
         name: data.name,
@@ -231,10 +238,9 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
     }
 
     // Parse the url_overriden_by_dest. This maybe a special case
-    if (post.media.length == 0 && 'url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
+    if ('url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
         const overridden: string = data.url_overridden_by_dest;
         if (overridden.includes('.', overridden.lastIndexOf('/'))) {
-            const collection: MediaVariantCollection = [];
             const ext = extname(overridden);
             const media: Media = {
                 mime: 'image/' + (ext == 'jpg' ? 'jpeg' : ext) as Mime,
@@ -247,8 +253,11 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
                 media.mime = 'video/mp4';
                 media.variant = Variant.Video;
             }
-            collection.push(media);
-            post.media.push(collection);
+            
+            if (post.media.length == 0) 
+                post.media.push([]);
+            
+            post.media[0].push(media);
         }
     }
 
