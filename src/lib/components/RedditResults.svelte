@@ -60,21 +60,19 @@
         );
 
         // We have an audio component so we need to combine them.
-        if (audio) {
-          const videoData = await downloadStream({
-            video: video.href,
-            audio: audio?.href,
-          });
+        const videoData = await downloadStream({
+          video: video.href,
+          audio: audio?.href,
+        });
 
-          // Push the new media
-          best.push({
-            mime: "video/mp4",
-            variant: Variant.Video,
-            dimension: video.dimension,
-            href: URL.createObjectURL(new Blob([videoData])),
-          });
-          continue;
-        }
+        // Push the new media
+        best.push({
+          mime: "video/mp4",
+          variant: Variant.Video,
+          dimension: video.dimension,
+          href: URL.createObjectURL(new Blob([videoData])),
+        });
+        continue;
       }
 
       let thumbnail = collection.find((m) => m.variant == Variant.Thumbnail);

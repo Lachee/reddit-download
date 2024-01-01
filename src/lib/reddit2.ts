@@ -443,7 +443,7 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
     }
 
     // Add Audio Sources
-    if ('Representation' in audioAdaptationSet && Array.isArray(audioAdaptationSet.Representation)) {
+    if (audioAdaptationSet && 'Representation' in audioAdaptationSet && Array.isArray(audioAdaptationSet.Representation)) {
         for (const representation of audioAdaptationSet.Representation) {
             collection.push({
                 mime: 'audio/mp4',
