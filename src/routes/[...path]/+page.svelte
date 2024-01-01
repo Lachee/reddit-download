@@ -1,22 +1,23 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
-  import RedditResult from "$lib/components/RedditResult.svelte";
-
-  import { fetchPost as fetchRedditPost, type RedditPost } from "$lib/reddit";
-  import { getPost as fetchImprovedPost } from "$lib/reddit2";
-
-  import { ProgressBar } from "@skeletonlabs/skeleton";
+  // # Svelte
   import { onMount } from "svelte";
+  import { page } from "$app/stores";
   import type { PageData } from "./$types";
+
+  // # Library
   import {
-    fetchProxy as fetchRedGif,
-    redgif,
-    type Gif as RedGif,
-  } from "$lib/redgifs";
-  import RedGifResults from "$lib/components/RedGifResults.svelte";
+    type Post as RedditPost,
+    getPost as fetchRedditPost,
+  } from "$lib/reddit2";
+  import { fetchProxy as fetchRedGif, type Gif as RedGif } from "$lib/redgifs";
+  import { rootHostname } from "$lib/helpers";
+
+  // # Components
+  import { ProgressBar } from "@skeletonlabs/skeleton";
   import Footer from "$lib/components/Footer.svelte";
-  import { rootDomain } from "$lib/helpers";
+  import RedGifResults from "$lib/components/RedGifResults.svelte";
+  import RedditResults from "$lib/components/RedditResults.svelte";
+  import Searchbox from "$lib/components/Searchbox.svelte";
 
   export let data: PageData;
 
@@ -35,18 +36,17 @@
   });
 
   function search() {
-    const domain = rootDomain(searchBox);
+    const domain = rootHostname(searchBox);
     if (domain.includes("reddit")) {
-      console.log("searching reddit post");
-
-      // fetchImprovedPost(searchBox); return;
-
+      console.log("searching reddit", searchBox);
       resultPromise = fetchRedditPost(searchBox).then((reddit) => {
-        searchBox = reddit.permalink;
+        searchBox = reddit.permalink.toString();
         return { reddit };
       });
-    } else if (domain.includes("redgif")) {
-      console.log("searching redgif");
+    }
+
+    if (domain.includes("redgif")) {
+      console.log("searching redgif", searchBox);
       resultPromise = fetchRedGif(searchBox).then((redgif) => {
         return { redgif };
       });
@@ -57,25 +57,17 @@
 <div class="container mx-auto p-8 space-y-8">
   <h1 class="h1">Reddit Downloader</h1>
   <p>Download Reddit videos & gifs without the ads!</p>
-  <section>
-    <div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
-      <div class="input-group-shim">🔗</div>
-      <input
-        type="search"
-        placeholder="reddit.com/r/..."
-        bind:value={searchBox}
-      />
-      <button class="variant-filled-secondary" on:click={() => search()}
-        >Go</button
-      >
-    </div>
-  </section>
+  <Searchbox
+    bind:value={searchBox}
+    placeholder="reddit.com/r/..."
+    on:click={() => search()}
+  />
 
   {#await resultPromise}
     <ProgressBar />
   {:then result}
     {#if result?.reddit !== undefined}
-      <RedditResult post={result.reddit} />
+      <RedditResults post={result.reddit} />
     {:else if result?.redgif !== undefined}
       <RedGifResults gif={result.redgif} />
     {:else}
@@ -99,12 +91,7 @@
         <code>https://www.dl-reddit.com/r/...</code>
       {:then result}
         {#if result?.reddit !== undefined}
-          <code
-            >{result?.reddit.permalink.replace(
-              "reddit.com",
-              "dl-reddit.com"
-            )}</code
-          >
+          <code>https://dl-reddit.com{result?.reddit.permalink.pathname}</code>
         {:else}
           <code>https://www.dl-reddit.com/r/...</code>
         {/if}

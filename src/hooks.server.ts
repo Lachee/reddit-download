@@ -13,5 +13,7 @@ export const handle = (async ({ event, resolve }) => {
         }
     }
 
-    return await resolve(event);
+    const response = await resolve(event);
+    response.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    return response;
 }) satisfies Handle;
