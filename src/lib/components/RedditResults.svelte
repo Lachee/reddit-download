@@ -4,6 +4,17 @@
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { downloadStream } from "$lib/process";
   import { type Post, type Media, Variant } from "$lib/reddit2";
+  import RedditMedia from "./RedditMedia.svelte";
+
+  let elemCarousel: HTMLDivElement;
+  const unsplashIds = [
+    "vjUokUWbFOs",
+    "1aJuPtQJX_I",
+    "Jp6O3FFRdEI",
+    "I3C_eojFVQY",
+    "s0fXOuyTH1M",
+    "z_X0PxmBuIQ",
+  ];
 
   const VariantOrder = [
     Variant.PartialVideo,
@@ -18,13 +29,15 @@
   export let post: Post;
   let spoiler = false;
 
-  let media: Promise<Media[]> = new Promise<Media[]>(() => {});
+  type BestMedia = Media & { thumbnail?: Media };
+
+  let media: Promise<BestMedia[]> = new Promise<BestMedia[]>(() => {});
   onMount(() => {
     media = findBestMedia();
   });
 
-  async function findBestMedia(): Promise<Media[]> {
-    const best: Media[] = [];
+  async function findBestMedia(): Promise<BestMedia[]> {
+    const best: BestMedia[] = [];
     for (const collection of post.media) {
       // Sort the collection by the variant type and then the dimensions
       collection.sort(
@@ -63,15 +76,36 @@
         }
       }
 
-      best.push(collection[0]);
+      let thumbnail = collection.find((m) => m.variant == Variant.Thumbnail);
+      best.push({ ...collection[0], thumbnail });
     }
 
     console.log("best content", best);
     return best;
   }
 
-  function onImageError(evt: Event) {
-    console.log("error", evt);
+  function moveCarousel(direction: "left" | "right"): void {
+    let x = 0;
+    if (direction === "left") {
+      x =
+        elemCarousel.scrollLeft === 0
+          ? elemCarousel.clientWidth * elemCarousel.childElementCount // loop
+          : elemCarousel.scrollLeft - elemCarousel.clientWidth; // step left
+    } else {
+      x =
+        elemCarousel.scrollLeft ===
+        elemCarousel.scrollWidth - elemCarousel.clientWidth
+          ? 0 // loop
+          : elemCarousel.scrollLeft + elemCarousel.clientWidth; // step right
+    }
+    elemCarousel.scroll(x, 0);
+  }
+  function jumpCarousel(index: number) {
+    console.log(elemCarousel.clientWidth, elemCarousel.clientWidth * index);
+    const child = elemCarousel.children.item(index) as HTMLElement;
+    if (child == null) return;
+    console.log(child);
+    child.scrollIntoView({ block: "nearest", inline: "center" });
   }
 </script>
 
@@ -80,23 +114,34 @@
 {#await media}
   <ProgressBar />
 {:then collection}
-  {#each collection as media}
-    {#if media.variant === Variant.Video}
-      <video
-        src={media.href}
-        autoplay
-        controls
-        muted
-        loop
-        class:blur-lg={spoiler}
-      />
-    {:else}
-      <img
-        src={`/api/proxy?href=${encodeURIComponent(media.href)}`}
-        on:error={onImageError}
-        alt={post.title}
-        class:blur-lg={spoiler}
-      /><br />
-    {/if}
-  {/each}
+  {#if collection.length > 1}
+    <div class="card p-4 grid grid-cols-6 gap-4">
+      {#each collection as media, i}
+        <button on:click={() => jumpCarousel(i)}>
+          <img
+            class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
+            src={media.thumbnail?.href}
+            alt="thumbnail"
+            loading="lazy"
+          />
+        </button>
+      {/each}
+    </div>
+
+    <!-- Full Images -->
+    <div
+      bind:this={elemCarousel}
+      class="snap-x snap-mandatory scroll-smooth flex gap-4 overflow-x-auto"
+    >
+      {#each collection as media}
+        <div class="snap-start shrink-0 card w-[100%] text-center">
+          <RedditMedia {media} />
+        </div>
+      {/each}
+    </div>
+  {:else}
+    <div class="card p-4">
+      <RedditMedia media={collection[0]} />
+    </div>
+  {/if}
 {/await}
