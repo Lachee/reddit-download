@@ -1,24 +1,27 @@
 <script lang="ts">
+  import { convertToGif } from "$lib/gif";
+  import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit2";
+  import { ProgressBar, ProgressRadial } from "@skeletonlabs/skeleton";
 
   export let media: Media;
   export let blur: boolean = false;
-  export let fileName: string = "";
+  export let name: string = "";
 
-  let title = "";
-  $: {
-    title = `${media.href} (${media.variant})`;
-    if (media.dimension && media.dimension.height)
-      title = `${title} (${media.dimension.width}x${media.dimension.height})`;
-  }
+  let gif: Promise<Media> | undefined;
+
+  let ext: string = "";
+  $: ext = extmime(media.mime);
 
   let downloadHref = "";
   $: {
-    downloadHref = media.href.startsWith("blob")
-      ? media.href
-      : `/api/proxy?href=${encodeURIComponent(
-          media.href
-        )}&fileName=${encodeURIComponent(fileName)}`;
+    if (media.href && media.href.startsWith("blob")) {
+      downloadHref = media.href;
+    } else {
+      downloadHref = `/api/proxy?href=${encodeURIComponent(
+        media.href
+      )}&fileName=${encodeURIComponent(name + "." + ext)}`;
+    }
   }
 
   function onImageError(evt: Event) {
@@ -28,7 +31,34 @@
     console.log("updating src", elm.src);
     elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
   }
+
+  function convertMP4() {
+    if (media.variant != Variant.Video) {
+      console.error("cannot possibly convert this media to a gif", media);
+      gif = undefined;
+      return;
+    }
+
+    gif = (async () => {
+      const oldBlobRef = media.href;
+      const blob = await fetch(oldBlobRef).then((r) => r.arrayBuffer());
+      const data = await convertToGif(new Uint8Array(blob));
+      media.mime = "image/gif";
+      media.variant = Variant.GIF;
+      media.href = URL.createObjectURL(new Blob([data]));
+      media = media; // (trigger a layout)
+
+      // Cleanup the old unused blob.
+      if (oldBlobRef.startsWith("blob")) URL.revokeObjectURL(oldBlobRef);
+
+      return media;
+    })();
+  }
 </script>
+
+{#await gif}
+  <ProgressBar />
+{/await}
 
 <div class="p-4 max-h-[500px] flex justify-center relative">
   {#if media.variant === Variant.Video}
@@ -45,14 +75,26 @@
   {/if}
 
   <div class="flex absolute top-0">
-    {#if fileName != ""}
+    {#if name != ""}
       <a
         href={downloadHref}
-        download={fileName}
+        download={name + "." + ext}
         class=" text-white p-2 rounded bg-blue-700 hover:bg-blue-800 m-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
         >Download</a
       >
     {/if}
+
+    {#if media.variant == Variant.Video}
+      {#if gif === undefined}
+        <button
+          on:click={() => convertMP4()}
+          class=" bg-purple-700 text-white p-2 rounded hover:bg-purple-900 m-2"
+          >Convert to Gif</button
+        >
+      {/if}
+    {/if}
+
+    <!--
     {#if navigator.share != undefined}
       <button
         on:click={() => alert("sharing not yet implemented")}
@@ -60,6 +102,7 @@
         >Share</button
       >
     {/if}
+-->
   </div>
 </div>
 

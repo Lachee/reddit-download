@@ -126,16 +126,13 @@
     >
       {#each collection as media, i}
         <div class="snap-start shrink-0 card w-[100%] text-center">
-          <RedditMedia {media} fileName="{post.id}_{i}.{extmime(media.mime)}" />
+          <RedditMedia {media} name="{post.id}_{i}" />
         </div>
       {/each}
     </div>
   {:else}
     <div class="card p-4">
-      <RedditMedia
-        media={collection[0]}
-        fileName="{post.id}.{extmime(collection[0].mime)}"
-      />
+      <RedditMedia media={collection[0]} name={post.id} />
     </div>
   {/if}
 {/await}
