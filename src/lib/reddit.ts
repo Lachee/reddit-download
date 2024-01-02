@@ -107,6 +107,12 @@ function warn(...args: any[]) {
 function error(...args: any[]) {
     console.error('[REDDIT]', ...args);
 }
+function group(...args: any[]) {
+    console.groupCollapsed('[REDDIT]', ...args);
+}
+function groupEnd() {
+    console.groupEnd();
+}
 
 /** Follows the shortened links */
 export async function follow(href: string, init?: ReqInit): Promise<URL> {
@@ -178,100 +184,105 @@ export async function authenticate(username: string, password: string, clientId:
  * @returns 
  */
 export async function getPost(link: string, init?: ReqInit): Promise<Post> {
-    // Prepare the request settings.
-    const url = await follow(link, init);
+    group('fetching post', link);
+    try {
+        // Prepare the request settings.
+        const url = await follow(link, init);
 
-    let request: Promise<Response | fetchJsonp.Response>;
+        let request: Promise<Response | fetchJsonp.Response>;
 
-    // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
-    if (USE_JSONP && browser && !init) {
-        request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
-        log('getting reddit post via jsonp');
-    } else {
-        if (!init) init = { baseUrl: url.origin, headers: {} };
-        request = fetch(`${init.baseUrl}${url.pathname}.json?raw_json=1`, { headers: init.headers });
-        log('getting reddit post via fetch');
-    }
+        // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
+        if (USE_JSONP && browser && !init) {
+            request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
+            log('getting reddit post via jsonp');
+        } else {
+            if (!init) init = { baseUrl: url.origin, headers: {} };
+            request = fetch(`${init.baseUrl}${url.pathname}.json?raw_json=1`, { headers: init.headers });
+            log('getting reddit post via fetch');
+        }
 
-    // Await the request
-    const data = await request
-        .then(res => res.json())
-        .then(dat => dat[0].data.children[0].data)
-        .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
-        .catch(cor => cor);
+        // Await the request
+        const data = await request
+            .then(res => res.json())
+            .then(dat => dat[0].data.children[0].data)
+            .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
+            .catch(cor => cor);
 
 
-    // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
-    // We are checking for preview because if they aint giving us that they probably gonna be stingy fucks
-    // ( removing the preview check breaks  https://www.reddit.com/r/egg_irl/comments/18vimr6/egg_irl/ ??? )
-    if (browser && (data instanceof Error)) {
-        log('getting reddit post via proxy');
-        const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
-            .then(res => res.json());
+        // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
+        // We are checking for preview because if they aint giving us that they probably gonna be stingy fucks
+        // ( removing the preview check breaks  https://www.reddit.com/r/egg_irl/comments/18vimr6/egg_irl/ ??? )
+        if (browser && (data instanceof Error)) {
+            log('getting reddit post via proxy');
+            const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
+                .then(res => res.json());
 
-        log('downloaded post: ', post);
-        return post;
-    }
+            log('downloaded post: ', post);
+            return post;
+        }
 
-    // Validate we have no error. If we do just throw
-    if (data instanceof Error)
-        throw data;
+        // Validate we have no error. If we do just throw
+        if (data instanceof Error)
+            throw data;
 
-    debug('downloaded json, parsing: ', data);
-    const permalink = `https://www.reddit.com${data.permalink}`;
-    const post: Post = {
-        id: data.id,
-        url: new URL(data.url || permalink),
-        permalink: new URL(permalink),
-        name: data.name,
-        subreddit: data.subreddit,
-        title: data.title,
-        nsfw: data.over_18,
-        isVideo: data.is_video ?? false,
-        media: await getAllMediaVariantCollections(data),
-    };
-
-    // Parse the thumbnail if possible
-    if ('thumbnail' in data && data.thumbnail != '') {
-        post.thumbnail = {
-            mime: 'image/jpeg',
-            variant: Variant.Thumbnail,
-            href: data.thumbnail
+        debug('downloaded json, parsing: ', data);
+        const permalink = `https://www.reddit.com${data.permalink}`;
+        const post: Post = {
+            id: data.id,
+            url: new URL(data.url || permalink),
+            permalink: new URL(permalink),
+            name: data.name,
+            subreddit: data.subreddit,
+            title: data.title,
+            nsfw: data.over_18,
+            isVideo: data.is_video ?? false,
+            media: await getAllMediaVariantCollections(data),
         };
 
-        if (data.thumbnail_width) {
-            post.thumbnail.dimension = { width: +data.thumbnail_width };
-            if (data.thumbnail_height)
-                post.thumbnail.dimension.height = +data.thumbnail_height;
-        }
-    }
-
-    // Parse the url_overriden_by_dest. This maybe a special case
-    if ('url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
-        const overridden: string = data.url_overridden_by_dest;
-        if (overridden.includes('.', overridden.lastIndexOf('/'))) {
-            const ext = extname(overridden);
-            const media: Media = {
-                mime: 'image/' + (ext == 'jpg' ? 'jpeg' : ext) as Mime,
-                variant: Variant.Image,
-                href: overridden
+        // Parse the thumbnail if possible
+        if ('thumbnail' in data && data.thumbnail != '') {
+            post.thumbnail = {
+                mime: 'image/jpeg',
+                variant: Variant.Thumbnail,
+                href: data.thumbnail
             };
-            if (ext == 'gif') {
-                media.variant = Variant.GIF;
-            } else if (ext == 'mp4') {
-                media.mime = 'video/mp4';
-                media.variant = Variant.Video;
+
+            if (data.thumbnail_width) {
+                post.thumbnail.dimension = { width: +data.thumbnail_width };
+                if (data.thumbnail_height)
+                    post.thumbnail.dimension.height = +data.thumbnail_height;
             }
-
-            if (post.media.length == 0)
-                post.media.push([]);
-
-            post.media[0].push(media);
         }
-    }
 
-    log('parsed post: ', browser ? post : post.title);
-    return post;
+        // Parse the url_overriden_by_dest. This maybe a special case
+        if ('url_overridden_by_dest' in data && typeof data.url_overridden_by_dest === 'string') {
+            const overridden: string = data.url_overridden_by_dest;
+            if (overridden.includes('.', overridden.lastIndexOf('/'))) {
+                const ext = extname(overridden);
+                const media: Media = {
+                    mime: 'image/' + (ext == 'jpg' ? 'jpeg' : ext) as Mime,
+                    variant: Variant.Image,
+                    href: overridden
+                };
+                if (ext == 'gif') {
+                    media.variant = Variant.GIF;
+                } else if (ext == 'mp4') {
+                    media.mime = 'video/mp4';
+                    media.variant = Variant.Video;
+                }
+
+                if (post.media.length == 0)
+                    post.media.push([]);
+
+                post.media[0].push(media);
+            }
+        }
+
+        log('parsed post: ', browser ? post : post.title);
+        return post;
+    } finally {
+        groupEnd();
+    }
 }
 
 /** Parses the reddit post to get a media collection */

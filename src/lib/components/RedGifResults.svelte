@@ -47,12 +47,7 @@
 
   async function convertMP4() {
     gifPromise = (async () => {
-      if (videoData == null) {
-        console.log("downloading video data...");
-        videoData = await (await fetch(videoURL)).arrayBuffer();
-      }
-
-      const result = await convertToGif(new Uint8Array(videoData));
+      const result = await convertToGif(videoURL);
       gifDataUrl = URL.createObjectURL(new Blob([result]));
       console.log("finished conversion", result, gifDataUrl);
       return result;

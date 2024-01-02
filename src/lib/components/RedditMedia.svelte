@@ -41,8 +41,7 @@
 
     gif = (async () => {
       const oldBlobRef = media.href;
-      const blob = await fetch(oldBlobRef).then((r) => r.arrayBuffer());
-      const data = await convertToGif(new Uint8Array(blob));
+      const data = await convertToGif(oldBlobRef);
       media.mime = "image/gif";
       media.variant = Variant.GIF;
       media.href = URL.createObjectURL(new Blob([data]));
