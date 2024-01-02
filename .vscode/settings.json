@@ -1,0 +1,6 @@
+{
+    "explorer.sortOrder": "filesFirst",
+    "explorer.sortOrderLexicographicOptions": "default",
+    "workbench.editor.labelFormat": "medium",
+    "workbench.tree.indent": 12
+}

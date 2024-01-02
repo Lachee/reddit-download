@@ -14,3 +14,15 @@ export const MIME : Record<string, string> = {
     'weba': 'audio/weba',
     'mp3': 'audio/mp3',
 };
+
+/** Extension from mime */
+export function extmime(mime : string) : string {
+    for(const ext in MIME) {
+        if (MIME[ext] === mime)
+            return ext;
+    }
+
+    const slash = mime.indexOf('/');
+    if (slash >= 0) return mime.substring(slash);
+    return 'dat';
+}
