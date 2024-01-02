@@ -18,7 +18,7 @@ export const Domains = [
 
 export type Post = {
     /** ID of the reddit post */
-    id : string;
+    id: string;
     /** The address the post points too */
     url: URL
     /** The permalink to the post */
@@ -74,8 +74,14 @@ export type Media = {
 
 /** Authorization Tokens */
 export type AuthToken = RedditAuthToken & {
-    expires_at : number;
+    expires_at: number;
 }
+type RedditVideo = {
+    dash_url: string,
+    fallback_url?: string,
+    width?: number,
+    height?: number
+};
 type RedditAuthToken = {
     access_token: string;
     scope: string;
@@ -95,19 +101,22 @@ function debug(...args: any[]) {
 function log(...args: any[]) {
     console.log('[REDDIT]', ...args);
 }
+function warn(...args: any[]) {
+    console.warn('[REDDIT]', ...args);
+}
 function error(...args: any[]) {
     console.error('[REDDIT]', ...args);
 }
 
 /** Follows the shortened links */
-export async function follow(href: string, init? : ReqInit): Promise<URL> {
+export async function follow(href: string, init?: ReqInit): Promise<URL> {
     const url = validateUrl(href, Domains);
     if (url === null)
         throw new Error('cannot follow an invalid URL');
 
     const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
     if (shareLinkRegex.test(url.toString())) {
-        
+
         // The browser cannot follow the link because CORS,
         // so instead, we will make a request to the API to follow the link.
         if (browser) {
@@ -119,7 +128,7 @@ export async function follow(href: string, init? : ReqInit): Promise<URL> {
 
 
         log(`following shorthand ${url}`);
-        if (!init) init = { baseUrl: url.origin, headers: { 'User-Agent': UserAgent  } };
+        if (!init) init = { baseUrl: url.origin, headers: { 'User-Agent': UserAgent } };
         const response = await fetch(`${init.baseUrl}${url.pathname}`, {
             method: 'HEAD',
             redirect: 'follow',
@@ -158,7 +167,7 @@ export async function authenticate(username: string, password: string, clientId:
         throw new Error(response.error);
     }
 
-    const authToken : AuthToken = { ...response, expires_at: Date.now() + (response.expires_in * 1000) };
+    const authToken: AuthToken = { ...response, expires_at: Date.now() + (response.expires_in * 1000) };
     authentication.set(authToken);
     return authToken;
 }
@@ -191,11 +200,11 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
         .then(pos => pos.crosspost_parent_list && pos.crosspost_parent_list.length > 0 ? pos.crosspost_parent_list[pos.crosspost_parent_list.length - 1] : pos)
         .catch(cor => cor);
 
-        
+
     // If we are in the browser and we are getting weird data, lets request for the bot to take care of it
     // We are checking for preview because if they aint giving us that they probably gonna be stingy fucks
     // ( removing the preview check breaks  https://www.reddit.com/r/egg_irl/comments/18vimr6/egg_irl/ ??? )
-    if (browser && (data instanceof Error )) {
+    if (browser && (data instanceof Error)) {
         log('getting reddit post via proxy');
         const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
             .then(res => res.json());
@@ -253,10 +262,10 @@ export async function getPost(link: string, init?: ReqInit): Promise<Post> {
                 media.mime = 'video/mp4';
                 media.variant = Variant.Video;
             }
-            
-            if (post.media.length == 0) 
+
+            if (post.media.length == 0)
                 post.media.push([]);
-            
+
             post.media[0].push(media);
         }
     }
@@ -282,23 +291,21 @@ async function getAllMediaVariantCollections(data: unknown): Promise<MediaVarian
 
     // post.preview ( this is only one image, but lots of ways to represent it )
     if ('preview' in data && data.preview != null && typeof data.preview === 'object') {
-        const previewCollection = getPreviewCollection(data.preview);
+        const previewCollection = await getPreviewCollection(data.preview);
         if (previewCollection.length > 0)
             collections.push(previewCollection);
     }
 
     // post.secure_media
     if ('secure_media' in data && data.secure_media != null && typeof data.secure_media === 'object') {
-        if ('url' in data && typeof data.url === 'string') {
-            const secureMediaCollection = await getSecureMediaCollectionAsync(data.secure_media, data.url);
-            if (secureMediaCollection.length > 0) {
-                if (collections.length == 0) {
-                    collections.push([]);
-                }
-
-                // Prepend the video the the first item. We are an extension to that.
-                collections[0] = secureMediaCollection.concat(collections[0]);
+        const secureMediaCollection = await getSecureMediaCollectionAsync(data.secure_media);
+        if (secureMediaCollection.length > 0) {
+            if (collections.length == 0) {
+                collections.push([]);
             }
+
+            // Prepend the video the the first item. We are an extension to that.
+            collections[0] = secureMediaCollection.concat(collections[0]);
         }
     }
 
@@ -384,26 +391,53 @@ function getMediaMetadataMediaFromObject(data: unknown, defaultMime: Mime, defau
 }
 
 /** gets the secure media collection */
-async function getSecureMediaCollectionAsync(secureMedia: unknown, baseUrl: string): Promise<MediaVariantCollection> {
+async function getSecureMediaCollectionAsync(secureMedia: unknown): Promise<MediaVariantCollection> {
     if (secureMedia == null || typeof secureMedia !== 'object')
         return [];
 
     // Validate the post.secure_media.reddit_video
     if (!('reddit_video' in secureMedia) || secureMedia.reddit_video == null || typeof secureMedia.reddit_video !== 'object') {
-        error('no reddit_video in secure media', secureMedia);
+        warn('no reddit_video in secure media', secureMedia);
         return [];
     }
 
-    // Validate the post.secure_media.reddit_video.dash_url
-    if (!('dash_url' in secureMedia.reddit_video) || typeof secureMedia.reddit_video.dash_url !== 'string') {
-        error('invalid dash_url in secure media', secureMedia);
-        return [];
-    }
+    const redditVideo = secureMedia.reddit_video;
+    if ('dash_url' in redditVideo && typeof redditVideo.dash_url === 'string')
+        return await getRedditVideoCollection(redditVideo as RedditVideo);
 
-    // Create the media objects
-    const dashFile = await fetch(secureMedia.reddit_video.dash_url).then(res => res.text());
-    return getDashCollection(dashFile, baseUrl);
+    error('Failed to find a valid reddit video');
+    return [];
 }
+/** Gets the video content from a RedditVideo */
+async function getRedditVideoCollection(redditVideo: RedditVideo): Promise<MediaVariantCollection> {
+
+    // Dash media
+    const response = await fetch(redditVideo.dash_url);
+    const url = new URL(response.url);
+    const basePath = url.pathname.substring(0, url.pathname.lastIndexOf('/'));
+    const baseUrl = `${url.origin}${basePath}`;
+
+    const dash = await response.text();
+    const collection = await getDashCollection(dash, baseUrl);
+
+    // Fallback media
+    if (redditVideo.fallback_url) {
+        const fallback: Media = {
+            mime: 'video/mp4',
+            variant: Variant.Video,
+            href: redditVideo.fallback_url
+        };
+
+        if (redditVideo.width) {
+            fallback.dimension = { width: +redditVideo.width };
+            if (redditVideo.height) fallback.dimension.height = +redditVideo.height;
+        }
+
+        collection.push(fallback);
+    }
+    return collection;
+}
+
 /** parses a DASH file and gets the collection */
 function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCollection {
     const collection: MediaVariantCollection = [];
@@ -426,9 +460,8 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
     if ('Representation' in videoAdaptationSet && Array.isArray(videoAdaptationSet.Representation)) {
         for (const representation of videoAdaptationSet.Representation) {
             let url = `${baseUrl}/DASH_${representation['@_maxHeight']}.mp4`;
-            if ('BaseURL' in representation && typeof representation.BaseURL === 'string') {
+            if ('BaseURL' in representation && typeof representation.BaseURL === 'string')
                 url = `${baseUrl}/${representation.BaseURL}`;
-            }
 
             collection.push({
                 mime: 'video/mp4',
@@ -457,21 +490,18 @@ function getDashCollection(mpdContent: string, baseUrl: string): MediaVariantCol
 }
 
 /** Gets the media collection for post.preview */
-function getPreviewCollection(preview: any): MediaVariantCollection {
+async function getPreviewCollection(preview: any): Promise<MediaVariantCollection> {
     let collection: MediaVariantCollection = [];
 
     // If we have a reddit_video_preview we should fallback on it
-    if ('reddit_video_preview' in preview && preview.reddit_video_preview != null &&
-        'fallback_url' in preview.reddit_video_preview && typeof preview.reddit_video_preview.fallback_url === 'string') {
-        collection.push({
-            mime: 'video/mp4',
-            variant: Variant.Video,
-            href: preview.reddit_video_preview.fallback_url
-        });
+    if (hasObject(preview, 'reddit_video_preview')) {
+        const videoPreview = preview.reddit_video_preview;
+        if ('dash_url' in videoPreview && typeof videoPreview.dash_url === 'string')
+            collection = collection.concat(await getRedditVideoCollection(videoPreview as RedditVideo));
     }
 
     // Load up the images
-    if ('images' in preview && preview.images != null)
+    if (hasObject(preview, 'images'))
         collection = collection.concat(getPreviewImageCollection(preview.images[0]));
 
     return collection;
@@ -482,9 +512,13 @@ function getPreviewImageCollection(images: any): MediaVariantCollection {
 
     // Parse the variants
     if ('variants' in images && images.variants != null && typeof images.variants === 'object') {
-        if ('gif' in images.variants && images.variants.gif != null && typeof images.variants.gif === 'object')
+        if (hasObject(images.variants, 'gif'))
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.gif, 'image/gif', Variant.GIF));
-        if (INCLUDE_MP4_IN_VARIANTS && 'mp4' in images.variants && images.variants.mp4 != null && typeof images.variants.mp4 === 'object')
+        if (hasObject(images.variants, 'nsfw'))
+            collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.nsfw, 'image/jpeg', Variant.Blur));
+        if (hasObject(images.variants, 'obfuscated'))
+            collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.obfuscated, 'image/jpeg', Variant.Blur));
+        if (INCLUDE_MP4_IN_VARIANTS && hasObject(images.variants, 'mp4'))
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.mp4, 'video/mp4', Variant.Video));
     }
 
@@ -510,13 +544,13 @@ function getPreviewImageCollectionFromObject(images: any, mime: Mime, variant: V
     const collection: MediaVariantCollection = [];
 
     // Big preview thumbnail
-    if ('source' in images && images.source != null && typeof images.source === 'object') {
+    if (hasObject(images, 'source')) {
         const sourceMedia = parseMediaObject(images.source, mime, variant);
         if (sourceMedia) collection.push(sourceMedia);
     }
 
     // All the small thumbnails
-    if ('resolutions' in images && images.resolutions != null && Array.isArray(images.resolutions)) {
+    if (hasObject(images, 'resolutions')) {
         for (const obj of images.resolutions) {
             const resMedia = parseMediaObject(obj, mime, variant);
             if (resMedia) collection.push(resMedia);
@@ -524,4 +558,11 @@ function getPreviewImageCollectionFromObject(images: any, mime: Mime, variant: V
     }
 
     return collection;
-} 
+}
+
+function hasObject(obj: any, key: string): boolean {
+    if (obj != null && typeof obj === 'object') {
+        return key in obj && obj[key] != null && typeof obj[key] === 'object';
+    }
+    return false;
+}
