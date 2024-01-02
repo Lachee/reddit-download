@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { convertToGif } from "$lib/gif";
+  import { convertToGif } from "$lib/ffmpeg";
   import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit";
   import { ProgressBar, ProgressRadial } from "@skeletonlabs/skeleton";
