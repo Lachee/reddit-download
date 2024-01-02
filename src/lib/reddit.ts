@@ -147,6 +147,21 @@ export async function follow(href: string, init?: ReqInit): Promise<URL> {
     return url;
 }
 
+/** Follows a reddit post and tries to get the cached images. Only use this on a last resort */
+async function scrape(href: string): Promise<URL | null> {
+    const url = validateUrl(href, Domains);
+    if (url === null)
+        throw new Error('cannot follow an invalid URL');
+
+    log(`scrapping the cached data from reddit ${url}`);
+    const scrape = await fetch('/api/reddit/scrape?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+    if ('href' in scrape)
+        return new URL(scrape.href);
+
+    error('failed to find anything from the scrapped page.', scrape);
+    return null;
+}
+
 // State Management of the authentication.
 // It is done this way to allow hot reloading easier.
 export const authentication = writable<AuthToken & { expires_at: number } | null>(null);
@@ -174,7 +189,6 @@ export async function authenticate(username: string, password: string, clientId:
         throw new Error(data.error);
     }
 
-    console.log('cookies', response.headers.get('set-cookie'));
     const authToken: AuthToken = { ...data, expires_at: Date.now() + (data.expires_in * 1000) };
     authentication.set(authToken);
     return authToken;
@@ -277,6 +291,47 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
                     post.media.push([]);
 
                 post.media[0].push(media);
+            }
+        }
+
+        // Validate the IMGUR posts. If they fail, we will need to scrape the page
+        // FIXME: Make this a seperate function
+        if (post.media.length == 1 && post.media[0].length == 1 && post.media[0][0].href.includes('i.imgur')) {
+            // Validate the IMGUR post has been removed
+            const media = post.media[0][0];
+            log('validating that the imgur post is correct still: ', media.href);
+            const response = await fetch(media.href, { method: 'HEAD', redirect: 'manual' });
+
+            // It has, so lets scrape reddit. This can take a long time.
+            if (response.status != 200) {
+                warn('imgur media did not respond with a 200! Fetching cached content', response.status);
+                const mediaHref = await scrape(url.toString());
+
+                // Ensure we have a result, then try to determine the best content-type
+                if (mediaHref != null) {
+                    log(`updating only media item to use cached results: ${mediaHref}`);
+                    media.href = mediaHref.toString();
+                    const mediaFormat = mediaHref.searchParams.get('format');
+                    if (mediaFormat === 'mp4') {
+                        media.mime = 'video/mp4';
+                        media.variant = Variant.PartialVideo;   // Partial Video so it automatically gets converted.
+                    } else if (mediaFormat === 'png') {
+                        media.mime = 'image/png';
+                        media.variant = Variant.Image;
+                    } else if (mediaFormat === 'jpg' || mediaFormat === 'jpeg') {
+                        media.mime = 'image/jpeg';
+                        media.variant = Variant.Image;
+                    } else {
+                        // const ext = extname(mediaHref.pathname); FIXME: We should determine the type based of the extension
+                        media.mime = 'image/gif';
+                        media.variant = Variant.GIF;
+                    }
+
+                } else {
+                    error('failed to find any cached results for imgur');
+                }
+            } else {
+                log('correct!', { status: response.status })
             }
         }
 

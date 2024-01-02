@@ -90,6 +90,7 @@
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
     if (elm.src.includes("/api/proxy")) return;
+    console.warn("failed to load thumbnail, using a proxy instead", elm.src);
     elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
   }
 </script>

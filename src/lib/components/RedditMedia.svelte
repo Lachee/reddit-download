@@ -20,14 +20,15 @@
     } else {
       downloadHref = `/api/proxy?href=${encodeURIComponent(
         media.href
-      )}&fileName=${encodeURIComponent(name + "." + ext)}`;
+      )}&fileName=${encodeURIComponent(name + "." + ext)}&dl=1`;
     }
   }
 
   function onImageError(evt: Event) {
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
-    if (elm.src.includes("/api/")) return;
+    if (elm.src.includes("/api/proxy")) return;
+    console.warn("failed to load image, using a proxy instead", elm.src);
     elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
   }
 

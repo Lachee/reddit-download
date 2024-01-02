@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '../$types';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getMedia, authenticate, Domains, follow } from '$lib/reddit';
+import { authentication, getMedia, authenticate, Domains, follow, type Media, Variant, type Mime } from '$lib/reddit';
 import { get } from 'svelte/store';
 
 
@@ -34,11 +34,15 @@ export const GET: RequestHandler = async (evt) => {
     if (tracker == undefined) return json({ error: 'no tracker cookie in me request'});
     tracker = tracker.substring(0, tracker.indexOf(';'));
 
+
     // prepare the init
     const init = {
         baseUrl: 'https://oauth.reddit.com',
         headers: {
             'User-Agent': UserAgent,
+            
+            // 'User-Agent': 'LacheesClient/0.1 by Lachee',
+            // 'Authorization': `${auth.token_type} ${auth.access_token}`,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-GB,en;q=0.5',
             'Cookie': `over18=1; ${tracker}`
@@ -47,8 +51,14 @@ export const GET: RequestHandler = async (evt) => {
 
     // Fetch all the media, but we need to tell the API to use our credentials.
     const url = await follow(href.toString(), init);
-    const response = await fetch(url, init);
+    const page = `${init.baseUrl}${url.pathname}`;
+    console.log('fetching page', page);
+    const response = await fetch(page, init);
     const html = await response.text();
+
+    if (query.get('html') === '1') 
+        return new Response(html, { headers: { 'content-type': 'text/html' } });
+    
 
     // Strip all the external links
     const links = [];
@@ -56,8 +66,9 @@ export const GET: RequestHandler = async (evt) => {
     for (const m of match)
         links.push(m[1].replaceAll('&amp;', '&'));
     
-    if (links.length > 0)
-        return json({ href: links[0] });
+    
+    if (links.length == 0)
+        return json({ error: 'failed to find any matches, perhaps the cookie broke' }, { status: 404 });
 
-    return json({ error: 'failed to find any matches, perhaps the cookie broke' }, { status: 404 });
+    return json({ href: links[0] });
 };
