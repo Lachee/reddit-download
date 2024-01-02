@@ -27,8 +27,7 @@
   function onImageError(evt: Event) {
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
-    if (elm.src.includes("/api/proxy")) return;
-    console.log("updating src", elm.src);
+    if (elm.src.includes("/api/")) return;
     elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
   }
 

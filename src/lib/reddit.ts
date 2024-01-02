@@ -166,14 +166,16 @@ export async function authenticate(username: string, password: string, clientId:
             'User-Agent': 'LacheesClient/0.1 by Lachee',
             'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
         },
-    }).then(r => r.json());
+    });
 
+    const data = await response.json();
     if ('error' in response) {
         error('failed to authenticate', response);
-        throw new Error(response.error);
+        throw new Error(data.error);
     }
 
-    const authToken: AuthToken = { ...response, expires_at: Date.now() + (response.expires_in * 1000) };
+    console.log('cookies', response.headers.get('set-cookie'));
+    const authToken: AuthToken = { ...data, expires_at: Date.now() + (data.expires_in * 1000) };
     authentication.set(authToken);
     return authToken;
 }

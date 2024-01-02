@@ -36,6 +36,5 @@ export const GET: RequestHandler = async (evt) => {
 
     // Follow the url
     const followed = await follow(href.toString(), init);
-
     return json({ href: followed.toString() });
 };
