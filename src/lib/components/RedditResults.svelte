@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { firstBy } from "thenby";
   import { ProgressBar } from "@skeletonlabs/skeleton";
-  import { downloadStream } from "$lib/process";
+  import { combine } from "$lib/process";
   import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
   import { extmime } from "$lib/mime";
@@ -60,10 +60,7 @@
         );
 
         // We have an audio component so we need to combine them.
-        const videoData = await downloadStream({
-          video: video.href,
-          audio: audio?.href,
-        });
+        const videoData = await combine(video.href, audio?.href);
 
         // Push the new media
         best.push({

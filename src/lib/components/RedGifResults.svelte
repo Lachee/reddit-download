@@ -1,7 +1,6 @@
 <script lang="ts">
   import { deserialize } from "$app/forms";
   import { bufferToDataURL, convertToGif } from "$lib/gif";
-  import { downloadStream } from "$lib/process";
   import type { Gif } from "$lib/redgifs";
   import {
     ProgressBar,
