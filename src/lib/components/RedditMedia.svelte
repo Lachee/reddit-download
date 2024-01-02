@@ -8,6 +8,7 @@
   export let blur: boolean = false;
   export let name: string = "";
 
+  let gifProgress: number = 0;
   let gif: Promise<Media> | undefined;
 
   let ext: string = "";
@@ -41,7 +42,10 @@
 
     gif = (async () => {
       const oldBlobRef = media.href;
-      const data = await convertToGif(oldBlobRef);
+      const data = await convertToGif(
+        oldBlobRef,
+        (progress) => (gifProgress = progress)
+      );
       media.mime = "image/gif";
       media.variant = Variant.GIF;
       media.href = URL.createObjectURL(new Blob([data]));
@@ -56,7 +60,11 @@
 </script>
 
 {#await gif}
-  <ProgressBar />
+  {#if gifProgress > 0}
+    <ProgressBar max={100} min={0} value={gifProgress * 100} />
+  {:else}
+    <ProgressBar />
+  {/if}
 {/await}
 
 <div class="p-4 max-h-[500px] flex justify-center relative">

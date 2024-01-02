@@ -1,7 +1,11 @@
 import { createFFmpeg, type FFmpeg } from '@ffmpeg/ffmpeg';
 
+
 function log(...args: any[]) {
     console.log('[FFMPEG]', ...args);
+}
+function logProcess(params : { type : string, message : string}) {
+    log(`[${params.type.toUpperCase()}]`, params.message);
 }
 function group(...args: any[]) {
     console.groupCollapsed('[FFMPEG]', ...args);
@@ -52,12 +56,36 @@ export async function combine(video: string, audio?: string): Promise<Uint8Array
     return await ffmpeg.FS('readFile', 'output.mp4');
 }
 
-export async function convertToGif(video: string): Promise<Uint8Array> {
+export async function convertToGif(video: string, onprogress? : (progress : number) => void): Promise<Uint8Array> {
     if (video == '')
         throw new Error('invalid video data');
 
     log('converting to gif, fetching blob data for ', video);
     const ffmpeg = await getFFmpeg();
+
+    // Set the progress
+    let duration : number = 0;
+
+    // A little progress handler so we can report back how we are going with processing.
+    if (onprogress) {
+        onprogress(0);
+        _ffmpegInstance.setLogger(params => {
+            logProcess(params);
+
+            // Pull out the timestamp
+            const message = params.message.trim();
+            const timestampRegex = /(\d{2}:\d{2}:\d{2}\.\d{2})/;
+            const match = message.match(timestampRegex);
+            if (match != null) {
+                const time = parseTimestamp(match[1]);
+                if (message.startsWith('Duration:')) {
+                    duration = time;
+                } else if (duration > 0) {
+                    onprogress(time / duration);
+                }
+            }
+        });
+    }
 
     // Load the video data
     const videoData = await loadFile(ffmpeg, video, 'video.mp4');
@@ -103,7 +131,7 @@ let _ffmpegInstance: FFmpeg;
 async function getFFmpeg(): Promise<FFmpeg> {
     if (_ffmpegInstance == null) {
         _ffmpegInstance = createFFmpeg();
-        _ffmpegInstance.setLogger(({ type, message }) => log(`[${type.toUpperCase()}]`, message));
+        _ffmpegInstance.setLogger(logProcess);
     }
 
     if (_ffmpegInstance.isLoaded())
@@ -131,15 +159,8 @@ async function fetchFile(input: RequestInfo | URL, init?: RequestInit | undefine
     return new Uint8Array(buffer);
 }
 
-
-/** @deprecated not sure the purpose of this, surely a URL.createDataObject works fine? */
-async function bufferToDataURL(buffer: Uint8Array): Promise<string> {
-    // use a FileReader to generate a base64 data URI:
-    const base64url = await new Promise<string>(resolve => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.readAsDataURL(new Blob([buffer]))
-    });
-    // remove the `data:...;base64,` part from the start
-    return base64url;//base64url.slice(base64url.indexOf(',') + 1);
+function parseTimestamp(timestamp : string) : number {
+    const [hours, minutes, seconds] = timestamp.split(':').map(Number);
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    return totalSeconds;
 }
