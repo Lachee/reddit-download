@@ -185,7 +185,7 @@ export async function authenticate(username: string, password: string, clientId:
  * @param url the link to the reddit post
  * @returns 
  */
-export async function getPost(link: string, init?: ReqInit): Promise<Post> {
+export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
     group('fetching post', link);
     try {
         // Prepare the request settings.

@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '../$types';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getPost, authenticate, Domains } from '$lib/reddit';
+import { authentication, getMedia, authenticate, Domains } from '$lib/reddit';
 import { get } from 'svelte/store';
 
 
@@ -20,7 +20,7 @@ export const GET: RequestHandler = async (evt) => {
         auth = await authenticate(BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
 
     // Fetch all the media, but we need to tell the API to use our credentials.
-    const post = await getPost(href.toString(), {
+    const post = await getMedia(href.toString(), {
         baseUrl: 'https://oauth.reddit.com',
         headers: {
             'User-Agent': 'LacheesClient/0.1 by Lachee',

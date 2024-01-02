@@ -7,7 +7,7 @@
   // # Library
   import {
     type Post as RedditPost,
-    getPost as fetchRedditPost,
+    getMedia as fetchRedditPost,
   } from "$lib/reddit";
   import { fetchProxy as fetchRedGif, type Gif as RedGif } from "$lib/redgifs";
   import { rootHostname } from "$lib/helpers";
