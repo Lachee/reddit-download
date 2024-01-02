@@ -18,6 +18,7 @@ export const GET: RequestHandler = async (request) => {
     }
 
     // Prepare the filenames
+    const download = query.get('dl') === '1';
     const fileName = (query.get('fileName') || href.pathname.replaceAll('/', '')).replaceAll('"', '');
     const fileExt = extname(fileName);
 
@@ -30,10 +31,19 @@ export const GET: RequestHandler = async (request) => {
     // Get the content type.
     // Normally we would just use the response headers, but Reddit LIES
     const contentType = MIME[fileExt] || response.headers.get('content-type') || 'image/gif';
+    if (download) {
+        return new Response(body, {
+            headers: {
+                'content-type': contentType,
+                'content-disposition': `attachment;filename="${fileName}"`
+            }
+        });
+    }
+
+    // Return just the content
     return new Response(body, {
         headers: {
             'content-type': contentType,
-            'content-disposition': `attachment;filename="${fileName}"`
         }
     });
 };
