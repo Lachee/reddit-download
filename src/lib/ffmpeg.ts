@@ -14,13 +14,15 @@ function groupEnd() {
     console.groupEnd();
 }
 
+type ProgressCallback = (progress : number) => void;
+
 /**
  * Combines the video and audio channel together.
  * @param video The base video
  * @param audio The audio channel to add
  * @returns The video data.
  */
-export async function combine(video: string, audio?: string): Promise<Uint8Array> {
+export async function combine(video: string, audio?: string, onprogress? : ProgressCallback): Promise<Uint8Array> {
 
     // If this is a video only stream, lets just download it immediately.
     if (audio == null || audio == '')
@@ -31,6 +33,10 @@ export async function combine(video: string, audio?: string): Promise<Uint8Array
 
     // It's a audio video, so we need to combine them with FFMPEG
     const ffmpeg = await getFFmpeg();
+
+    // A little progress handler so we can report back how we are going with processing.
+    if (onprogress)
+       addProgressCallback(ffmpeg, onprogress);
 
     log('downloading files...');
     await Promise.all([
@@ -56,37 +62,17 @@ export async function combine(video: string, audio?: string): Promise<Uint8Array
     return await ffmpeg.FS('readFile', 'output.mp4');
 }
 
-export async function convertToGif(video: string, onprogress? : (progress : number) => void): Promise<Uint8Array> {
+export async function convertToGif(video: string, onprogress? : ProgressCallback): Promise<Uint8Array> {
     if (video == '')
         throw new Error('invalid video data');
 
     log('converting to gif, fetching blob data for ', video);
     const ffmpeg = await getFFmpeg();
 
-    // Set the progress
-    let duration : number = 0;
-
     // A little progress handler so we can report back how we are going with processing.
-    if (onprogress) {
-        onprogress(0);
-        _ffmpegInstance.setLogger(params => {
-            logProcess(params);
-
-            // Pull out the timestamp
-            const message = params.message.trim();
-            const timestampRegex = /(\d{2}:\d{2}:\d{2}\.\d{2})/;
-            const match = message.match(timestampRegex);
-            if (match != null) {
-                const time = parseTimestamp(match[1]);
-                if (message.startsWith('Duration:')) {
-                    duration = time;
-                } else if (duration > 0) {
-                    onprogress(time / duration);
-                }
-            }
-        });
-    }
-
+    if (onprogress)
+       addProgressCallback(ffmpeg, onprogress);
+    
     // Load the video data
     const videoData = await loadFile(ffmpeg, video, 'video.mp4');
 
@@ -157,6 +143,28 @@ async function fetchFile(input: RequestInfo | URL, init?: RequestInit | undefine
 
     const buffer = await response.arrayBuffer();
     return new Uint8Array(buffer);
+}
+/** Added a progress listener to the current ffmpeg */
+function addProgressCallback(ffmpeg : FFmpeg, onprogress : ProgressCallback) {
+    let duration = 0;
+    onprogress(0);
+    
+    ffmpeg.setLogger(params => {
+        logProcess(params);
+
+        // Pull out the timestamp
+        const message = params.message.trim();
+        const timestampRegex = /(\d{2}:\d{2}:\d{2}\.\d{2})/;
+        const match = message.match(timestampRegex);
+        if (match != null) {
+            const time = parseTimestamp(match[1]);
+            if (message.startsWith('Duration:')) {
+                duration = time;
+            } else if (duration > 0) {
+                onprogress(time / duration);
+            }
+        }
+    });
 }
 
 function parseTimestamp(timestamp : string) : number {
