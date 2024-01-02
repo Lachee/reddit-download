@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { firstBy } from "thenby";
   import { ProgressBar } from "@skeletonlabs/skeleton";
-  import { combine } from "$lib/process";
+  import { combine } from "$lib/ffmpeg";
   import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
   import { extmime } from "$lib/mime";
