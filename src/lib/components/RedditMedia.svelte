@@ -1,7 +1,7 @@
 <script lang="ts">
   import { convertToGif } from "$lib/gif";
   import { extmime } from "$lib/mime";
-  import { Variant, type Media } from "$lib/reddit2";
+  import { Variant, type Media } from "$lib/reddit";
   import { ProgressBar, ProgressRadial } from "@skeletonlabs/skeleton";
 
   export let media: Media;

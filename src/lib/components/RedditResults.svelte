@@ -3,7 +3,7 @@
   import { firstBy } from "thenby";
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { downloadStream } from "$lib/process";
-  import { type Post, type Media, Variant } from "$lib/reddit2";
+  import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
   import { extmime } from "$lib/mime";
 

@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, authenticate, follow, Domains } from '$lib/reddit2';
+import { authentication, authenticate, follow, Domains } from '$lib/reddit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { get } from 'svelte/store';
 

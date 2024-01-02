@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { validateUrl, extname, UserAgent } from '$lib/helpers';
 import { MIME } from '$lib/mime';
-import { Domains } from '$lib/reddit2';
+import { Domains } from '$lib/reddit';
 
 
 export const GET: RequestHandler = async (request) => {
