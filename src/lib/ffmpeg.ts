@@ -1,10 +1,11 @@
+import { browser } from '$app/environment';
 import { createFFmpeg, type FFmpeg } from '@ffmpeg/ffmpeg';
 
 
 function log(...args: any[]) {
     console.log('[FFMPEG]', ...args);
 }
-function logProcess(params : { type : string, message : string}) {
+function logProcess(params: { type: string, message: string }) {
     log(`[${params.type.toUpperCase()}]`, params.message);
 }
 function group(...args: any[]) {
@@ -14,7 +15,7 @@ function groupEnd() {
     console.groupEnd();
 }
 
-type ProgressCallback = (progress : number) => void;
+type ProgressCallback = (progress: number) => void;
 
 /**
  * Combines the video and audio channel together.
@@ -22,7 +23,7 @@ type ProgressCallback = (progress : number) => void;
  * @param audio The audio channel to add
  * @returns The video data.
  */
-export async function combine(video: string, audio?: string, onprogress? : ProgressCallback): Promise<Uint8Array> {
+export async function combine(video: string, audio?: string, onprogress?: ProgressCallback): Promise<Uint8Array> {
 
     // If this is a video only stream, lets just download it immediately.
     if (audio == null || audio == '')
@@ -36,7 +37,7 @@ export async function combine(video: string, audio?: string, onprogress? : Progr
 
     // A little progress handler so we can report back how we are going with processing.
     if (onprogress)
-       addProgressCallback(ffmpeg, onprogress);
+        addProgressCallback(ffmpeg, onprogress);
 
     log('downloading files...');
     await Promise.all([
@@ -62,7 +63,7 @@ export async function combine(video: string, audio?: string, onprogress? : Progr
     return await ffmpeg.FS('readFile', 'output.mp4');
 }
 
-export async function convertToGif(video: string, onprogress? : ProgressCallback): Promise<Uint8Array> {
+export async function convertToGif(video: string, onprogress?: ProgressCallback): Promise<Uint8Array> {
     if (video == '')
         throw new Error('invalid video data');
 
@@ -71,8 +72,8 @@ export async function convertToGif(video: string, onprogress? : ProgressCallback
 
     // A little progress handler so we can report back how we are going with processing.
     if (onprogress)
-       addProgressCallback(ffmpeg, onprogress);
-    
+        addProgressCallback(ffmpeg, onprogress);
+
     // Load the video data
     const videoData = await loadFile(ffmpeg, video, 'video.mp4');
 
@@ -136,19 +137,24 @@ async function loadFile(ffmpeg: FFmpeg, file: string, name: string): Promise<Uin
 }
 /* Fetches the file. Similar to FFMPEG's but it actually throws exceptions. */
 async function fetchFile(input: RequestInfo | URL, init?: RequestInit | undefined): Promise<Uint8Array> {
-    log('downloading: ', input);
-    const response = await fetch(input, init);
-    if (response.status != 200)
-        throw new Error(`HTTP Exception ${response.status}: ${response.statusText}`);
+    try {
+        log('downloading: ', input);
+        const response = await fetch(input, init);
+        if (response.status != 200)
+            throw new Error(`HTTP Exception ${response.status}: ${response.statusText}`);
 
-    const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer);
+        const buffer = await response.arrayBuffer();
+        return new Uint8Array(buffer);
+    } catch (error) {
+        log('failed to download the file', input, error);
+        if (!browser) throw error;
+    }
 }
 /** Added a progress listener to the current ffmpeg */
-function addProgressCallback(ffmpeg : FFmpeg, onprogress : ProgressCallback) {
+function addProgressCallback(ffmpeg: FFmpeg, onprogress: ProgressCallback) {
     let duration = 0;
     onprogress(0);
-    
+
     ffmpeg.setLogger(params => {
         logProcess(params);
 
@@ -167,7 +173,7 @@ function addProgressCallback(ffmpeg : FFmpeg, onprogress : ProgressCallback) {
     });
 }
 
-function parseTimestamp(timestamp : string) : number {
+function parseTimestamp(timestamp: string): number {
     const [hours, minutes, seconds] = timestamp.split(':').map(Number);
     const totalSeconds = hours * 3600 + minutes * 60 + seconds;
     return totalSeconds;
