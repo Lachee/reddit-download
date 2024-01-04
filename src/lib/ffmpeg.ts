@@ -135,20 +135,32 @@ async function loadFile(ffmpeg: FFmpeg, file: string, name: string): Promise<Uin
     await ffmpeg.FS('writeFile', name, data);
     return data;
 }
-/* Fetches the file. Similar to FFMPEG's but it actually throws exceptions. */
-async function fetchFile(input: RequestInfo | URL, init?: RequestInit | undefined): Promise<Uint8Array> {
-    try {
-        log('downloading: ', input);
-        const response = await fetch(input, init);
-        if (response.status != 200)
-            throw new Error(`HTTP Exception ${response.status}: ${response.statusText}`);
+/* Downlaods a file and returns a Uint8Array.
+ * If the request fails, it will attempt to proxy the request.
+*/
+async function fetchFile(input: string, init?: RequestInit | undefined): Promise<Uint8Array> {
 
-        const buffer = await response.arrayBuffer();
-        return new Uint8Array(buffer);
+    log('downloading: ', input);
+
+    let response: Response;
+    try {
+        response = await fetch(input, init);
     } catch (error) {
         log('failed to download the file', input, error);
         if (!browser) throw error;
+
+        log('attempting to download a proxied version of the file');
+        response = await fetch(`/api/proxy?href=${encodeURIComponent(input)}`);
     }
+
+    // Validate response
+    if (response.status != 200)
+        throw new Error(`HTTP Exception ${response.status}: ${response.statusText}`);
+
+    // Return the content as a byte array.
+    const buffer = await response.arrayBuffer();
+    return new Uint8Array(buffer);
+
 }
 /** Added a progress listener to the current ffmpeg */
 function addProgressCallback(ffmpeg: FFmpeg, onprogress: ProgressCallback) {
