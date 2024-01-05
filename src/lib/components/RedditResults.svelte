@@ -101,7 +101,7 @@
         <button on:click={() => jumpCarousel(i)}>
           {#if media.thumbnail}
             <img
-              class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
+              class="rounded-container-token h-32 w-[100%] aspect-square overflow-hidden object-cover object-top"
               src={proxy(
                 media.thumbnail.href,
                 `${post.id}_${i}_thumbnail.${extmime(media.thumbnail.mime)}`
