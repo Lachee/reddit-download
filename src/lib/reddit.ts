@@ -343,7 +343,7 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
 }
 
 /** Parses the reddit post to get a media collection */
-async function getAllMediaVariantCollections(data: unknown): Promise<MediaVariantCollection[]> {
+async function getAllMediaVariantCollections(data: any): Promise<MediaVariantCollection[]> {
     if (data == null || typeof data !== 'object') {
         error('failed to parse media collection because no post was given');
         return [];
@@ -352,9 +352,17 @@ async function getAllMediaVariantCollections(data: unknown): Promise<MediaVarian
     let collections: MediaVariantCollection[] = [];
 
     // post.media_metadata ( this is multiple images )
-    if ('media_metadata' in data && data.media_metadata != null && typeof data.media_metadata === 'object') {
-        const mediaMetadataCollections = getMediaMetadataCollections(data.media_metadata);
-        collections = collections.concat(mediaMetadataCollections);
+    if (hasObject(data, 'media_metadata')) {
+        const gallery = getMediaMetadataCollections(data.media_metadata);
+        if (hasObject(data, 'gallery_data') && 'items' in data.gallery_data) {
+            // Sort the galleries by the data we are given.
+            // FIXME: Make the media variant collection contain the id
+            const order: string[] = data.gallery_data.items.map((item: any) => item.media_id as string);
+            const entries = Object.entries(gallery).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])).map(entry => entry[1]);
+            collections = collections.concat(entries);
+        } else {
+            collections = collections.concat(Object.values(gallery));
+        }
     }
 
     // post.preview ( this is only one image, but lots of ways to represent it )
@@ -381,17 +389,21 @@ async function getAllMediaVariantCollections(data: unknown): Promise<MediaVarian
     return collections;
 }
 
+type Gallery = Record<string, MediaVariantCollection>;
+
 /** gets the collections within the post.media_collection */
-function getMediaMetadataCollections(metadata: Record<string, any>): MediaVariantCollection[] {
-    const collections: MediaVariantCollection[] = [];
+function getMediaMetadataCollections(metadata: Record<string, any>): Gallery {
+    const gallery: Gallery = {};
     for (const meta of Object.values(metadata)) {
         if (typeof meta !== 'object') continue;
         if ("status" in meta && meta.status !== "valid") continue;
         if (!("s" in meta)) continue;
 
         // reddit uses the invalid image/jpg, we need to fix it.
+        const id = meta.id;
         const mime = meta.m === 'image/jpg' ? 'image/jpeg' : meta.m;
         const collection: MediaVariantCollection = [];
+        gallery[id] = collection;
 
         // Push the root level, best server first (S)
         collection.push(getMediaMetadataMediaFromObject(meta.s, mime, Variant.Image));
@@ -407,13 +419,10 @@ function getMediaMetadataCollections(metadata: Record<string, any>): MediaVarian
             for (const blurData of meta.o)
                 collection.push(getMediaMetadataMediaFromObject(blurData, 'image/jpeg', Variant.Blur))
         }
-
-        // Pusht he collection
-        collections.push(collection);
     }
 
-    debug('parsed media_metadata collections: ', collections);
-    return collections;
+    debug('parsed media_metadata collections: ', gallery);
+    return gallery;
 }
 /** gets the individual media object from within a media_collection's variants */
 function getMediaMetadataMediaFromObject(data: unknown, defaultMime: Mime, defaultVaraint: Variant): Media {
