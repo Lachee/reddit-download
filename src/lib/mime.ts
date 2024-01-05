@@ -15,13 +15,24 @@ export const MIME : Record<string, string> = {
     'mp3': 'audio/mp3',
 };
 
-/** Extension from mime */
+/**
+ * Gets the extnesion for the given mime
+ * @param mime the MIME
+ * @returns 
+ */
 export function extmime(mime : string) : string {
+    // map invalid image/jpg to image/jpeg
+    mime = mime.toLowerCase();
+    if (mime === 'image/jpg') 
+        mime = 'image/jpeg';
+
+    // Find the appropriate file extension
     for(const ext in MIME) {
         if (MIME[ext] === mime)
             return ext;
     }
 
+    // None found, so we will just use the last part of the mime.
     const slash = mime.indexOf('/');
     if (slash >= 0) return mime.substring(slash);
     return 'dat';

@@ -5,7 +5,8 @@
   import { combine } from "$lib/ffmpeg";
   import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
-  import { extname, proxy } from "$lib/helpers";
+  import { proxy } from "$lib/helpers";
+  import { extmime } from "$lib/mime";
 
   let elemCarousel: HTMLDivElement;
   const unsplashIds = [
@@ -72,7 +73,9 @@
         continue;
       }
 
-      let thumbnail = collection.find((m) => m.variant == Variant.Thumbnail);
+      let thumbnail = collection.findLast(
+        (m) => m.variant == Variant.Thumbnail
+      );
       best.push({ ...collection[0], thumbnail });
     }
 
@@ -101,10 +104,10 @@
               class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
               src={proxy(
                 media.thumbnail.href,
-                `${post.id}_${i}_thumbnail.${extname(media.thumbnail.mime)}`
+                `${post.id}_${i}_thumbnail.${extmime(media.thumbnail.mime)}`
               )}
-              alt="{post.id}_{i}_thumbnail.{extname(media.thumbnail.mime)}"
-              loading="lazy"
+              alt="{post.id}_{i}_thumbnail.{extmime(media.thumbnail.mime)}"
+              data-mime={media.thumbnail.mime}
             />
           {:else}
             Img No. {i}
