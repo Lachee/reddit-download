@@ -1,5 +1,6 @@
 <script lang="ts">
   import { convertToGif } from "$lib/ffmpeg";
+  import { proxy } from "$lib/helpers";
   import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit";
   import { ProgressBar, ProgressRadial } from "@skeletonlabs/skeleton";
@@ -19,20 +20,21 @@
     if (media.href && media.href.startsWith("blob")) {
       downloadHref = media.href;
     } else {
-      downloadHref = `/api/proxy?href=${encodeURIComponent(
-        media.href
-      )}&fileName=${encodeURIComponent(name + "." + ext)}&dl=1`;
+      downloadHref = proxy(media.href, `${name}.${ext}`, true);
     }
   }
 
+  /** when a image fails, it will load a proxy */
   function onImageError(evt: Event) {
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
     if (elm.src.includes("/api/proxy")) return;
+
     console.warn("failed to load image, using a proxy instead", elm.src);
-    elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
+    elm.src = proxy(elm.src, elm.alt);
   }
 
+  /** converts the MP4 into a gif */
   function convertMP4() {
     if (media.variant != Variant.Video) {
       console.error("cannot possibly convert this media to a gif", media);
@@ -74,7 +76,7 @@
     <img
       src={media.href}
       on:error={onImageError}
-      alt=""
+      alt={name + "." + ext}
       class:blur-lg={blur}
       class="snap-center w-[1024px] rounded-container-token object-contain"
       loading="lazy"

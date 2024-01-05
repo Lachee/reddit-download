@@ -21,21 +21,26 @@ export function rootHostname(url: string | URL): string {
     return url.hostname.split('.').reverse().splice(0, 2).reverse().join('.');
 }
 
-/** Creates a download proxy url
- * @deprecated
+/**
+ * Proxies the given url via the media proxy
+ * @param url The URL to proxy
+ * @param fileName The fileName to give the media
+ * @param download Include the download header
+ * @returns 
  */
-export function proxyDownload(url: string | URL, fileName?: string): string {
+export function proxy(url: string | URL, fileName?: string, download? : boolean): string {
     if (typeof url !== 'string')
         url = url.toString();
 
-    const params: Record<string, string> = {
-        get: url,
-    };
+    const params: Record<string, string> = {  href: url  };
+
+    if (download) 
+        params.dl = download ? '1' : '0';
 
     if (fileName)
         params.fileName = fileName;
 
-    return `/download?` + new URLSearchParams(params).toString();
+    return `/api/proxy?` + new URLSearchParams(params).toString();
 }
 
 /**

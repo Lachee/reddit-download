@@ -5,7 +5,7 @@
   import { combine } from "$lib/ffmpeg";
   import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
-  import { extmime } from "$lib/mime";
+  import { extname, proxy } from "$lib/helpers";
 
   let elemCarousel: HTMLDivElement;
   const unsplashIds = [
@@ -85,14 +85,6 @@
     if (child == null) return;
     child.scrollIntoView({ block: "nearest", inline: "center" });
   }
-
-  function onImageError(evt: Event) {
-    const elm = evt.target;
-    if (elm == null || !(elm instanceof HTMLImageElement)) return;
-    if (elm.src.includes("/api/proxy")) return;
-    console.warn("failed to load thumbnail, using a proxy instead", elm.src);
-    elm.src = `/api/proxy?href=${encodeURIComponent(elm.src)}`;
-  }
 </script>
 
 <h3>{post.title}</h3>
@@ -104,13 +96,19 @@
     <div class="card p-4 grid grid-cols-6 gap-4">
       {#each collection as media, i}
         <button on:click={() => jumpCarousel(i)}>
-          <img
-            class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
-            src={media.thumbnail?.href}
-            on:error={onImageError}
-            alt="thumbnail"
-            loading="lazy"
-          />
+          {#if media.thumbnail}
+            <img
+              class="rounded-container-token h-32 aspect-square overflow-hidden object-cover"
+              src={proxy(
+                media.thumbnail.href,
+                `${post.id}_${i}_thumbnail.${extname(media.thumbnail.mime)}`
+              )}
+              alt="{post.id}_{i}_thumbnail.{extname(media.thumbnail.mime)}"
+              loading="lazy"
+            />
+          {:else}
+            Img No. {i}
+          {/if}
         </button>
       {/each}
     </div>

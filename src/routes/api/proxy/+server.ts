@@ -30,20 +30,10 @@ export const GET: RequestHandler = async (request) => {
 
     // Get the content type.
     // Normally we would just use the response headers, but Reddit LIES
-    const contentType = MIME[fileExt] || response.headers.get('content-type') || 'image/gif';
-    if (download) {
-        return new Response(body, {
-            headers: {
-                'content-type': contentType,
-                'content-disposition': `attachment;filename="${fileName}"`
-            }
-        });
-    }
+    const headers : HeadersInit = { 
+        'content-type': MIME[fileExt] || response.headers.get('content-type') || 'image/gif',
+        'content-disposition': `${download ? 'attachment' : 'inline'};filename="${fileName}"`,
+    };
 
-    // Return just the content
-    return new Response(body, {
-        headers: {
-            'content-type': contentType,
-        }
-    });
+    return new Response(body, { headers });
 };
