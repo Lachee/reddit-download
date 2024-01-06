@@ -1,6 +1,6 @@
-import type { Handle } from '@sveltejs/kit';
+import  { type Handle, redirect } from '@sveltejs/kit';
 import { redgif } from '$lib/redgifs';
-import { createOpenGraph } from '$lib/helpers';
+import { createOpenGraph, proxy } from '$lib/helpers';
 import type { Post } from '$lib/reddit';
 
 export const handle = (async ({ event, resolve }) => {
@@ -16,14 +16,7 @@ export const handle = (async ({ event, resolve }) => {
     }
 
     if (url.pathname.startsWith('/r/')) {
-        const post : Post = await fetch('/api/reddit/media?href=' + encodeURIComponent(url.pathname)).then(p => p.json());
-        const tags = createOpenGraph({
-            title: post.title,
-            image: post.thumbnail?.href || '',
-            url: post.permalink.toString(),
-            video: post.media[0][0].href
-        })
-        return new Response(`<html><head>\n${tags}\n</head></html>`, { headers : { 'content-type': 'text/html' }} );
+        throw redirect(302, '/api/reddit/media?embed=1&href=' + encodeURIComponent(url.pathname));
     }
 
     const response = await resolve(event);
