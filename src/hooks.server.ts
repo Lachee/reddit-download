@@ -15,7 +15,7 @@ export const handle = (async ({ event, resolve }) => {
         }
     }
 
-    if (url.pathname.startsWith('/r/')) {
+    if (url.pathname.startsWith('/r/') && event.request.headers.get('user-agent')?.includes('Discord')) {
         throw redirect(302, '/api/reddit/media?embed=1&href=' + encodeURIComponent(url.pathname));
     }
 
