@@ -10,7 +10,16 @@
   // Finally, your application's global stylesheet (sometimes labeled 'app.css')
   import { AppShell } from "@skeletonlabs/skeleton";
   import Footer from "$lib/components/Footer.svelte";
+
+  import { page } from "$app/stores";
 </script>
+
+<svelte:head>
+  <link
+    type="application/json+oembed"
+    href="{$page.url.origin}/api/reddit/oembed"
+  />
+</svelte:head>
 
 <AppShell>
   <slot />
