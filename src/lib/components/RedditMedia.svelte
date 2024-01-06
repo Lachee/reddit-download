@@ -86,7 +86,7 @@
   {/if}
   {#if media.variant === Variant.Video}
     <video
-      on:load={() => (loading = false)}
+      on:canplay={() => (loading = false)}
       src={media.href}
       autoplay
       controls
