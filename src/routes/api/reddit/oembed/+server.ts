@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
-import { validateUrl, UserAgent } from '$lib/helpers';
+import { validateUrl, UserAgent, proxy } from '$lib/helpers';
 import { authentication, getMedia, authenticate, Domains, sortMedia, Variant } from '$lib/reddit';
 import { get } from 'svelte/store';
 
@@ -18,6 +18,13 @@ type OEmbed = {
     thumbnail_height?: number
 }
 
+type RichOEmbed = OEmbed & {
+    type: 'rich',
+    html: string,
+    width: number,
+    height: number
+}
+
 type VideoOEmbed = OEmbed & {
     type: 'video',
     html: string,
@@ -31,6 +38,7 @@ type PhotoOEmbed = OEmbed & {
     width: number,
     height: number
 }
+
 
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
@@ -74,6 +82,15 @@ export const GET: RequestHandler = async (evt) => {
     }
     else if (media.variant == Variant.GIF || media.variant == Variant.Image || media.variant == Variant.Thumbnail) 
     {
+        return json({
+            type: 'rich',
+            version: '1.0',
+            title: post.title,
+            html: `<img src="${proxy(media.href)}" />`,
+            width: media.dimension?.width ?? 480,
+            height: media.dimension?.height ?? 640
+        } satisfies RichOEmbed)
+
         // Photo
         return json({
             type: 'photo',
