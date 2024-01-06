@@ -18,16 +18,23 @@ type OEmbed = {
     thumbnail_height?: number
 }
 
+type VideoOEmbed = OEmbed & {
+    type: 'video',
+    html: string,
+    width : number,
+    height : number
+}
+
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
     const query = evt.url.searchParams;
 
-    const href = validateUrl(query.get('url') || '', ['dl-reddit.com', ...Domains]);
+    const href = validateUrl(query.get('url') || '', ['dl-reddit.com', 'pages.dev', ...Domains]);
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
     // convert the dl-reddit.com to reddit.com 
-    if (href.hostname.endsWith('dl-reddit.com'))
+    if (href.hostname.endsWith('dl-reddit.com') || href.hostname.endsWith('pages.dev'))
         href.hostname = 'www.reddit.com';
 
     // Authenticate with reddit. By using this proxy we probably want to ensure we will get ALL the data.
@@ -44,6 +51,14 @@ export const GET: RequestHandler = async (evt) => {
         }
     });
 
-    const oEmbed: OEmbed = {};
+    const media = post.media[0][0];
+    const oEmbed: VideoOEmbed = {
+        type: 'video',
+        version: '1.0',
+        title: post.title,
+        html: `<video src="${media.href}" />`,
+        width: media.dimension?.width ?? 480,
+        height: media.dimension?.height ?? 640
+    };
     return json(oEmbed);
 };

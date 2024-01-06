@@ -4,9 +4,43 @@ import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
 import { writable } from 'svelte/store';
 
+import thenby from 'thenby';
+const { firstBy } = thenby;
+
 /** Enables the MP4 previews that are generated from gifs */
 const INCLUDE_MP4_IN_VARIANTS = false;
 const USE_JSONP = false;
+
+
+export type Mime =
+    'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4';
+
+export enum Variant {
+    /** Presentable actual image */
+    Image = 'image',
+    /** Preview static represnetations of an image */
+    Thumbnail = 'thumbnail',
+    /** Blured preview image */
+    Blur = 'blur',
+    /** Animated image (GIF) */
+    GIF = 'gif',
+    /** Presentable Video */
+    Video = 'video',
+    /** Video Clip that requires combining with PartialAudio */
+    PartialVideo = 'video_only',
+    /** Partial audio channel that needs combing with a VideoClip */
+    PartialAudio = 'audio',
+}
+
+export const VariantOrder = [
+    Variant.PartialVideo,
+    Variant.PartialAudio,
+    Variant.Video,
+    Variant.GIF,
+    Variant.Image,
+    Variant.Thumbnail,
+    Variant.Blur,
+];
 
 /** Root Domains reddit operates */
 export const Domains = [
@@ -38,26 +72,6 @@ export type Post = {
     media: MediaVariantCollection[];
     /** The thumbnail used to represent the media */
     thumbnail?: Media;
-}
-
-export type Mime =
-    'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4';
-
-export enum Variant {
-    /** Presentable actual image */
-    Image = 'image',
-    /** Preview static represnetations of an image */
-    Thumbnail = 'thumbnail',
-    /** Blured preview image */
-    Blur = 'blur',
-    /** Animated image (GIF) */
-    GIF = 'gif',
-    /** Presentable Video */
-    Video = 'video',
-    /** Video Clip that requires combining with PartialAudio */
-    PartialVideo = 'video_only',
-    /** Partial audio channel that needs combing with a VideoClip */
-    PartialAudio = 'audio',
 }
 
 export type MediaVariantCollection = Media[];
@@ -209,12 +223,14 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
 
         // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
         if (USE_JSONP && browser && !init) {
-            request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
-            log('getting reddit post via jsonp');
+            const redditurl = `${url.origin}${url.pathname}.json?raw_json=1`;
+            request = fetchJsonp(redditurl, { jsonpCallback: 'jsonp', crossorigin: true });
+            log('getting reddit post via jsonp', redditurl);
         } else {
             if (!init) init = { baseUrl: url.origin, headers: {} };
-            request = fetch(`${init.baseUrl}${url.pathname}.json?raw_json=1`, { headers: init.headers });
-            log('getting reddit post via fetch');
+            const redditurl = `${init.baseUrl}${url.pathname}.json?raw_json=1`;
+            request = fetch(redditurl, { headers: init.headers });
+            log('getting reddit post via fetch', redditurl);
         }
 
         // Await the request
@@ -335,11 +351,32 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             }
         }
 
+        // Sort the media
+        sortMedia(post);
+
         log('parsed post: ', browser ? post : post.title);
         return post;
     } finally {
         groupEnd();
     }
+}
+
+/** Sorts the media by prefered posts. */
+export function sortMedia(post: Post, order? : Variant[]) : MediaVariantCollection[] {
+    const sorted = order ?? VariantOrder;
+    for (const collection of post.media) {
+        // Sort the collection by the variant type and then the dimensions
+        collection.sort(
+            firstBy(
+                (a: Media, b: Media) =>
+                sorted.indexOf(a.variant) - sorted.indexOf(b.variant)
+            ).thenBy(
+                (a, b) => (a.dimension?.width ?? 0) - (b.dimension?.width ?? 0),
+                -1
+            )
+        );
+    }
+    return post.media;
 }
 
 /** Parses the reddit post to get a media collection */
