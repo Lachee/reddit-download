@@ -97,7 +97,7 @@ export const GET: RequestHandler = async (evt) => {
             type: 'photo',
             version: '1.0',
             title: post.title,
-            url: media.href,
+            url: origin + proxy(media.href),
             width: media.dimension?.width ?? 480,
             height: media.dimension?.height ?? 640
         } satisfies PhotoOEmbed);
