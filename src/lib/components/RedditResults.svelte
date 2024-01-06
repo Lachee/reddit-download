@@ -10,16 +10,6 @@
 
   let elemCarousel: HTMLDivElement;
 
-  const VariantOrder = [
-    Variant.PartialVideo,
-    Variant.PartialAudio,
-    Variant.Video,
-    Variant.GIF,
-    Variant.Image,
-    Variant.Thumbnail,
-    Variant.Blur,
-  ];
-
   export let post: Post;
   let spoiler = false;
 
@@ -33,17 +23,6 @@
   async function findBestMedia(): Promise<BestMedia[]> {
     const best: BestMedia[] = [];
     for (const collection of post.media) {
-      // Sort the collection by the variant type and then the dimensions
-      collection.sort(
-        firstBy(
-          (a: Media, b: Media) =>
-            VariantOrder.indexOf(a.variant) - VariantOrder.indexOf(b.variant)
-        ).thenBy(
-          (a, b) => (a.dimension?.width ?? 0) - (b.dimension?.width ?? 0),
-          -1
-        )
-      );
-
       // If we have video only and audio source, we need to process them.
       if (collection[0].variant === Variant.PartialVideo) {
         // Fetch and validate the audio

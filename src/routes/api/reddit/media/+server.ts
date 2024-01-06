@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '../$types';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getMedia, authenticate, Domains } from '$lib/reddit';
+import { authentication, getMedia, authenticate, Domains, sortMedia, Variant } from '$lib/reddit';
 import { get } from 'svelte/store';
 import { MIME, extmime } from '$lib/mime';
 
@@ -31,20 +31,30 @@ export const GET: RequestHandler = async (evt) => {
 
     // Generates an embed
     if (query.get('embed') === '1') {
-        const media = post.media[0][0];
+        // Resort the media and pick the best one
+        const media = sortMedia(post, [
+            Variant.GIF,
+            Variant.Video,
+            Variant.PartialVideo,
+            Variant.Image,
+            Variant.Thumbnail,
+            Variant.PartialAudio,
+            Variant.Blur,
+        ])[0][0];
+        
         const mediaURL = media.href;
         const response = await fetch(mediaURL, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
         const body = await response.body;
         if (response.status != 200)
             return new Response(body, { status: response.status });
-    
+
         // Get the content type.
         // Normally we would just use the response headers, but Reddit LIES
-        const headers : HeadersInit = { 
+        const headers: HeadersInit = {
             'content-type': MIME[media.mime] || response.headers.get('content-type') || 'image/gif',
             'content-disposition': `inline;filename="${post.id}.${extmime(media.mime)}"`,
         };
-    
+
         return new Response(body, { headers });
     }
 
