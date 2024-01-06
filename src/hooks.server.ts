@@ -15,8 +15,9 @@ export const handle = (async ({ event, resolve }) => {
         }
     }
 
-    if (url.pathname.startsWith('/r/') && (event.request.headers.get('user-agent')?.toLowerCase().includes('discord') || url.searchParams.get('embed') == 1)) {
-        return await fetch('/api/reddit/media?embed=1&href=' + encodeURIComponent(url.pathname));
+    if (url.pathname.startsWith('/r/') && (event.request.headers.get('user-agent')?.toLowerCase().includes('discord') || url.searchParams.get('embed') == '1')) {
+        throw redirect(302, '/api/reddit/media?embed=1&href=' + encodeURIComponent(url.pathname));
+        //return await fetch('/api/reddit/media?embed=1&href=' + encodeURIComponent(url.pathname));
     }
 
     const response = await resolve(event);
