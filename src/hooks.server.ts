@@ -1,7 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { redgif } from '$lib/redgifs';
 import { createOpenGraph } from '$lib/helpers';
-import { getMedia } from '$lib/reddit';
+import type { Post } from '$lib/reddit';
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;
@@ -16,7 +16,7 @@ export const handle = (async ({ event, resolve }) => {
     }
 
     if (url.pathname.startsWith('/r/')) {
-        const post = await getMedia(`https://www.reddit.com` + url.pathname);
+        const post : Post = await fetch('/api/reddit/media?href=' + encodeURIComponent(url.pathname)).then(p => p.json());
         const tags = createOpenGraph({
             title: post.title,
             image: post.thumbnail?.href || '',
