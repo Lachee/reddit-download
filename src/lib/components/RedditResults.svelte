@@ -9,14 +9,6 @@
   import { extmime } from "$lib/mime";
 
   let elemCarousel: HTMLDivElement;
-  const unsplashIds = [
-    "vjUokUWbFOs",
-    "1aJuPtQJX_I",
-    "Jp6O3FFRdEI",
-    "I3C_eojFVQY",
-    "s0fXOuyTH1M",
-    "z_X0PxmBuIQ",
-  ];
 
   const VariantOrder = [
     Variant.PartialVideo,
