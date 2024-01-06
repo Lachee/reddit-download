@@ -42,6 +42,7 @@ type PhotoOEmbed = OEmbed & {
 
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
+    const origin = (new URL(evt.request.url)).origin;
     const query = evt.url.searchParams;
 
     const href = validateUrl(query.get('url') || '', ['localhost', 'dl-reddit.com', 'pages.dev', ...Domains]);
@@ -86,7 +87,7 @@ export const GET: RequestHandler = async (evt) => {
             type: 'rich',
             version: '1.0',
             title: post.title,
-            html: `<img src="${proxy(media.href)}" />`,
+            html: `<img src="${origin}${proxy(media.href)}" />`,
             width: media.dimension?.width ?? 480,
             height: media.dimension?.height ?? 640
         } satisfies RichOEmbed)
