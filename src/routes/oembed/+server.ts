@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getMedia, authenticate, Domains } from '$lib/reddit';
+import { authentication, getMedia, authenticate, Domains, sortMedia } from '$lib/reddit';
 import { get } from 'svelte/store';
 
 type OEmbed = {
@@ -51,7 +51,7 @@ export const GET: RequestHandler = async (evt) => {
         }
     });
 
-    const media = post.media[0][0];
+    const media = sortMedia(post)[0][0];
     const oEmbed: VideoOEmbed = {
         type: 'video',
         version: '1.0',
