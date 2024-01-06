@@ -209,12 +209,14 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
 
         // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
         if (USE_JSONP && browser && !init) {
-            request = fetchJsonp(`${url.origin}${url.pathname}.json?raw_json=1`, { jsonpCallback: 'jsonp', crossorigin: true });
-            log('getting reddit post via jsonp');
+            const redditurl = `${url.origin}${url.pathname}.json?raw_json=1`;
+            request = fetchJsonp(redditurl, { jsonpCallback: 'jsonp', crossorigin: true });
+            log('getting reddit post via jsonp', redditurl);
         } else {
             if (!init) init = { baseUrl: url.origin, headers: {} };
-            request = fetch(`${init.baseUrl}${url.pathname}.json?raw_json=1`, { headers: init.headers });
-            log('getting reddit post via fetch');
+            const redditurl = `${init.baseUrl}${url.pathname}.json?raw_json=1`;
+            request = fetch(redditurl, { headers: init.headers });
+            log('getting reddit post via fetch', redditurl);
         }
 
         // Await the request
