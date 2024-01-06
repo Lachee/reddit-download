@@ -83,14 +83,14 @@ export const GET: RequestHandler = async (evt) => {
     }
     else if (media.variant == Variant.GIF || media.variant == Variant.Image || media.variant == Variant.Thumbnail) 
     {
-        return json({
-            type: 'rich',
-            version: '1.0',
-            title: post.title,
-            html: `<img src="${origin}${proxy(media.href)}" />`,
-            width: media.dimension?.width ?? 480,
-            height: media.dimension?.height ?? 640
-        } satisfies RichOEmbed)
+        // return json({
+        //     type: 'rich',
+        //     version: '1.0',
+        //     title: post.title,
+        //     html: `<img src="${origin}${proxy(media.href)}" />`,
+        //     width: media.dimension?.width ?? 480,
+        //     height: media.dimension?.height ?? 640
+        // } satisfies RichOEmbed)
 
         // Photo
         return json({
