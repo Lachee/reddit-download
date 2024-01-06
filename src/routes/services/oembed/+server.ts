@@ -18,6 +18,13 @@ type OEmbed = {
     thumbnail_height?: number
 }
 
+type VideoOEmbed = OEmbed & {
+    type: 'video',
+    html: string,
+    width : number,
+    height : number
+}
+
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
     const query = evt.url.searchParams;
@@ -44,6 +51,14 @@ export const GET: RequestHandler = async (evt) => {
         }
     });
 
-    const oEmbed: OEmbed = {};
+    const media = post.media[0][0];
+    const oEmbed: VideoOEmbed = {
+        type: 'video',
+        version: '1.0',
+        title: post.title,
+        html: `<video src="${media.href}" />`,
+        width: media.dimension?.width ?? 480,
+        height: media.dimension?.height ?? 640
+    };
     return json(oEmbed);
 };
