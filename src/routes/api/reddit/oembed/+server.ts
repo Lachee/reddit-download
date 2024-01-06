@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getMedia, authenticate, Domains, sortMedia } from '$lib/reddit';
+import { authentication, getMedia, authenticate, Domains, sortMedia, Variant } from '$lib/reddit';
 import { get } from 'svelte/store';
 
 type OEmbed = {
@@ -21,21 +21,27 @@ type OEmbed = {
 type VideoOEmbed = OEmbed & {
     type: 'video',
     html: string,
-    width : number,
-    height : number
+    width: number,
+    height: number
+}
+
+type PhotoOEmbed = OEmbed & {
+    type: 'photo',
+    url: string,
+    width: number,
+    height: number
 }
 
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
     const query = evt.url.searchParams;
 
-    const href = validateUrl(query.get('url') || '', ['dl-reddit.com', 'pages.dev', ...Domains]);
+    const href = validateUrl(query.get('url') || '', ['localhost', 'dl-reddit.com', 'pages.dev', ...Domains]);
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
     // convert the dl-reddit.com to reddit.com 
-    if (href.hostname.endsWith('dl-reddit.com') || href.hostname.endsWith('pages.dev'))
-        href.hostname = 'www.reddit.com';
+    href.hostname = 'www.reddit.com';
 
     // Authenticate with reddit. By using this proxy we probably want to ensure we will get ALL the data.
     let auth = get(authentication);
@@ -51,14 +57,38 @@ export const GET: RequestHandler = async (evt) => {
         }
     });
 
+
     const media = sortMedia(post)[0][0];
-    const oEmbed: VideoOEmbed = {
-        type: 'video',
+
+    if (media.variant == Variant.Video || media.variant == Variant.PartialVideo) 
+    {
+        // Video
+        return json({
+            type: 'video',
+            version: '1.0',
+            title: post.title,
+            html: `<video src="${media.href}" />`,
+            width: media.dimension?.width ?? 480,
+            height: media.dimension?.height ?? 640
+        } satisfies VideoOEmbed);
+    }
+    else if (media.variant == Variant.GIF || media.variant == Variant.Image || media.variant == Variant.Thumbnail) 
+    {
+        // Photo
+        return json({
+            type: 'photo',
+            version: '1.0',
+            title: post.title,
+            url: media.href,
+            width: media.dimension?.width ?? 480,
+            height: media.dimension?.height ?? 640
+        } satisfies PhotoOEmbed);
+    }
+
+    // We give up!
+    return json({
+        type: 'link',
         version: '1.0',
         title: post.title,
-        html: `<video src="${media.href}" />`,
-        width: media.dimension?.width ?? 480,
-        height: media.dimension?.height ?? 640
-    };
-    return json(oEmbed);
+    } satisfies OEmbed)
 };

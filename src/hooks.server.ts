@@ -15,7 +15,14 @@ export const handle = (async ({ event, resolve }) => {
         }
     }
 
+    
+    
+    
     const response = await resolve(event);
     response.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+
+	const oembedRoute = `${url.origin}/api/reddit/oembed?url=${encodeURIComponent(url.toString())}`;
+    response.headers.set('Link',  '<'+oembedRoute+'>; rel="alternate"; type="application/json+oembed"; title="reddit"');
+    
     return response;
 }) satisfies Handle;
