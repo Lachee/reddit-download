@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { firstBy } from "thenby";
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { combine } from "$lib/ffmpeg";
   import { type Post, type Media, Variant } from "$lib/reddit";

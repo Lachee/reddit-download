@@ -3,7 +3,9 @@ import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
 import { writable } from 'svelte/store';
-import { firstBy } from 'thenby';
+
+import thenby from 'thenby';
+const { firstBy } = thenby;
 
 /** Enables the MP4 previews that are generated from gifs */
 const INCLUDE_MP4_IN_VARIANTS = false;
