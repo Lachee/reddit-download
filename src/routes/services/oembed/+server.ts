@@ -29,12 +29,12 @@ type VideoOEmbed = OEmbed & {
 export const GET: RequestHandler = async (evt) => {
     const query = evt.url.searchParams;
 
-    const href = validateUrl(query.get('url') || '', ['dl-reddit.com', ...Domains]);
+    const href = validateUrl(query.get('url') || '', ['dl-reddit.com', 'feat-oembed.reddit-download.pages.dev', ...Domains]);
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
     // convert the dl-reddit.com to reddit.com 
-    if (href.hostname.endsWith('dl-reddit.com'))
+    if (href.hostname.endsWith('dl-reddit.com') || href.hostname.endsWith('reddit-download.pages.dev'))
         href.hostname = 'www.reddit.com';
 
     // Authenticate with reddit. By using this proxy we probably want to ensure we will get ALL the data.
