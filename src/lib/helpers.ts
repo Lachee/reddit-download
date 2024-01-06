@@ -77,3 +77,13 @@ export function validateUrl(href: string, allowedRoots: string[]): URL | null {
 
     return null;
 }
+
+
+export function createOpenGraph(tags : Record<string, string>) : string {
+    let ogTags = [];
+    for (const name in tags) {
+        const value = tags[name].replaceAll('"', '\\"')
+        ogTags.push(`<meta property="og:${name}" content="${value}" />`);
+    }
+    return ogTags.join('\n');
+}

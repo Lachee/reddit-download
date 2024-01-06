@@ -1,5 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { redgif } from '$lib/redgifs';
+import { createOpenGraph } from '$lib/helpers';
+import { getMedia } from '$lib/reddit';
 
 export const handle = (async ({ event, resolve }) => {
     const { url, fetch } = event;
@@ -11,6 +13,17 @@ export const handle = (async ({ event, resolve }) => {
             const gif = await redgif.fetchGif(proxyUrl);
             return new Response(JSON.stringify(gif), { headers: { 'content-type': 'application/json' } });
         }
+    }
+
+    if (url.pathname.startsWith('/r/')) {
+        const post = await getMedia(`https://www.reddit.com` + url.pathname);
+        const tags = createOpenGraph({
+            title: post.title,
+            image: post.thumbnail?.href || '',
+            url: post.permalink.toString(),
+            video: post.media[0][0].href
+        })
+        return new Response(`<html><head>\n${tags}\n</head></html>`, { headers : { 'content-type': 'text/html' }} );
     }
 
     const response = await resolve(event);
