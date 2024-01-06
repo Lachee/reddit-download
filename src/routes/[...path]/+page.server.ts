@@ -3,6 +3,6 @@ export function load({ setHeaders, url }) {
 	setHeaders({
 		'Cross-Origin-Embedder-Policy': 'require-corp',
         'Cross-Origin-Opener-Policy': 'same-origin',
-		'Link': `<${url.origin}/api/reddit/oembed?url=${encodeURIComponent(url.pathname)}>; type="application/json+oembed"`
+		'Link': `<${url.origin}/api/reddit/oembed?url=${encodeURIComponent(url.pathname)}>; rel="alternate"; type="application/json+oembed"; title="reddit"`
 	});
 }
