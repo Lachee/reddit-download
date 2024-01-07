@@ -61,6 +61,7 @@
     bind:value={searchBox}
     placeholder="reddit.com/r/..."
     on:click={() => search()}
+    on:clear={() => (resultPromise = Promise.resolve({}))}
   />
 
   {#await resultPromise}

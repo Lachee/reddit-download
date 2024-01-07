@@ -1,5 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import { swipe } from "svelte-gestures";
+  import { fade, slide } from "svelte/transition";
 
   export let value: string = "";
   export let placeholder: string = "placeholder";
@@ -7,6 +9,15 @@
   export let icon: boolean = false;
 
   const dispatch = createEventDispatcher();
+
+  function click() {
+    dispatch("click", { value });
+  }
+
+  function clear() {
+    value = "";
+    dispatch("clear", { value });
+  }
 </script>
 
 <div class="relative">
@@ -39,12 +50,21 @@
     {placeholder}
     required
     bind:value
+    use:swipe={{ timeframe: 300, minSwipeDistance: 100 }}
+    on:swipe={(evt) => {
+      if (evt.detail.direction === "left") clear();
+    }}
   />
   <button
-    on:click={() => {
-      dispatch("click", { value });
-    }}
+    on:click={click}
     class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
     >{label}</button
   >
+</div>
+
+<div class="h-1 mt-0 p-0" style="margin-top: 5px">
+  {#if value.length > 0}
+    <span transition:fade class="text-gray-600 italic m-0 p-0"
+      >swipe left to clear</span
+    >{/if}
 </div>
