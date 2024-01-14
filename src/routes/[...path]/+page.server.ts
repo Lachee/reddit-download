@@ -3,12 +3,12 @@ export const prerender = 'auto';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import type { PageServerLoad } from './$types';
 
-import { type Post, getMediaAuthenticated } from "$lib/reddit";
+import { type Post, getMediaAuthenticated, follow } from "$lib/reddit";
+import { getCache } from '$lib/cache';
 
 const CrawlerUserAgents = [
 	'Iframely',
 	'Discordbot',
-	//'Moz',
 ];
 
 type PageData = {
@@ -17,9 +17,18 @@ type PageData = {
 }
 
 /** Gets the redit post. */
-async function getPost(link : string) : Promise<Post|undefined> { 
+async function loadPost(link : string) : Promise<Post|undefined> { 
 	try {
-		const post = await getMediaAuthenticated(link, BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
+		const url = await follow(link);
+
+		// Try the cache
+		const cached = await getCache().get(`reddit:media:${url}`);
+		if (cached != null) 
+			return JSON.parse(cached) as Post; 
+
+		// Cache miss, pull it another way
+		const post = await getMediaAuthenticated(url.toString(), BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
+		await getCache().put(`reddit:media:${url}`, JSON.stringify(post), { expirationTtl: 86400 });
 		return post;
 	}catch(e) {
 		console.error('failed to fetch the post media', e);
@@ -28,9 +37,9 @@ async function getPost(link : string) : Promise<Post|undefined> {
 }
 
 /** Determines if the request should be SSR */
-function isSSR(request : Request) : boolean {
+function isServerLoaded(request : Request) : boolean {
 	const ua =  request.headers.get('user-agent') || '';
-	return CrawlerUserAgents.find(v => ua.includes(v)) !== undefined;
+	return CrawlerUserAgents.find(v => ua.includes(v)) !== undefined || (new URL(request.url)).hostname == 'localhost';
 }
 
 export const load: PageServerLoad = async ({ setHeaders, params, request } ) => {
@@ -48,9 +57,9 @@ export const load: PageServerLoad = async ({ setHeaders, params, request } ) => 
 	};
 
 	// Perform a SSR search
-	if (params.path != null && isSSR(request)) {
-		console.log('page should be ssr');
-		pageData.reddit = await getPost(pageData.source);
+	if (params.path != null && isServerLoaded(request)) {
+		console.log('prefetching reddit post');
+		pageData.reddit = await loadPost(pageData.source);
 	}
 
 	return pageData;

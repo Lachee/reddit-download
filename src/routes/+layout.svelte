@@ -14,15 +14,6 @@
   import { page } from "$app/stores";
 </script>
 
-<svelte:head>
-  <link
-    type="application/json+oembed"
-    href="{$page.url.origin}/api/reddit/oembed?url={encodeURIComponent(
-      $page.url.pathname
-    )}"
-  />
-</svelte:head>
-
 <AppShell>
   <slot />
   <svelte:fragment slot="pageFooter">

@@ -5,6 +5,7 @@ import { Domains, sortMedia, Variant, getMediaAuthenticated } from '$lib/reddit'
 import { get } from 'svelte/store';
 import { MIME, extmime } from '$lib/mime';
 import type { RequestHandler } from './$types';
+import { getCache } from '$lib/cache';
 
 
 /** Follows a given reddit link to resolve the short links */
@@ -14,6 +15,11 @@ export const GET: RequestHandler = async (evt) => {
     const href = validateUrl(query.get('href') || '', Domains);
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
+
+    // Try the cache
+    const cached = await getCache().get(`reddit:mediaauth:${href}`);
+    if (cached != null) 
+        return new Response(cached, { headers: { 'content-type': 'application/json', 'x-cached': 'true' }});
 
     // Fetch all the media, but we need to tell the API to use our credentials.
     const post = await getMediaAuthenticated(href.toString(), BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
@@ -47,5 +53,7 @@ export const GET: RequestHandler = async (evt) => {
         return new Response(body, { headers });
     }
 
-    return json(post);
+    const serialized = JSON.stringify(post);
+    getCache().put(`reddit:mediaauth:${href}`, serialized, { expirationTtl: 86400 });
+    return new Response(serialized, { headers: { 'content-type': 'application/json', 'x-cached': 'false' }});
 };

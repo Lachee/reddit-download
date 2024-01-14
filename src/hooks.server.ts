@@ -1,10 +1,11 @@
 import type { Handle } from '@sveltejs/kit';
-import { redgif } from '$lib/redgifs';
-import { createOpenGraph, proxy } from '$lib/helpers';
-import type { Post } from '$lib/reddit';
+import type { KVNamespace } from '@cloudflare/workers-types';
 
-export const handle = (async ({ event, resolve }) => {
-    const { url, fetch } = event;
+import { redgif } from '$lib/redgifs';
+import { MemoryCache, setCache } from '$lib/cache';
+
+export const handle = (async ({ event, resolve, }) => {
+    const { url, platform } = event;
     const proxyUrl = url.searchParams.get('get');
     if (proxyUrl != null) {
         // Downloads redgifs information
@@ -16,13 +17,11 @@ export const handle = (async ({ event, resolve }) => {
     }
 
     
-    
-    
+    const kvcache : KVNamespace|undefined = platform?.env?.KV_CACHE;
+    if (kvcache !== undefined) setCache(kvcache);
+        
     const response = await resolve(event);
     response.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
 
-	const oembedRoute = `${url.origin}/api/reddit/oembed?url=${encodeURIComponent(url.toString())}`;
-    response.headers.set('Link',  '<'+oembedRoute+'>; rel="alternate"; type="application/json+oembed"; title="reddit"');
-    
     return response;
 }) satisfies Handle;
