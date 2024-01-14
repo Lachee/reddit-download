@@ -87,7 +87,8 @@ export function createOpenGraph(tags: Record<string, string | string[]>): string
             values = [values];
         
         for (const val of values) {
-            ogTags.push(`<meta property="og:${name}" content="${val.replaceAll('"', '\\"')}" />`);
+            if (val !== undefined && val !== null && typeof val === 'string')
+                ogTags.push(`<meta property="og:${name}" content="${val.replaceAll('"', '\\"')}" />`);
         }
     }
     return ogTags.join('\n');
