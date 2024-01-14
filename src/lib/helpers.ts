@@ -30,13 +30,13 @@ export function rootHostname(url: string | URL): string {
  * @param download Include the download header
  * @returns 
  */
-export function proxy(url: string | URL, fileName?: string, download? : boolean): string {
+export function proxy(url: string | URL, fileName?: string, download?: boolean): string {
     if (typeof url !== 'string')
         url = url.toString();
 
-    const params: Record<string, string> = {  href: url  };
+    const params: Record<string, string> = { href: url };
 
-    if (download) 
+    if (download)
         params.dl = download ? '1' : '0';
 
     if (fileName)
@@ -65,7 +65,7 @@ export function validateUrl(href: string, allowedRoots: string[]): URL | null {
     try {
         if (href.startsWith('/r/'))
             href = `https://www.reddit.com${href}`;
-        
+
         const url = new URL(href);
         const root = rootHostname(url);
         if (allowedRoots.includes(root))
@@ -79,11 +79,16 @@ export function validateUrl(href: string, allowedRoots: string[]): URL | null {
 }
 
 
-export function createOpenGraph(tags : Record<string, string>) : string {
+export function createOpenGraph(tags: Record<string, string | string[]>): string {
     let ogTags = [];
     for (const name in tags) {
-        const value = tags[name].replaceAll('"', '\\"')
-        ogTags.push(`<meta property="og:${name}" content="${value}" />`);
+        let values = tags[name];
+        if (!Array.isArray(values))
+            values = [values];
+        
+        for (const val of values) {
+            ogTags.push(`<meta property="og:${name}" content="${val.replaceAll('"', '\\"')}" />`);
+        }
     }
     return ogTags.join('\n');
 }

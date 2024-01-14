@@ -1,3 +1,5 @@
+export const prerender = 'auto';
+
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import type { PageServerLoad } from './$types';
 
@@ -6,7 +8,7 @@ import { type Post, getMediaAuthenticated } from "$lib/reddit";
 const CrawlerUserAgents = [
 	'Iframely',
 	'Discordbot',
-	'Moz',
+	//'Moz',
 ];
 
 type PageData = {
@@ -46,8 +48,10 @@ export const load: PageServerLoad = async ({ setHeaders, params, request } ) => 
 	};
 
 	// Perform a SSR search
-	if (params.path != null && isSSR(request)) 
+	if (params.path != null && isSSR(request)) {
+		console.log('page should be ssr');
 		pageData.reddit = await getPost(pageData.source);
+	}
 
 	return pageData;
 }

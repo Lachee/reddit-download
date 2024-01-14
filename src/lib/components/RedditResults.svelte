@@ -4,7 +4,7 @@
   import { combine } from "$lib/ffmpeg";
   import { type Post, type Media, Variant } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
-  import { proxy } from "$lib/helpers";
+  import { proxy, createOpenGraph } from "$lib/helpers";
   import { extmime } from "$lib/mime";
 
   let elemCarousel: HTMLDivElement;
@@ -49,7 +49,7 @@
       best.push({ ...collection[0], thumbnail });
     }
 
-    console.log("best content", best);
+    console.log(">> Best Variants ", best);
     return best;
   }
 
@@ -59,6 +59,22 @@
     child.scrollIntoView({ block: "nearest", inline: "center" });
   }
 </script>
+
+<svelte:head>
+  {@html createOpenGraph({
+    title: post.title,
+    url: post.permalink,
+    image: post.media.map(
+      (collection) =>
+        collection.filter(
+          (c) =>
+            c.variant != Variant.PartialVideo &&
+            c.variant != Variant.Video &&
+            c.variant != Variant.PartialAudio
+        )[0]?.href
+    ),
+  })}
+</svelte:head>
 
 <h3>{post.title}</h3>
 
