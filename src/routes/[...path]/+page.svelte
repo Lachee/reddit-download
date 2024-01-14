@@ -7,10 +7,11 @@
   // # Library
   import {
     type Post as RedditPost,
-    getMedia as fetchRedditPost,
+    getMedia as getRedditPost,
+    Domains as RedditDomains,
   } from "$lib/reddit";
-  import { fetchProxy as fetchRedGif, type Gif as RedGif } from "$lib/redgifs";
-  import { rootHostname } from "$lib/helpers";
+  import type { Gif as RedgifPost } from "$lib/redgifs";
+  import { validateUrl } from "$lib/helpers";
 
   // # Components
   import { ProgressBar } from "@skeletonlabs/skeleton";
@@ -21,36 +22,36 @@
 
   export let data: PageData;
 
-  type Result = {
+  interface Result {
     reddit?: RedditPost;
-    redgif?: RedGif;
-  };
+    redgif?: RedgifPost;
+  }
 
   let searchBox: string =
-    $page.url.searchParams.get("share") || data.postUrl || "";
+    $page.url.searchParams.get("share") || data.source || "";
 
-  let resultPromise: Promise<Result>;
+  let result: Promise<Result> = Promise.resolve(data);
 
   onMount(() => {
-    if (searchBox != "") search();
+    // We have the searchBox prefilled but no reddit data, we need to perform the search ourselves
+    if (!data.reddit && searchBox != "") search();
   });
 
-  function search() {
-    const domain = rootHostname(searchBox);
-    if (domain.includes("reddit")) {
+  /** Performs a search based on the searchBox content */
+  async function search(): Promise<Result> {
+    // Search Reddit
+    if (validateUrl(searchBox, RedditDomains)) {
       console.log("searching reddit", searchBox);
-      resultPromise = fetchRedditPost(searchBox).then((reddit) => {
+      result = getRedditPost(searchBox).then((reddit) => {
         searchBox = reddit.permalink.toString();
         return { reddit };
       });
     }
 
-    if (domain.includes("redgif")) {
-      console.log("searching redgif", searchBox);
-      resultPromise = fetchRedGif(searchBox).then((redgif) => {
-        return { redgif };
-      });
-    }
+    // No idea what we are searching for :shrug:
+    console.warn("unknown destination, not sure what we are looking for");
+    result = Promise.resolve(data);
+    return data;
   }
 </script>
 
@@ -61,10 +62,10 @@
     bind:value={searchBox}
     placeholder="reddit.com/r/..."
     on:click={() => search()}
-    on:clear={() => (resultPromise = Promise.resolve({}))}
+    on:clear={() => (result = Promise.resolve({}))}
   />
 
-  {#await resultPromise}
+  {#await result}
     <ProgressBar />
   {:then result}
     {#if result?.reddit !== undefined}
@@ -88,11 +89,14 @@
     <section class="p-4">
       Add the <strong>DL-</strong> prefix to the <strong>reddit.com</strong>
       to download the video quickly and easily!<br />
-      {#await resultPromise}
+      {#await result}
         <code>https://www.dl-reddit.com/r/...</code>
       {:then result}
         {#if result?.reddit !== undefined}
-          <code>https://dl-reddit.com{result?.reddit.permalink.pathname}</code>
+          <code
+            >https://dl-reddit.com/{new URL(result?.reddit.permalink)
+              .pathname}</code
+          >
         {:else}
           <code>https://www.dl-reddit.com/r/...</code>
         {/if}

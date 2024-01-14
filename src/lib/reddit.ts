@@ -2,7 +2,7 @@ import { UserAgent, extname, stripQueryParameters, validateUrl } from './helpers
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 import thenby from 'thenby';
 const { firstBy } = thenby;
@@ -54,9 +54,9 @@ export type Post = {
     /** ID of the reddit post */
     id: string;
     /** The address the post points too */
-    url: URL
+    url: string
     /** The permalink to the post */
-    permalink: URL
+    permalink: string
     /** unique identifier for hte post */
     name: string
     /** The post is marked NSFW */
@@ -208,6 +208,27 @@ export async function authenticate(username: string, password: string, clientId:
     return authToken;
 }
 
+export async function getMediaAuthenticated(link: string, username: string, password: string, clientId: string, clientSecret: string): Promise<Post> {
+    if (browser) {
+        error('cannot get media with authentication in the browser! Defaulting to a regular request');
+        return await getMedia(link);
+    }
+
+    // Authenticate
+    let auth = get(authentication);
+    if (auth == null || Date.now() >= auth.expires_at)
+        auth = await authenticate(username, password, clientId, clientSecret);
+
+    // Query the media
+    return await getMedia(link, {
+        baseUrl: 'https://oauth.reddit.com',
+        headers: {
+            'User-Agent': 'LacheesClient/0.1 by Lachee',
+            'Authorization': `${auth.token_type} ${auth.access_token}`
+        }
+    });
+}
+
 /**
  * Gets a reddit post, collating all the appropriate media
  * @param url the link to the reddit post
@@ -261,8 +282,8 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
         const permalink = `https://www.reddit.com${data.permalink}`;
         const post: Post = {
             id: data.id,
-            url: new URL(data.url || permalink),
-            permalink: new URL(permalink),
+            url: data.url || permalink,
+            permalink: permalink,
             name: data.name,
             subreddit: data.subreddit,
             title: data.title,
@@ -362,14 +383,14 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
 }
 
 /** Sorts the media by prefered posts. */
-export function sortMedia(post: Post, order? : Variant[]) : MediaVariantCollection[] {
+export function sortMedia(post: Post, order?: Variant[]): MediaVariantCollection[] {
     const sorted = order ?? VariantOrder;
     for (const collection of post.media) {
         // Sort the collection by the variant type and then the dimensions
         collection.sort(
             firstBy(
                 (a: Media, b: Media) =>
-                sorted.indexOf(a.variant) - sorted.indexOf(b.variant)
+                    sorted.indexOf(a.variant) - sorted.indexOf(b.variant)
             ).thenBy(
                 (a, b) => (a.dimension?.width ?? 0) - (b.dimension?.width ?? 0),
                 -1
