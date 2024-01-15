@@ -420,6 +420,7 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
 
         if (media.mime.startsWith('image')) {   
             // Image content
+            properties.push({ name: 'type', content: 'website' });
             properties.push({ name: 'twitter:card', content: 'summary_large_image' });
             properties.push({ name: 'twitter:image:src', content: link });
             properties.push({ name: 'image', content: link });
@@ -434,10 +435,11 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
             }
         } else if (media.mime.startsWith('video')) {
             // Video Content
-            properties.push({ name: 'twitter:card', content: 'summary_large_image' });
+            properties.push({ name: 'type', content: 'video.other' });
             properties.push({ name: 'twitter:player', content: link });
             properties.push({ name: 'video', content: link });
-            properties.push({ name: 'secure_url', content: link });
+            properties.push({ name: 'video:url', content: link });
+            properties.push({ name: 'video:secure_url', content: link });
             
             // Video Object
             properties.push({ name: 'video:type', content: media.mime });
