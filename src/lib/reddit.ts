@@ -14,7 +14,7 @@ const USE_JSONP = false;
 
 
 export type Mime =
-    'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4';
+    'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4' | 'application/x-mpegURL';
 
 export enum Variant {
     /** Presentable actual image */
@@ -31,6 +31,8 @@ export enum Variant {
     PartialVideo = 'video_only',
     /** Partial audio channel that needs combing with a VideoClip */
     PartialAudio = 'audio',
+    /** Video Stream */
+    StreamedVideo = 'video_m3u8',
 }
 
 export const VariantOrder = [
@@ -41,6 +43,7 @@ export const VariantOrder = [
     Variant.Image,
     Variant.Thumbnail,
     Variant.Blur,
+    Variant.StreamedVideo,
 ];
 
 /** Root Domains reddit operates */
@@ -102,6 +105,7 @@ export type Credentials = {
 type RedditVideo = {
     dash_url: string,
     fallback_url?: string,
+    hls_url?: string,
     width?: number,
     height?: number
 };
@@ -434,9 +438,6 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             }
         }
 
-        // Sort the media
-        sortMedia(post);
-
         log('parsed post: ', browser ? post : post.title);
         return post;
     } finally {
@@ -472,12 +473,22 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
         { name: 'twitter:title', content: post.title },
     ];
 
-    for (const collection of post.media) {
-        const media = collection.find(p => p.variant !== Variant.Blur);
+    for (const collection of sortMedia(post, [
+        Variant.StreamedVideo,
+        Variant.GIF,
+        Variant.Video,
+        Variant.Image,
+        Variant.PartialVideo,
+        Variant.Thumbnail,
+        Variant.PartialAudio,
+        Variant.Blur,
+    ])) {
+        const media = collection[0];
         if (media === undefined) continue;
-
+       
         const link = media.href; //proxy(media.href, undefined, undefined, true) + '&.gif';
         if (media.mime.startsWith('image')) {
+
             // Image Type + Linking
             properties.push({ name: 'type', content: 'website' });
             properties.push({ name: 'twitter:card', content: 'summary_large_image' });
@@ -492,7 +503,7 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
                     properties.push({ name: `image:height`, content: media.dimension.height.toString() });
                 }
             }
-        } else if (media.mime.startsWith('video')) {
+        } else if (media.mime.startsWith('video') || media.mime == 'application/x-mpegURL') {
             // Video Type + Linking
             properties.push({ name: 'type', content: 'video.other' });
             properties.push({ name: 'twitter:player', content: link });
@@ -689,6 +700,23 @@ async function getRedditVideoCollection(redditVideo: RedditVideo): Promise<Media
 
         collection.push(fallback);
     }
+
+    // Stream media
+    if (redditVideo.hls_url) {
+        const hls: Media = {
+            mime: 'application/x-mpegURL',
+            variant: Variant.StreamedVideo,
+            href: redditVideo.hls_url
+        }
+
+        if (redditVideo.width) {
+            hls.dimension = { width: +redditVideo.width };
+            if (redditVideo.height) hls.dimension.height = +redditVideo.height;
+        }
+
+        collection.push(hls);
+    }
+
     return collection;
 }
 
