@@ -39,7 +39,7 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 /** Determines if the request should be SSR */
 function isServerLoaded(request : Request) : boolean {
 	const ua =  request.headers.get('user-agent') || '';
-	return CrawlerUserAgents.find(v => ua.includes(v)) !== undefined || (new URL(request.url)).hostname == 'localhost';
+	return true;// CrawlerUserAgents.find(v => ua.includes(v)) !== undefined || (new URL(request.url)).hostname == 'localhost';
 }
 
 export const load: PageServerLoad = async ({ setHeaders, params, request } ) => {

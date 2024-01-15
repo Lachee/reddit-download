@@ -1,4 +1,4 @@
-import { UserAgent, extname, stripQueryParameters, validateUrl } from './helpers';
+import { UserAgent, extname, proxy, stripQueryParameters, validateUrl, type OGPProperty } from './helpers';
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
@@ -398,6 +398,61 @@ export function sortMedia(post: Post, order?: Variant[]): MediaVariantCollection
         );
     }
     return post.media;
+}
+
+export function getOGPMetadata(post: Post): OGPProperty[] {
+    const properties: OGPProperty[] = [
+        //{ name: 'ttl', content: '1' },
+        { name: 'site_name', content: post.url + (post.media.length > 1 ? ` - gallery of ${post.media.length}` : '') },
+        { name: 'title', content: post.title },
+        { name: 'url', content: post.permalink },
+        { name: 'twitter:site', content: '@reddit'},
+        { name: 'twitter:title', content: post.title },
+    ];
+
+
+    for (const collection of post.media) {
+        const media = collection.find(p => p.variant !== Variant.Blur);
+        if (media === undefined) continue;
+
+        let prefix = '';
+        const link = proxy(media.href, undefined, undefined, true);
+
+        if (media.mime.startsWith('image')) {   
+            // Image content
+            properties.push({ name: 'twitter:card', content: 'summary_large_image' });
+            properties.push({ name: 'twitter:image:src', content: link });
+            properties.push({ name: 'image', content: link });
+
+            // Image Object
+            properties.push({ name: 'image:type', content: media.mime });
+            if (media.dimension) {
+                properties.push({ name: `image:width`, content: media.dimension.width.toString() });
+                if (media.dimension.height) {
+                    properties.push({ name: `image:height`, content: media.dimension.height.toString() });
+                }
+            }
+        } else if (media.mime.startsWith('video')) {
+            // Video Content
+            properties.push({ name: 'twitter:card', content: 'summary_large_image' });
+            properties.push({ name: 'twitter:player', content: link });
+            properties.push({ name: 'video', content: link });
+            properties.push({ name: 'secure_url', content: link });
+            
+            // Video Object
+            properties.push({ name: 'video:type', content: media.mime });
+            if (media.dimension) {
+                properties.push({ name: `video:width`, content: media.dimension.width.toString() });
+                properties.push({ name: `twitter:player:width`, content: media.dimension.width.toString() });
+                if (media.dimension.height) {
+                    properties.push({ name: `video:height`, content: media.dimension.height.toString() });
+                    properties.push({ name: `twitter:player:height`, content: media.dimension.height.toString() });
+                }
+            }
+        }
+    }
+
+    return properties;
 }
 
 /** Parses the reddit post to get a media collection */

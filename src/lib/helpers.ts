@@ -1,5 +1,7 @@
 import { MIME } from "./mime";
 
+import { page } from '$app/stores';
+import { get } from "svelte/store";
 export const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
 /**
@@ -30,7 +32,7 @@ export function rootHostname(url: string | URL): string {
  * @param download Include the download header
  * @returns 
  */
-export function proxy(url: string | URL, fileName?: string, download?: boolean): string {
+export function proxy(url: string | URL, fileName?: string, download?: boolean, absolute: boolean = false): string {
     if (typeof url !== 'string')
         url = url.toString();
 
@@ -42,7 +44,8 @@ export function proxy(url: string | URL, fileName?: string, download?: boolean):
     if (fileName)
         params.fileName = fileName;
 
-    return `/api/proxy?` + new URLSearchParams(params).toString();
+    const origin = absolute ? get(page).url.origin : '';
+    return `${origin}/api/proxy?` + new URLSearchParams(params).toString();
 }
 
 /**
@@ -78,18 +81,20 @@ export function validateUrl(href: string, allowedRoots: string[]): URL | null {
     return null;
 }
 
+export type OGPProperty = { name: string, content: string };
 
-export function createOpenGraph(tags: Record<string, string | string[]>): string {
-    let ogTags = [];
-    for (const name in tags) {
-        let values = tags[name];
-        if (!Array.isArray(values))
-            values = [values];
+export function createOpenGraph(metadata: OGPProperty[]): string {
+    const sanatize = (value : string) => value.replaceAll('"', '\\"');
+    const ogtag = (name : string, value : string) => `<meta property="og:${sanatize(name)}" content="${sanatize(value)}" />`;
         
-        for (const val of values) {
-            if (val !== undefined && val !== null && typeof val === 'string')
-                ogTags.push(`<meta property="og:${name}" content="${val.replaceAll('"', '\\"')}" />`);
+    const ogTags : string[] = [];
+    metadata.forEach(property => {
+        if (property.name.startsWith('twitter')) {
+            ogTags.push(`<meta property="${sanatize(property.name)}" content="${sanatize(property.content)}" />`);
+        } else {
+            ogTags.push(`<meta property="og:${sanatize(property.name)}" content="${sanatize(property.content)}" />`);
         }
-    }
+    });
+
     return ogTags.join('\n');
 }

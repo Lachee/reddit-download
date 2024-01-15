@@ -2,7 +2,13 @@
   import { onMount } from "svelte";
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import { combine } from "$lib/ffmpeg";
-  import { type Post, type Media, Variant } from "$lib/reddit";
+  import {
+    type Post,
+    type Media,
+    Variant,
+    sortMedia,
+    getOGPMetadata,
+  } from "$lib/reddit";
   import RedditMedia from "./RedditMedia.svelte";
   import { proxy, createOpenGraph } from "$lib/helpers";
   import { extmime } from "$lib/mime";
@@ -21,7 +27,7 @@
 
   async function findBestMedia(): Promise<BestMedia[]> {
     const best: BestMedia[] = [];
-    for (const collection of post.media) {
+    for (const collection of sortMedia(post)) {
       // If we have video only and audio source, we need to process them.
       if (collection[0].variant === Variant.PartialVideo) {
         // Fetch and validate the audio
@@ -61,19 +67,7 @@
 </script>
 
 <svelte:head>
-  {@html createOpenGraph({
-    title: post.title,
-    url: post.permalink,
-    image: post.media.map(
-      (collection) =>
-        collection.filter(
-          (c) =>
-            c.variant != Variant.PartialVideo &&
-            c.variant != Variant.Video &&
-            c.variant != Variant.PartialAudio
-        )[0]?.href
-    ),
-  })}
+  {@html createOpenGraph(getOGPMetadata(post))}
 </svelte:head>
 
 <h3>{post.title}</h3>
