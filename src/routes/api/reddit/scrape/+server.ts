@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from '../$types';
+import type { RequestHandler } from './$types';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
-import { validateUrl, UserAgent } from '$lib/helpers';
-import { authentication, getMedia, authenticate, Domains, follow, type Media, Variant, type Mime } from '$lib/reddit';
-import { get } from 'svelte/store';
+import { validateUrl } from '$lib/helpers';
+import { scrape, Domains } from '$lib/reddit';
+import { getCache, normalize } from '$lib/cache';
 
 
 /** Follows a given reddit link to resolve the short links */
@@ -14,61 +14,15 @@ export const GET: RequestHandler = async (evt) => {
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
-    // Authenticate with reddit. By using this proxy we probably want to ensure we will get ALL the data.
-    let auth = get(authentication);
-    if (auth == null || Date.now() >= auth.expires_at)
-        auth = await authenticate(BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
-
-
-    // First request the tracker requested with me.json
-    const meReq = await fetch('https://oauth.reddit.com/api/me.json', {
-        method: 'HEAD',
-        headers: {
-            'User-Agent': 'LacheesClient/0.1 by Lachee',
-            'Authorization': `${auth.token_type} ${auth.access_token}`
-        }
-    });
-    
-    const cookies = meReq.headers.getSetCookie();
-    let tracker = cookies.find(c => c.startsWith('session_tracker'));
-    if (tracker == undefined) return json({ error: 'no tracker cookie in me request'});
-    tracker = tracker.substring(0, tracker.indexOf(';'));
-
-
-    // prepare the init
-    const init = {
-        baseUrl: 'https://oauth.reddit.com',
-        headers: {
-            'User-Agent': UserAgent,
-            
-            // 'User-Agent': 'LacheesClient/0.1 by Lachee',
-            // 'Authorization': `${auth.token_type} ${auth.access_token}`,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-GB,en;q=0.5',
-            'Cookie': `over18=1; ${tracker}`
-        }
-    };
+    // Try the cache
+    const cached = await getCache().get(normalize(`reddit:scrape:${href}`));
+    if (cached != null) 
+        return new Response(cached, { headers: { 'content-type': 'application/json', 'x-cached': 'true' }});
 
     // Fetch all the media, but we need to tell the API to use our credentials.
-    const url = await follow(href.toString(), init);
-    const page = `${init.baseUrl}${url.pathname}`;
-    console.log('fetching page', page);
-    const response = await fetch(page, init);
-    const html = await response.text();
-
-    if (query.get('html') === '1') 
-        return new Response(html, { headers: { 'content-type': 'text/html' } });
+    const link = await scrape(href.toString(), { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET });
     
-
-    // Strip all the external links
-    const links = [];
-    const match = html.matchAll(/src="(https:\/\/external-[a-zA-Z0-9\/.\-?=&;%]*)/gm);
-    for (const m of match)
-        links.push(m[1].replaceAll('&amp;', '&'));
-    
-    
-    if (links.length == 0)
-        return json({ error: 'failed to find any matches, perhaps the cookie broke' }, { status: 404 });
-
-    return json({ href: links[0] });
+    const serialized = JSON.stringify({ href: link });
+    getCache().put(normalize(`reddit:scrape:${href}`), serialized, { expirationTtl: 86400*365 });
+    return new Response(serialized, { headers: { 'content-type': 'application/json', 'x-cached': 'false' }});
 };

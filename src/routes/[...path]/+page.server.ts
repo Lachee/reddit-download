@@ -3,8 +3,10 @@ export const prerender = 'auto';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import type { PageServerLoad } from './$types';
 
-import { type Post, getMediaAuthenticated, follow } from "$lib/reddit";
-import { getCache } from '$lib/cache';
+import { type Post, getMedia, follow } from "$lib/reddit";
+import { getCache, normalize } from '$lib/cache';
+
+const credentials = { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET };
 
 const CrawlerUserAgents = [
 	'Iframely',
@@ -22,13 +24,13 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 		const url = await follow(link);
 
 		// Try the cache
-		const cached = await getCache().get(`reddit:media:${url}`);
+		const cached = await getCache().get(normalize(`reddit:media:${url}`));
 		if (cached != null) 
 			return JSON.parse(cached) as Post; 
 
 		// Cache miss, pull it another way
-		const post = await getMediaAuthenticated(url.toString(), BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
-		await getCache().put(`reddit:media:${url}`, JSON.stringify(post), { expirationTtl: 86400 });
+		const post = await getMedia(url.toString(), { credentials });
+		await getCache().put(normalize(`reddit:media:${url}`), JSON.stringify(post), { expirationTtl: 86400*7 });
 		return post;
 	}catch(e) {
 		console.error('failed to fetch the post media', e);
@@ -57,7 +59,7 @@ export const load: PageServerLoad = async ({ setHeaders, params, request } ) => 
 	};
 
 	// Perform a SSR search
-	if (params.path != null && isServerLoaded(request)) {
+	if (params.path != null && params.path != '' && isServerLoaded(request)) {
 		console.log('prefetching reddit post');
 		pageData.reddit = await loadPost(pageData.source);
 	}

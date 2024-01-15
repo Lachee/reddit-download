@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { validateUrl, UserAgent } from '$lib/helpers';
-import { Domains, sortMedia, Variant, getMediaAuthenticated } from '$lib/reddit';
+import { Domains, sortMedia, Variant, getMedia } from '$lib/reddit';
 import { get } from 'svelte/store';
 import { MIME, extmime } from '$lib/mime';
 import type { RequestHandler } from './$types';
-import { getCache } from '$lib/cache';
+import { getCache, normalize } from '$lib/cache';
 
 
 /** Follows a given reddit link to resolve the short links */
@@ -17,12 +17,12 @@ export const GET: RequestHandler = async (evt) => {
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
     // Try the cache
-    const cached = await getCache().get(`reddit:mediaauth:${href}`);
+    const cached = await getCache().get(normalize(`reddit:mediaauth:${href}`));
     if (cached != null) 
         return new Response(cached, { headers: { 'content-type': 'application/json', 'x-cached': 'true' }});
 
     // Fetch all the media, but we need to tell the API to use our credentials.
-    const post = await getMediaAuthenticated(href.toString(), BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
+    const post = await getMedia(href.toString(), { credentials: { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET }});
 
     // Generates an embed
     if (query.get('embed') === '1') {
@@ -54,6 +54,6 @@ export const GET: RequestHandler = async (evt) => {
     }
 
     const serialized = JSON.stringify(post);
-    getCache().put(`reddit:mediaauth:${href}`, serialized, { expirationTtl: 86400 });
+    getCache().put(normalize(`reddit:mediaauth:${href}`), serialized, { expirationTtl: 86400*7 });
     return new Response(serialized, { headers: { 'content-type': 'application/json', 'x-cached': 'false' }});
 };

@@ -22,7 +22,7 @@ export const GET: RequestHandler = async (evt) => {
         // Authenticate with reddit. By using this proxy we probably want to ensure we will get ALL the data.
         let auth = get(authentication);
         if (auth == null || Date.now() >= auth.expires_at)
-            auth = await authenticate(BOT_USERNAME, BOT_PASSWORD, CLIENT_ID, CLIENT_SECRET);
+            auth = await authenticate({ username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET });
 
 
         init = {

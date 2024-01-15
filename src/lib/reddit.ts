@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
 import { get, writable } from 'svelte/store';
+import { page } from '$app/stores';
 
 import thenby from 'thenby';
 const { firstBy } = thenby;
@@ -90,6 +91,14 @@ export type Media = {
 export type AuthToken = RedditAuthToken & {
     expires_at: number;
 }
+
+export type Credentials = {
+    username: string,
+    password: string,
+    clientId: string,
+    clientSecret: string
+}
+
 type RedditVideo = {
     dash_url: string,
     fallback_url?: string,
@@ -104,10 +113,11 @@ type RedditAuthToken = {
 }
 
 /** Configuration for HTTP requests to reddit */
-export type ReqInit = {
+export type ReqInit = Partial<{
     baseUrl: string;
     headers: Record<string, string>;
-}
+    credentials: Credentials;
+}>;
 
 function debug(...args: any[]) {
     if (browser) log(...args);
@@ -149,7 +159,7 @@ export async function follow(href: string, init?: ReqInit): Promise<URL> {
 
         log(`following shorthand ${url}`);
         if (!init) init = { baseUrl: url.origin, headers: { 'User-Agent': UserAgent } };
-        const response = await fetch(`${init.baseUrl}${url.pathname}`, {
+        const response = await fetch(`${init.baseUrl ?? url.origin}${url.pathname}`, {
             method: 'HEAD',
             redirect: 'follow',
             headers: init.headers
@@ -161,27 +171,13 @@ export async function follow(href: string, init?: ReqInit): Promise<URL> {
     return url;
 }
 
-/** Follows a reddit post and tries to get the cached images. Only use this on a last resort */
-async function scrape(href: string): Promise<URL | null> {
-    const url = validateUrl(href, Domains);
-    if (url === null)
-        throw new Error('cannot follow an invalid URL');
-
-    log(`scrapping the cached data from reddit ${url}`);
-    const scrape = await fetch('/api/reddit/scrape?href=' + encodeURIComponent(url.toString())).then(r => r.json());
-    if ('href' in scrape)
-        return new URL(scrape.href);
-
-    error('failed to find anything from the scrapped page.', scrape);
-    return null;
-}
-
 // State Management of the authentication.
 // It is done this way to allow hot reloading easier.
 export const authentication = writable<AuthToken & { expires_at: number } | null>(null);
 
+
 /** Authenticates the API for oauth2 usage. */
-export async function authenticate(username: string, password: string, clientId: string, clientSecret: string): Promise<AuthToken> {
+export async function authenticate({ username, password, clientId, clientSecret }: Credentials): Promise<AuthToken> {
     const form = new FormData();
     form.append('grant_type', 'password');
     form.append('username', username);
@@ -208,25 +204,68 @@ export async function authenticate(username: string, password: string, clientId:
     return authToken;
 }
 
-export async function getMediaAuthenticated(link: string, username: string, password: string, clientId: string, clientSecret: string): Promise<Post> {
+/** Follows a reddit post and tries to get the cached images. Only use this on a last resort */
+export async function scrape(href: string, credentials: Credentials): Promise<URL | null> {
     if (browser) {
-        error('cannot get media with authentication in the browser! Defaulting to a regular request');
-        return await getMedia(link);
+        error('cannot scrape with authentication in the browser!');
+        return null;
     }
+
+    log('scraping', href);
 
     // Authenticate
     let auth = get(authentication);
     if (auth == null || Date.now() >= auth.expires_at)
-        auth = await authenticate(username, password, clientId, clientSecret);
+        auth = await authenticate(credentials);
 
-    // Query the media
-    return await getMedia(link, {
-        baseUrl: 'https://oauth.reddit.com',
+    // First request the tracker requested with me.json
+    const meReq = await fetch('https://oauth.reddit.com/api/me.json', {
+        method: 'HEAD',
         headers: {
             'User-Agent': 'LacheesClient/0.1 by Lachee',
             'Authorization': `${auth.token_type} ${auth.access_token}`
         }
     });
+
+    // Pull the cookies out
+    const cookies = meReq.headers.getSetCookie();
+    let tracker = cookies.find(c => c.startsWith('session_tracker'));
+    if (tracker == undefined) {
+        error('could not pull the tracker cookies');
+        return null;
+    }
+    tracker = tracker.substring(0, tracker.indexOf(';'));
+
+    // prepare the init
+    const init = {
+        baseUrl: 'https://oauth.reddit.com',
+        headers: {
+            'User-Agent': UserAgent,
+
+            // 'User-Agent': 'LacheesClient/0.1 by Lachee',
+            // 'Authorization': `${auth.token_type} ${auth.access_token}`,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-GB,en;q=0.5',
+            'Cookie': `over18=1; ${tracker}`
+        }
+    };
+
+    // Fetch all the media, but we need to tell the API to use our credentials.
+    const url = await follow(href.toString(), init);
+    const page = `${init.baseUrl}${url.pathname}`;
+
+    log('downloading page', page);
+    const response = await fetch(page, init);
+    const html = await response.text();
+
+    // Strip all the external links
+    const links = [];
+    const match = html.matchAll(/src="(https:\/\/external-[a-zA-Z0-9\/.\-?=&;%]*)/gm);
+    for (const m of match)
+        links.push(m[1].replaceAll('&amp;', '&'));
+
+    log('found links within page', links);
+    return links.length > 0 ? new URL(links[0]) : null;
 }
 
 /**
@@ -237,6 +276,23 @@ export async function getMediaAuthenticated(link: string, username: string, pass
 export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
     group('fetching post', link);
     try {
+        if (init && init.credentials) {
+            // ABORT: WE SHOULD NOT BE GIVING CREDENTIALS CLIENT SIDE
+            if (browser)
+                throw new Error('Cannot authenticate client side with credentials');
+
+            // Authenticate
+            let auth = get(authentication);
+            if (auth == null || Date.now() >= auth.expires_at)
+                auth = await authenticate(init.credentials);
+
+            // Replace the init to use these settings
+            init.baseUrl = init.baseUrl ?? 'https://oauth.reddit.com';
+            if (!init.headers) init.headers = {};
+            init.headers['User-Agent'] = 'LacheesClient/0.1 by Lachee';
+            init.headers['Authorization'] = `${auth.token_type} ${auth.access_token}`;
+        }
+
         // Prepare the request settings.
         const url = await follow(link, init);
 
@@ -248,8 +304,8 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             request = fetchJsonp(redditurl, { jsonpCallback: 'jsonp', crossorigin: true });
             log('getting reddit post via jsonp', redditurl);
         } else {
-            if (!init) init = { baseUrl: url.origin, headers: {} };
-            const redditurl = `${init.baseUrl}${url.pathname}.json?raw_json=1`;
+            if (!init) init = {};
+            const redditurl = `${init.baseUrl ?? url.origin}${url.pathname}.json?raw_json=1`;
             request = fetch(redditurl, { headers: init.headers });
             log('getting reddit post via fetch', redditurl);
         }
@@ -342,10 +398,16 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             // It has, so lets scrape reddit. This can take a long time.
             if (response.status != 200) {
                 warn('imgur media did not respond with a 200! Fetching cached content', response.status);
-                const mediaHref = await scrape(url.toString());
+                let mediaHref : URL|null = null;
+                if (init?.credentials) {    // We are given credentials, lets just use that instead
+                    mediaHref = await scrape(url.toString(), init?.credentials);
+                } else {                    // We are given no credentials, so we are going to have to ask the website to do it for us.
+                    const scrape = await fetch('/api/reddit/scrape?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+                    mediaHref = 'href' in scrape ? new URL(scrape.href) : null;
+                }
 
                 // Ensure we have a result, then try to determine the best content-type
-                if (mediaHref != null) {
+                if (mediaHref !== null) {
                     log(`updating only media item to use cached results: ${mediaHref}`);
                     media.href = mediaHref.toString();
                     const mediaFormat = mediaHref.searchParams.get('format');
@@ -402,11 +464,11 @@ export function sortMedia(post: Post, order?: Variant[]): MediaVariantCollection
 
 export function getOGPMetadata(post: Post): OGPProperty[] {
     const properties: OGPProperty[] = [
-        { name: 'ttl', content: '600' },
+        //{ name: 'ttl', content: '600' },
         { name: 'site_name', content: post.url + (post.media.length > 1 ? ` - gallery of ${post.media.length}` : '') },
         { name: 'title', content: post.title },
         { name: 'url', content: post.permalink },
-        { name: 'twitter:site', content: '@reddit'},
+        { name: 'twitter:site', content: '@reddit' },
         { name: 'twitter:title', content: post.title },
     ];
 
@@ -414,7 +476,7 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
         const media = collection.find(p => p.variant !== Variant.Blur);
         if (media === undefined) continue;
 
-        const link = proxy(media.href, undefined, undefined, true);
+        const link = media.href; //proxy(media.href, undefined, undefined, true) + '&.gif';
         if (media.mime.startsWith('image')) {
             // Image Type + Linking
             properties.push({ name: 'type', content: 'website' });
@@ -437,7 +499,7 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
             properties.push({ name: 'video', content: link });
             properties.push({ name: 'video:url', content: link });
             properties.push({ name: 'video:secure_url', content: link });
-            
+
             // Video Object
             properties.push({ name: 'video:type', content: media.mime });
             if (media.dimension) {

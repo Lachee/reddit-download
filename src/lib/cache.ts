@@ -22,15 +22,20 @@ export class MemoryCache implements Cache {
     items : Record<string, MemoryCacheItem> = {};
     
     get(key: string): Promise<string | null> {
-        if (this.items[key] == undefined)
+        if (this.items[key] == undefined) {
+            console.log('[CACHE] MISS', key);
             return Promise.resolve(null);
+        }
         
+
         const item = this.items[key];
         if (item.expireAt && item.expireAt <= Date.now()) {
+            console.log('[CACHE] EXPR', key, this.items[key]);
             this.delete(key);
             return Promise.resolve(null);
         }
 
+        console.log('[CACHE] HIT ', key, this.items[key]);
         return Promise.resolve(item.value);
     } 
 
@@ -54,13 +59,26 @@ export class MemoryCache implements Cache {
         this.items[key] = { key, value, expireAt };
 
         // Timeout
-        if (expireAt && expireAt > 0)
-            setTimeout(() => this.delete(key), (expireAt - Date.now()) + 100);
+        if (expireAt && expireAt > 0 && expireAt < Number.MAX_SAFE_INTEGER) {
+            const duration = (expireAt - Date.now());
+            if (duration <= 0x7FFFFFFF)  // NODE: This is a shitty node fix because durations might not fit in the timeout
+                setTimeout(() => this.delete(key), duration);
+        }
+        
 
+        console.log('[CACHE] STORE', key, this.items[key]);
         return Promise.resolve();
     }
+}
+
+export const DummyCache : Cache = {
+    get: (key: string): Promise<string | null> => Promise.resolve(null),
+    delete: (key: string): Promise<void> => Promise.resolve(),
+    put: (key: string, value: string, options?: CachePutOptions): Promise<void> => Promise.resolve()
 }
 
 let cache: Cache = new MemoryCache();
 export const setCache = (c: Cache) => cache = c;
 export const getCache = (): Cache => cache;
+
+export const normalize = (key : string) => key.toLowerCase().replaceAll(' ', '');
