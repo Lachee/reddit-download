@@ -11,6 +11,7 @@ const credentials = { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: 
 const CrawlerUserAgents = [
 	'Iframely',
 	'Discordbot',
+	'Android',
 ];
 
 type PageData = {
@@ -41,7 +42,7 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 /** Determines if the request should be SSR */
 function isServerLoaded(request : Request) : boolean {
 	const ua =  request.headers.get('user-agent') || '';
-	return true;// CrawlerUserAgents.find(v => ua.includes(v)) !== undefined || (new URL(request.url)).hostname == 'localhost';
+	return CrawlerUserAgents.find(v => ua.includes(v)) !== undefined || (new URL(request.url)).hostname == 'localhost';
 }
 
 export const load: PageServerLoad = async ({ setHeaders, params, request } ) => {
