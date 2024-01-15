@@ -434,9 +434,6 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             }
         }
 
-        // Sort the media
-        sortMedia(post);
-
         log('parsed post: ', browser ? post : post.title);
         return post;
     } finally {
@@ -472,8 +469,16 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
         { name: 'twitter:title', content: post.title },
     ];
 
-    for (const collection of post.media) {
-        const media = collection.find(p => p.variant !== Variant.Blur);
+    for (const collection of sortMedia(post, [
+        Variant.GIF,
+        Variant.Video,
+        Variant.PartialVideo,
+        Variant.Image,
+        Variant.Thumbnail,
+        Variant.Blur,
+        Variant.PartialAudio,
+    ])) {
+        const media = collection[0];
         if (media === undefined) continue;
 
         const link = media.href; //proxy(media.href, undefined, undefined, true) + '&.gif';
