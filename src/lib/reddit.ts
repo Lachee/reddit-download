@@ -402,7 +402,7 @@ export function sortMedia(post: Post, order?: Variant[]): MediaVariantCollection
 
 export function getOGPMetadata(post: Post): OGPProperty[] {
     const properties: OGPProperty[] = [
-        //{ name: 'ttl', content: '1' },
+        { name: 'ttl', content: '600' },
         { name: 'site_name', content: post.url + (post.media.length > 1 ? ` - gallery of ${post.media.length}` : '') },
         { name: 'title', content: post.title },
         { name: 'url', content: post.permalink },
@@ -410,16 +410,13 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
         { name: 'twitter:title', content: post.title },
     ];
 
-
     for (const collection of post.media) {
         const media = collection.find(p => p.variant !== Variant.Blur);
         if (media === undefined) continue;
 
-        let prefix = '';
         const link = proxy(media.href, undefined, undefined, true);
-
-        if (media.mime.startsWith('image')) {   
-            // Image content
+        if (media.mime.startsWith('image')) {
+            // Image Type + Linking
             properties.push({ name: 'type', content: 'website' });
             properties.push({ name: 'twitter:card', content: 'summary_large_image' });
             properties.push({ name: 'twitter:image:src', content: link });
@@ -434,7 +431,7 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
                 }
             }
         } else if (media.mime.startsWith('video')) {
-            // Video Content
+            // Video Type + Linking
             properties.push({ name: 'type', content: 'video.other' });
             properties.push({ name: 'twitter:player', content: link });
             properties.push({ name: 'video', content: link });
@@ -451,6 +448,9 @@ export function getOGPMetadata(post: Post): OGPProperty[] {
                     properties.push({ name: `twitter:player:height`, content: media.dimension.height.toString() });
                 }
             }
+        } else {
+            // No idea what this is suppose to be
+            properties.push({ name: 'type', content: 'website' });
         }
     }
 
