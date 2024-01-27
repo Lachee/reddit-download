@@ -64,14 +64,6 @@
   }
 </script>
 
-{#await gif}
-  {#if gifProgress > 0}
-    <ProgressBar max={100} min={0} value={gifProgress * 100} />
-  {:else}
-    <ProgressBar />
-  {/if}
-{/await}
-
 <div class="p-4 max-h-[500px] flex justify-center relative">
   {#if loading}
     {#if media.thumbnail}
@@ -97,15 +89,31 @@
       >{/if}
   {/if}
   {#if media.variant === Variant.Video}
-    <video
-      on:canplay={() => (loading = false)}
-      src={media.href}
-      autoplay
-      controls
-      muted
-      loop
-      class:blur-lg={blur}
-    />
+    <div class="flex justify-center flex-col">
+      <video
+        on:canplay={() => (loading = false)}
+        src={media.href}
+        autoplay
+        controls
+        muted
+        loop
+        class:blur-lg={blur}
+        class="h-[100%]"
+      />
+
+      {#await gif}
+        {#if gifProgress > 0}
+          <ProgressBar
+            rounded="none"
+            max={100}
+            min={0}
+            value={gifProgress * 100}
+          />
+        {:else}
+          <ProgressBar rounded="none" />
+        {/if}
+      {/await}
+    </div>
   {:else}
     <img
       src={media.href}
