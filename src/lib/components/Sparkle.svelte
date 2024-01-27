@@ -3,24 +3,28 @@
   import { onDestroy, onMount } from "svelte";
   import { proxy } from "$lib/helpers";
 
-  export let src: string = proxy(
-    "https://preview.redd.it/vxn3ax3bs19c1.gif?width=108&crop=smart&format=png8&s=9a084a2cb9138c61bcb0d7a164c43cde393b9541"
-  );
-  export let width: number = 800;
-  export let height: number = 1000;
-  export let radius = { min: 2, max: 6 };
-  export let count: number = 350;
+  type MinMax<T> = { min: T; max: T };
+
+  export let src: string;
+  export let width: number;
+  export let height: number;
+  export let radius: MinMax<number> = { min: 5, max: 5 }; //{ min: 2, max: 6 };
+  export let velocity: MinMax<number> = { min: 0, max: 0.05 }; //{ min: 1, max: 2 };
+  export let count: number = 100;
+  export let blur: number = 5;
+  export let bloom: number = 1.5;
 
   let image: HTMLImageElement | null;
   let canvas: HTMLCanvasElement;
   let isRendering: boolean = false;
-  let particleOffset = 0.5;
   let confetti: Confetti[] = [];
 
   onMount(() => {
+    canvas.width = width + 10;
+    canvas.height = height + 10;
+
     isRendering = true;
     requestAnimationFrame(onAnimationFrame);
-    onImageLoad();
   });
 
   onDestroy(() => {
@@ -33,10 +37,10 @@
     console.log("image load!");
     confetti = createConfetti(count);
     if (image == null) return;
-    if (width == 0) width = image.width;
-    if (height == 0) height = image.height;
-    // canvas.width = width;
-    // canvas.height = height;
+    if (width <= 0) width = image.width;
+    if (height <= 0) height = image.height;
+    canvas.width = width + 10;
+    canvas.height = height + 10;
   }
 
   function onAnimationFrame(time: number) {
@@ -61,16 +65,36 @@
     // Reset any confetti
     for (const c of confetti) {
       if (c.expired) {
-        c.reset();
-        const { data } = ctx.getImageData(c.x, c.y, 1, 1);
-        c.color = [data[0], data[1], data[2]];
-      }
+        let lum = 0;
+        let ittr = 0;
 
+        // Reset the colour
+        c.color = [255, 255, 255];
+
+        // Relocate
+        for (let i = 0; i < 5; i++) {
+          c.reset();
+          const {
+            data: [r, g, b],
+          } = ctx.getImageData(c.x, c.y, 1, 1);
+          const lum = luminance(r, g, b);
+          if (lum > 3.5) {
+            c.color = [r, g, b];
+            break;
+          }
+        }
+      }
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const c of confetti) {
       c.step();
       c.draw(ctx);
     }
   }
 
+  const luminance = (R: number, G: number, B: number): number =>
+    Math.sqrt((0.299 * R) ^ (2 + 0.587 * G) ^ (2 + 0.114 * B) ^ 2);
   const range = (a: number, b: number): number => (b - a) * Math.random() + a;
   const drawCircle = (
     ctx: CanvasRenderingContext2D,
@@ -130,8 +154,10 @@
       this.y = range(-this.r2, canvas.height + this.r2);
       this.xmax = canvas.width - this.radius;
       this.ymax = canvas.height - this.radius;
-      this.vx = range(0, 2) + 8 * particleOffset - 5;
-      this.vy = range(0, 2) + 8 * particleOffset - 5;
+      this.vx =
+        range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
+      this.vy =
+        range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
       return this;
     }
 
@@ -169,12 +195,23 @@
   }
 </script>
 
-<img
-  bind:this={image}
-  {src}
-  on:load={onImageLoad}
-  loading="eager"
-  alt=""
-  class="hidden"
-/>
-<canvas bind:this={canvas} />
+<div class="container" style="--blur: {blur}px; --bloom: {bloom}">
+  <img bind:this={image} {src} on:load={onImageLoad} loading="eager" alt="" />
+  <canvas bind:this={canvas} />
+</div>
+
+<style>
+  .container {
+    display: inline-block;
+    position: relative;
+  }
+
+  img {
+  }
+  canvas {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    filter: blur(var(--blur)) brightness(var(--bloom));
+  }
+</style>

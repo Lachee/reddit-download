@@ -80,7 +80,6 @@
           src={proxy(media.thumbnail.href)}
           width={media.thumbnail.dimension?.width ?? 0}
           height={media.thumbnail.dimension?.height ?? 0}
-          radius={{ min: 1, max: 1 }}
           count={150}
         />
         <ProgressBar rounded="none" />
