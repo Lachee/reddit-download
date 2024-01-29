@@ -3,13 +3,15 @@
   import { onDestroy, onMount } from "svelte";
   import { proxy } from "$lib/helpers";
 
-  type MinMax<T> = { min: T; max: T };
+  type MinMax<T> = { min: T; max: T } | number;
 
   export let src: string;
   export let width: number;
   export let height: number;
+  export let displayWidth: number | undefined = undefined;
+  export let displayHeight: number | undefined = undefined;
   export let radius: MinMax<number> = { min: 5, max: 5 }; //{ min: 2, max: 6 };
-  export let velocity: MinMax<number> = { min: 0, max: 0.05 }; //{ min: 1, max: 2 };
+  export let velocity: MinMax<number> = { min: 0, max: 0.5 }; //{ min: 1, max: 2 };
   export let count: number = 100;
   export let blur: number = 5;
   export let bloom: number = 1.5;
@@ -20,14 +22,14 @@
   let confetti: Confetti[] = [];
 
   onMount(() => {
-    canvas.width = width + 10;
-    canvas.height = height + 10;
-
+    canvas.width = width;
+    canvas.height = height;
     isRendering = true;
     requestAnimationFrame(onAnimationFrame);
   });
 
   onDestroy(() => {
+    console.log("cleaning up confetti, image, and stopping rendering");
     confetti = [];
     isRendering = false;
     if (image) image.src = "";
@@ -39,8 +41,8 @@
     if (image == null) return;
     if (width <= 0) width = image.width;
     if (height <= 0) height = image.height;
-    canvas.width = width + 10;
-    canvas.height = height + 10;
+    canvas.width = width;
+    canvas.height = height;
   }
 
   function onAnimationFrame(time: number) {
@@ -111,6 +113,7 @@
   };
 
   const createConfetti = (count: number) => {
+    console.log("spawning confetti", { count });
     let i, j, ref, results;
     results = [];
     for (
@@ -142,7 +145,8 @@
     }
 
     constructor() {
-      this.radius = ~~range(radius.min, radius.max);
+      this.radius =
+        typeof radius === "number" ? radius : ~~range(radius.min, radius.max);
       this.reset();
       this.opacity = 0;
     }
@@ -155,9 +159,13 @@
       this.xmax = canvas.width - this.radius;
       this.ymax = canvas.height - this.radius;
       this.vx =
-        range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
+        typeof velocity === "number"
+          ? velocity
+          : range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
       this.vy =
-        range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
+        typeof velocity === "number"
+          ? velocity
+          : range(velocity.min, velocity.max) * (Math.random() > 0.5 ? 1 : -1);
       return this;
     }
 
@@ -195,7 +203,16 @@
   }
 </script>
 
-<div class="container" style="--blur: {blur}px; --bloom: {bloom}">
+<div
+  class="container"
+  style="
+--blur: {blur}px; 
+--bloom: {bloom};
+--dw: {displayWidth ?? width}px;
+--dh: {displayHeight ?? height}px;
+aspect-ratio: {(displayWidth ?? width) / (displayHeight ?? height)}
+"
+>
   <img bind:this={image} {src} on:load={onImageLoad} loading="eager" alt="" />
   <canvas bind:this={canvas} />
 </div>
@@ -204,14 +221,22 @@
   .container {
     display: inline-block;
     position: relative;
+
+    height: 100%;
+    height: var(--dh);
+    max-height: 100%;
+
+    width: fit-content;
   }
 
-  img {
+  img,
+  canvas {
+    height: 100%;
   }
   canvas {
     position: absolute;
-    top: -5px;
-    left: -5px;
+    inset: 0;
+    width: 100%;
     filter: blur(var(--blur)) brightness(var(--bloom));
   }
 </style>

@@ -1,9 +1,11 @@
 <script lang="ts">
+  import Device from "svelte-device-info";
+
   import { convertToGif } from "$lib/ffmpeg";
   import { proxy } from "$lib/helpers";
   import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit";
-  import { ProgressBar, ProgressRadial } from "@skeletonlabs/skeleton";
+  import { ProgressBar } from "@skeletonlabs/skeleton";
   import Sparkle from "./Sparkle.svelte";
 
   export let media: Media & { thumbnail?: Media };
@@ -67,14 +69,18 @@
 <div class="p-4 max-h-[500px] flex justify-center relative">
   {#if loading}
     {#if media.thumbnail}
-      <div>
+      <div class="flex flex-col items-center justify-start">
         <Sparkle
           src={proxy(media.thumbnail.href)}
           width={media.thumbnail.dimension?.width ?? 0}
           height={media.thumbnail.dimension?.height ?? 0}
-          count={150}
+          displayWidth={media.dimension?.width}
+          displayHeight={media.dimension?.height}
+          count={Device.isMobile ? 150 : 350}
+          velocity={0}
+          radius={2}
+          blur={1}
         />
-        <ProgressBar rounded="none" />
       </div>
     {:else}
       <svg
@@ -88,6 +94,7 @@
         /></svg
       >{/if}
   {/if}
+
   {#if media.variant === Variant.Video}
     <div class="flex justify-center flex-col">
       <video
@@ -127,6 +134,8 @@
       loading="lazy"
     /><br />
   {/if}
+
+  <!-- Download Button -->
   <div class="flex absolute top-0">
     {#if name != ""}
       <a
