@@ -18,6 +18,9 @@
   export let bloom: number = 1.5;
 
   let image: HTMLImageElement | null;
+  let video: HTMLVideoElement | null;
+  let type: "image" | "video" | "either" = "either";
+
   let canvas: HTMLCanvasElement;
   let isRendering: boolean = false;
   let confetti: Confetti[] = [];
@@ -36,11 +39,12 @@
     if (image) image.src = "";
   });
 
-  function onImageLoad() {
+  function onImageLoad(t: "video" | "image") {
     confetti = createConfetti(count);
     if (image == null) return;
     if (width <= 0) width = image.width;
     if (height <= 0) height = image.height;
+    type = t;
     canvas.width = width;
     canvas.height = height;
   }
@@ -60,8 +64,10 @@
     if (ctx == null) return;
 
     // Draw the image
-    if (image != null) {
+    if (image != null && type === "image") {
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    } else if (video != null && type === "video") {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
 
     // Reset any confetti
@@ -213,7 +219,23 @@
 aspect-ratio: {(displayWidth ?? width) / (displayHeight ?? height)}
 "
 >
-  <img bind:this={image} {src} on:load={onImageLoad} loading="eager" alt="" />
+  <video
+    bind:this={video}
+    {src}
+    on:playing={() => onImageLoad("video")}
+    class:hidden={type == "image"}
+    autoplay
+    loop
+    muted
+  />
+  <img
+    bind:this={image}
+    {src}
+    on:load={() => onImageLoad("image")}
+    class:hidden={type == "video"}
+    loading="eager"
+    alt=""
+  />
   <canvas bind:this={canvas} />
 </div>
 
@@ -230,6 +252,7 @@ aspect-ratio: {(displayWidth ?? width) / (displayHeight ?? height)}
   }
 
   img,
+  video,
   canvas {
     height: 100%;
   }
@@ -238,5 +261,6 @@ aspect-ratio: {(displayWidth ?? width) / (displayHeight ?? height)}
     inset: 0;
     width: 100%;
     filter: blur(var(--blur)) brightness(var(--bloom));
+    z-index: 2;
   }
 </style>

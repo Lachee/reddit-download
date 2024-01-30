@@ -92,6 +92,8 @@
       return;
     }
 
+    loading = true;
+    thumbnail = media;
     gifProgress = 0;
     gif = (async () => {
       const oldBlobRef = media.href;
@@ -125,8 +127,8 @@
           displayHeight={media.dimension?.height}
           count={Device.isMobile ? 150 : 350}
           velocity={0}
-          radius={2}
-          blur={1}
+          radius={thumbnail.variant == Variant.Thumbnail ? 2 : 20}
+          blur={thumbnail.variant == Variant.Thumbnail ? 1 : 10}
         />
       </div>
     {:else}

@@ -26,7 +26,8 @@ export function rootHostname(url: string | URL): string {
 }
 
 /**
- * Proxies the given url via the media proxy
+ * Proxies the given url via the media proxy.
+ * If the route is invalid (cannot be proxied) then it will just be returned as is
  * @param url The URL to proxy
  * @param fileName The fileName to give the media
  * @param download Include the download header
@@ -35,6 +36,10 @@ export function rootHostname(url: string | URL): string {
 export function proxy(url: string | URL, fileName?: string, download?: boolean, absolute: boolean = false): string {
     if (typeof url !== 'string')
         url = url.toString();
+
+    // url is a local only one, we give up.
+    if (!url.startsWith('http'))
+        return url;
 
     const params: Record<string, string> = { href: url };
 
