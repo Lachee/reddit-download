@@ -36,7 +36,6 @@
   });
 
   function onImageLoad() {
-    console.log("image load!");
     confetti = createConfetti(count);
     if (image == null) return;
     if (width <= 0) width = image.width;
