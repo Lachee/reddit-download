@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { validateUrl, extname, UserAgent } from '$lib/helpers';
 import { MIME } from '$lib/mime';
 import { Domains } from '$lib/reddit';
+import { getCache, normalize } from '$lib/cache';
 
 
 export const GET: RequestHandler = async (request) => {
@@ -21,19 +22,38 @@ export const GET: RequestHandler = async (request) => {
     const download = query.get('dl') === '1';
     const fileName = (query.get('fileName') || href.pathname.replaceAll('/', '')).replaceAll('"', '');
     const fileExt = extname(fileName);
+    const key = normalize(`proxy:${href}`);
 
-    // Fetch the content
-    const response = await fetch(href, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
-    const body = await response.body;
-    if (response.status != 200)
-        return new Response(body, { status: response.status });
+    let body : ArrayBuffer = new ArrayBuffer(0);
+    let contentType : string = '';
 
-    // Get the content type.
-    // Normally we would just use the response headers, but Reddit LIES
-    const headers : HeadersInit = { 
-        'content-type': MIME[fileExt] || response.headers.get('content-type') || 'image/gif',
-        'content-disposition': `${download ? 'attachment' : 'inline'};filename="${fileName}"`,
-    };
+    // Look for the cached content
+    const cached = await getCache().get(key);
+    if (cached != null && cached.startsWith('data:')) {
+        const [ type, encodedData ] = cached.split(';', 2);
+        contentType = type.substring(5);
 
-    return new Response(body, { headers });
+        const [ encoding, data ] = encodedData.split(',', 2);
+        body = Buffer.from(data, encoding as BufferEncoding);
+    }
+    else 
+    {
+        // Fetch the content and best type
+        const response = await fetch(href, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
+        if (response.status != 200)
+            return new Response(await response.body, { status: response.status });
+
+        body = await response.arrayBuffer();
+        contentType = MIME[fileExt] || response.headers.get('content-type') || 'image/gif';
+    }
+    
+    const serialized = `data:${contentType};base64,` + Buffer.from(body).toString('base64');
+    getCache().put(key, serialized, { expirationTtl: 3600 });
+
+    return new Response(body, {
+        headers: {
+            'content-type': contentType,
+            'content-disposition': `${download ? 'attachment' : 'inline'};filename="${fileName}"`,
+        }
+    });
 };

@@ -23,19 +23,19 @@ export class MemoryCache implements Cache {
     
     get(key: string): Promise<string | null> {
         if (this.items[key] == undefined) {
-            console.log('[CACHE] MISS', key);
+            console.log('[CACHE] MISS', `'${key}'`);
             return Promise.resolve(null);
         }
         
 
         const item = this.items[key];
         if (item.expireAt && item.expireAt <= Date.now()) {
-            console.log('[CACHE] EXPR', key, this.items[key]);
+            console.log('[CACHE] EXPR', `'${key}'`);
             this.delete(key);
             return Promise.resolve(null);
         }
 
-        console.log('[CACHE] HIT ', key, this.items[key]);
+        console.log('[CACHE] HIT', `'${key}'`);
         return Promise.resolve(item.value);
     } 
 
@@ -66,7 +66,7 @@ export class MemoryCache implements Cache {
         }
         
 
-        console.log('[CACHE] STORE', key, this.items[key]);
+        console.log('[CACHE] STORE', `'${key}'`);
         return Promise.resolve();
     }
 }
