@@ -1,3 +1,5 @@
+import { logger, type Logger } from "$lib/log";
+
 export interface CachePutOptions {
     expiration?: number;
     expirationTtl?: number;
@@ -19,23 +21,29 @@ type MemoryCacheItem = {
 /** a really simple in memory cache with a slow memory leak */
 export class MemoryCache implements Cache {
 
-    items : Record<string, MemoryCacheItem> = {};
+    logger : Logger;
+    items : Record<string, MemoryCacheItem>;
+
+    constructor() {
+        this.items = {};
+        this.logger = logger('cache');
+    }
     
     get(key: string): Promise<string | null> {
         if (this.items[key] == undefined) {
-            console.log('[CACHE] MISS', `'${key}'`);
+            this.logger.log('MISS', `'${key}'`);
             return Promise.resolve(null);
         }
         
 
         const item = this.items[key];
         if (item.expireAt && item.expireAt <= Date.now()) {
-            console.log('[CACHE] EXPR', `'${key}'`);
+            this.logger.log('EXPR', `'${key}'`);
             this.delete(key);
             return Promise.resolve(null);
         }
 
-        console.log('[CACHE] HIT', `'${key}'`);
+        this.logger.log('HITS', `'${key}'`);
         return Promise.resolve(item.value);
     } 
 
@@ -66,7 +74,7 @@ export class MemoryCache implements Cache {
         }
         
 
-        console.log('[CACHE] STORE', `'${key}'`);
+        this.logger.log('STRE', `'${key}'`);
         return Promise.resolve();
     }
 }

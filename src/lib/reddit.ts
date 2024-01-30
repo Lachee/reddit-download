@@ -6,6 +6,7 @@ import { get, writable } from 'svelte/store';
 import { page } from '$app/stores';
 
 import thenby from 'thenby';
+import { logger } from '$lib/log';
 const { firstBy } = thenby;
 
 /** Enables the MP4 previews that are generated from gifs */
@@ -119,23 +120,9 @@ export type ReqInit = Partial<{
     credentials: Credentials;
 }>;
 
-function debug(...args: any[]) {
+const { log, warn, error, group, groupEnd } = logger('REDDIT');
+const debug = (...args: any[]) => {
     if (browser) log(...args);
-}
-function log(...args: any[]) {
-    console.log('[REDDIT]', ...args);
-}
-function warn(...args: any[]) {
-    console.warn('[REDDIT]', ...args);
-}
-function error(...args: any[]) {
-    console.error('[REDDIT]', ...args);
-}
-function group(...args: any[]) {
-    console.groupCollapsed('[REDDIT]', ...args);
-}
-function groupEnd() {
-    console.groupEnd();
 }
 
 /** Follows the shortened links */

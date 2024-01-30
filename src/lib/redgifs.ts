@@ -1,3 +1,4 @@
+import { logger } from "$lib/log";
 
 const BASE_URI : string = "https://api.redgifs.com";
 const USER_AGENT : string = "redgifs (https://github.com/lachee/reddit-downloader 1.0.0) TypeScript/2.4.1"
@@ -50,6 +51,8 @@ export interface Gif {
     sexuality : string[]
 }
 
+const { log, warn, error } = logger('redgif');
+
 function cleanID(url : string) : string {
     const w = url.lastIndexOf('watch/');
     if (w < 0) return url;    
@@ -62,7 +65,7 @@ class API {
 
     private async login() : Promise<AuthToken> {
         // Username & Password login not yet available
-        console.log('[REDGIFS] Creating a temporary auth token');
+        log('Creating a temporary auth token');
         const response = await fetch(`${BASE_URI}/v2/auth/temporary`, {
             headers: {
                 "User-Agent":USER_AGENT
@@ -114,12 +117,12 @@ class API {
 
         // We require to login again
         if (response.status == 401) {
-            console.warn('Failed to fetch teh endpoint because we are unauthorised. Generating a new token');
+            warn('Failed to fetch teh endpoint because we are unauthorised. Generating a new token');
             await this.login();
             return await this.download(url);
         }
 
-        console.error('failed to download data!', response.status, response.statusText, await response.text());
+        error('failed to download data!', response.status, response.statusText, await response.text());
         throw new Error('Failed to download request!');
     }
     private async request<T>(endpoint : string) : Promise<T> {
@@ -142,13 +145,13 @@ class API {
 
         // We require to login again
         if (response.status == 401) {
-            console.warn('Failed to fetch teh endpoint because we are unauthorised. Generating a new token');
+            warn('Failed to fetch teh endpoint because we are unauthorised. Generating a new token');
             await this.login();
             return await this.request<T>(endpoint);
         }
         
         // Something else exploded
-        console.error('failed to fetch data!', response.status, response.statusText, await response.text());
+        error('failed to fetch data!', response.status, response.statusText, await response.text());
         throw new Error('Failed to fetch request!');
     }
 }

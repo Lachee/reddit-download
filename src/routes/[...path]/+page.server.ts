@@ -5,6 +5,8 @@ import type { PageServerLoad } from './$types';
 
 import { type Post, getMedia, follow } from "$lib/reddit";
 import { getCache, normalize } from '$lib/cache';
+import { logger } from '$lib/log';
+const { log } = logger('page');
 
 const credentials = { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET };
 
@@ -61,7 +63,7 @@ export const load: PageServerLoad = async ({ setHeaders, params, request } ) => 
 
 	// Perform a SSR search
 	if (params.path != null && params.path != '' && isServerLoaded(request)) {
-		console.log('prefetching reddit post');
+		log('prefetching reddit post');
 		pageData.reddit = await loadPost(pageData.source);
 	}
 

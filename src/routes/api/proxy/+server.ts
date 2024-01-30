@@ -4,13 +4,12 @@ import { validateUrl, extname, UserAgent } from '$lib/helpers';
 import { MIME } from '$lib/mime';
 import { Domains } from '$lib/reddit';
 import { getCache, normalize } from '$lib/cache';
+import { logger } from '$lib/log';
+const { log } = logger('proxy');
 
 const STORE_TTL = 3600;
 const CACHE_TTL = STORE_TTL;
 
-function log(...args: any[]) {
-    console.log('[PROXY]', ...args);
-}
 function toB64(data: ArrayBuffer): string {
     let binary = '';
     const bytes = new Uint8Array(data);

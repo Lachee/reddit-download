@@ -1,19 +1,9 @@
 import { browser } from '$app/environment';
+import { logger } from '$lib/log';
 import { createFFmpeg, type FFmpeg } from '@ffmpeg/ffmpeg';
 
-
-function log(...args: any[]) {
-    console.log('[FFMPEG]', ...args);
-}
-function logProcess(params: { type: string, message: string }) {
-    log(`[${params.type.toUpperCase()}]`, params.message);
-}
-function group(...args: any[]) {
-    console.groupCollapsed('[FFMPEG]', ...args);
-}
-function groupEnd() {
-    console.groupEnd();
-}
+const { log, group, groupEnd } = logger('FFMPEG');
+const logProcess = (params: { type: string, message: string }) => log(`[${params.type.toUpperCase()}]`, params.message);
 
 type ProgressCallback = (progress: number) => void;
 
