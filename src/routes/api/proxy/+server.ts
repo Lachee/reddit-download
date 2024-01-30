@@ -7,8 +7,8 @@ import { getCache, normalize } from '$lib/cache';
 import { logger } from '$lib/log';
 const { log } = logger('proxy');
 
-const STORE_TTL = 3600;
-const CACHE_TTL = STORE_TTL;
+const STORE_TTL = -1;
+const CACHE_TTL = 3600;
 
 function toB64(data: ArrayBuffer): string {
     let binary = '';
@@ -46,12 +46,12 @@ export const GET: RequestHandler = async (request) => {
     const fileExt = extname(fileName);
     const key = normalize(`proxy:${href}`);
 
-    let body: ArrayBuffer | undefined;
-    let contentType: string | undefined;
+    let body: ArrayBuffer | ReadableStream<Uint8Array> | null = null;
+    let contentType: string | null = null;
 
     // Look for the cached content
     const cached = await getCache().get(key);
-    if (cached != null && cached.startsWith('data:')) {
+    if (STORE_TTL >= 0 && cached != null && cached.startsWith('data:')) {
         /// Decode the data:mime;base64,content data uri
         const [type, encodedData] = cached.split(';', 2);
         contentType = type.substring(5);
@@ -62,19 +62,21 @@ export const GET: RequestHandler = async (request) => {
     }
 
     // We failed to fetch something, so lets just pull it again
-    if (contentType === undefined || body === undefined) {
+    if (contentType === null || body === null) {
         // Fetch the content and best type
         log('downloading', href.toString());
         const response = await fetch(href, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
         if (response.status != 200)
             return new Response(await response.body, { status: response.status });
 
-        body = await response.arrayBuffer();
+        body = STORE_TTL > 0 ? await response.arrayBuffer() : response.body;
         contentType = MIME[fileExt] || response.headers.get('content-type') || 'image/gif';
     }
 
-    const serialized = `data:${contentType};base64,` + toB64(body);
-    getCache().put(key, serialized, { expirationTtl: STORE_TTL });
+    if (STORE_TTL > 0 && body !== null && "byteLength" in body) {
+        const serialized = `data:${contentType};base64,` + toB64(body);
+        getCache().put(key, serialized, { expirationTtl: STORE_TTL });
+    }
 
     return new Response(body, {
         headers: {
