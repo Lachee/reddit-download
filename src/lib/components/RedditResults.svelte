@@ -12,47 +12,51 @@
   import RedditMedia from "./RedditMedia.svelte";
   import { proxy, createOpenGraph } from "$lib/helpers";
   import { extmime } from "$lib/mime";
+  import Sparkle from "./Sparkle.svelte";
 
   let elemCarousel: HTMLDivElement;
 
   export let post: Post;
   let spoiler = false;
 
-  type BestMedia = Media & { thumbnail?: Media };
+  type ProcessedMedia = Media & {
+    thumbnail?: Media;
+    audio?: Media;
+  };
 
-  let media: Promise<BestMedia[]> = new Promise<BestMedia[]>(() => {});
+  let media: Promise<ProcessedMedia[]> = new Promise<ProcessedMedia[]>(
+    () => {}
+  );
   onMount(() => {
     media = findBestMedia();
   });
 
-  async function findBestMedia(): Promise<BestMedia[]> {
-    const best: BestMedia[] = [];
+  async function findBestMedia(): Promise<ProcessedMedia[]> {
+    const best: ProcessedMedia[] = [];
     for (const collection of sortMedia(post)) {
+      // Find the worse thumbnail possible
+      const thumbnail = collection.findLast(
+        (media) => media.variant === Variant.Thumbnail
+      );
+
       // If we have video only and audio source, we need to process them.
       if (collection[0].variant === Variant.PartialVideo) {
-        // Fetch and validate the audio
         const video = collection[0];
         const audio = collection.find(
           (media) => media.variant === Variant.PartialAudio
         );
 
-        // We have an audio component so we need to combine them.
-        const videoData = await combine(video.href, audio?.href);
-
-        // Push the new media
         best.push({
           mime: "video/mp4",
-          variant: Variant.Video,
+          variant: Variant.PartialVideo,
           dimension: video.dimension,
-          href: URL.createObjectURL(new Blob([videoData])),
+          href: video.href,
+          audio,
+          thumbnail,
         });
-        continue;
+      } else {
+        best.push({ ...collection[0], thumbnail });
       }
-
-      let thumbnail = collection.findLast(
-        (m) => m.variant == Variant.Thumbnail
-      );
-      best.push({ ...collection[0], thumbnail });
     }
 
     console.log(">> Best Variants ", best);
@@ -103,13 +107,23 @@
     >
       {#each collection as media, i}
         <div class="snap-start shrink-0 card w-[100%] text-center">
-          <RedditMedia {media} name="{post.id}_{i}" />
+          <RedditMedia
+            {media}
+            thumbnail={media.thumbnail}
+            audio={media.audio}
+            name="{post.id}_{i}"
+          />
         </div>
       {/each}
     </div>
   {:else}
     <div class="card p-4">
-      <RedditMedia media={collection[0]} name={post.id} />
+      <RedditMedia
+        media={collection[0]}
+        thumbnail={collection[0].thumbnail}
+        audio={collection[0].audio}
+        name={post.id}
+      />
     </div>
   {/if}
 {/await}
