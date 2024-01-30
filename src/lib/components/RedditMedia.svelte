@@ -92,8 +92,10 @@
       return;
     }
 
-    loading = true;
-    thumbnail = media;
+    // Enable this to make sparkes on the gifs
+    // loading = true;
+    // thumbnail = media;
+
     gifProgress = 0;
     gif = (async () => {
       const oldBlobRef = media.href;
