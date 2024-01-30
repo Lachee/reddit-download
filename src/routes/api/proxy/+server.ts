@@ -5,6 +5,8 @@ import { MIME } from '$lib/mime';
 import { Domains } from '$lib/reddit';
 import { getCache, normalize } from '$lib/cache';
 
+const STORE_TTL = 3600;
+const CACHE_TTL = STORE_TTL;
 
 export const GET: RequestHandler = async (request) => {
     const query = request.url.searchParams;
@@ -48,12 +50,13 @@ export const GET: RequestHandler = async (request) => {
     }
     
     const serialized = `data:${contentType};base64,` + Buffer.from(body).toString('base64');
-    getCache().put(key, serialized, { expirationTtl: 3600 });
+    getCache().put(key, serialized, { expirationTtl: STORE_TTL });
 
     return new Response(body, {
         headers: {
             'content-type': contentType,
             'content-disposition': `${download ? 'attachment' : 'inline'};filename="${fileName}"`,
+            'cache-control': `public, max-age=${CACHE_TTL}`
         }
     });
 };
