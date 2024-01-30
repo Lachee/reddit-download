@@ -1,7 +1,8 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
-  import { proxy } from "$lib/helpers";
+  import { logger } from "$lib/log";
+  const { log } = logger("confetti");
 
   type MinMax<T> = { min: T; max: T } | number;
 
@@ -29,7 +30,7 @@
   });
 
   onDestroy(() => {
-    console.log("cleaning up confetti, image, and stopping rendering");
+    log("cleaning up confetti, image, and stopping rendering");
     confetti = [];
     isRendering = false;
     if (image) image.src = "";
@@ -112,7 +113,7 @@
   };
 
   const createConfetti = (count: number) => {
-    console.log("spawning confetti", { count });
+    log("spawning", { count });
     let i, j, ref, results;
     results = [];
     for (
