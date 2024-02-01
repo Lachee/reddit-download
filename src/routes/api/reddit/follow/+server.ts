@@ -4,8 +4,11 @@ import { validateUrl, UserAgent } from '$lib/helpers';
 import { authentication, authenticate, follow, Domains } from '$lib/reddit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { get } from 'svelte/store';
+import { getCache } from '$lib/cache';
+import { normalize } from 'path';
 
 const AUTHENTICATION_FOR_FOLLOW = false;
+const CACHE_TTL = 86400 * 365;
 
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {
@@ -16,6 +19,18 @@ export const GET: RequestHandler = async (evt) => {
     if (href == null)
         return json({ error: 'bad href', reason: 'corrupted, missing, or otherwise invalid' }, { status: 400 });
 
+
+    // Try the cahce
+    const key = normalize(`reddit:follow:${href}`);
+    const cached = await getCache().get(key);
+    if (cached != null) {
+        return json({ href: cached }, {
+            headers: {
+                'cache-control': `public, max-age=${CACHE_TTL}`,
+                'x-cached': 'true',
+            }
+        });
+    }
 
     let init = undefined;
     if (AUTHENTICATION_FOR_FOLLOW) {
@@ -35,6 +50,12 @@ export const GET: RequestHandler = async (evt) => {
     }
 
     // Follow the url
-    const followed = await follow(href.toString(), init);
-    return json({ href: followed.toString() });
+    const followed = await follow(href.toString(), init).then(url => url.toString());
+    getCache().put(key, followed, { expirationTtl: CACHE_TTL });
+    return json({ href: followed }, {
+        headers: {
+            'cache-control': `public, max-age=${CACHE_TTL}`,
+            'x-cached': 'true',
+        }
+    });
 };
