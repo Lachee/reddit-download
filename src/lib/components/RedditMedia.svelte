@@ -1,7 +1,7 @@
 <script lang="ts">
   import Device from "svelte-device-info";
   import { combine, convertToGif } from "$lib/ffmpeg";
-  import { proxy } from "$lib/helpers";
+  import { ApiRoute, proxy } from "$lib/helpers";
   import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit";
   import { ProgressBar } from "@skeletonlabs/skeleton";
@@ -71,7 +71,7 @@
   function onImageError(evt: Event) {
     const elm = evt.target;
     if (elm == null || !(elm instanceof HTMLImageElement)) return;
-    if (elm.src.includes("/api/proxy")) return;
+    if (elm.src.includes(ApiRoute + "/proxy")) return;
 
     warn("failed to load image, using a proxy instead", elm.src);
     elm.src = proxy(elm.src, elm.getAttribute("data-name") ?? undefined);

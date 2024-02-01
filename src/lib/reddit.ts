@@ -1,9 +1,8 @@
-import { UserAgent, extname, proxy, stripQueryParameters, validateUrl, type OGPProperty } from './helpers';
+import { UserAgent, extname, validateUrl, endpoint, type OGPProperty } from '$lib/helpers';
 import { browser } from '$app/environment';
 import { XMLParser } from 'fast-xml-parser';
 import fetchJsonp from 'fetch-jsonp';
 import { get, writable } from 'svelte/store';
-import { page } from '$app/stores';
 
 import logger from '$lib/log';
 const { log, warn, error, group, groupEnd } = logger('REDDIT');
@@ -15,9 +14,8 @@ import thenby from 'thenby';
 const { firstBy } = thenby;
 
 /** Enables the MP4 previews that are generated from gifs */
-const INCLUDE_MP4_IN_VARIANTS = false;
-const USE_JSONP = false;
-
+const IncludeMP4InVariants = false;
+const UseJSONP = false;
 
 export type Mime =
     'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4';
@@ -138,7 +136,7 @@ export async function follow(href: string, init?: ReqInit): Promise<URL> {
         // so instead, we will make a request to the API to follow the link.
         if (browser) {
             log(`requesting shorthand ${url}`);
-            const shorthand = await fetch('/api/reddit/follow?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+            const shorthand = await fetch(endpoint('/reddit/follow', { href: url.toString() })).then(r => r.json());
             log('shorthand response:', shorthand);
             return new URL(shorthand.href);
         }
@@ -286,7 +284,7 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
         let request: Promise<Response | fetchJsonp.Response>;
 
         // If we are in a browser, fetch using JSONP. Otherwise fetch just using a regular fetch.
-        if (USE_JSONP && browser && !init) {
+        if (UseJSONP && browser && !init) {
             const redditurl = `${url.origin}${url.pathname}.json?raw_json=1`;
             request = fetchJsonp(redditurl, { jsonpCallback: 'jsonp', crossorigin: true });
             log('getting reddit post via jsonp', redditurl);
@@ -310,7 +308,7 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
         // ( removing the preview check breaks  https://www.reddit.com/r/egg_irl/comments/18vimr6/egg_irl/ ??? )
         if (browser && (data instanceof Error)) {
             log('getting reddit post via proxy');
-            const post = await fetch(`/api/reddit/media?href=${encodeURIComponent(url.toString())}`)
+            const post = await fetch(endpoint('/reddit/media', { href: url.toString() }))
                 .then(res => res.json());
 
             log('downloaded post: ', post);
@@ -385,11 +383,11 @@ export async function getMedia(link: string, init?: ReqInit): Promise<Post> {
             // It has, so lets scrape reddit. This can take a long time.
             if (response.status != 200) {
                 warn('imgur media did not respond with a 200! Fetching cached content', response.status);
-                let mediaHref : URL|null = null;
+                let mediaHref: URL | null = null;
                 if (init?.credentials) {    // We are given credentials, lets just use that instead
                     mediaHref = await scrape(url.toString(), init?.credentials);
                 } else {                    // We are given no credentials, so we are going to have to ask the website to do it for us.
-                    const scrape = await fetch('/api/reddit/scrape?href=' + encodeURIComponent(url.toString())).then(r => r.json());
+                    const scrape = await fetch(endpoint('/reddit/scrape', { href: url.toString() })).then(r => r.json());
                     mediaHref = 'href' in scrape ? new URL(scrape.href) : null;
                 }
 
@@ -764,7 +762,7 @@ function getPreviewImageCollection(images: any): MediaVariantCollection {
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.nsfw, 'image/jpeg', Variant.Blur));
         if (hasObject(images.variants, 'obfuscated'))
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.obfuscated, 'image/jpeg', Variant.Blur));
-        if (INCLUDE_MP4_IN_VARIANTS && hasObject(images.variants, 'mp4'))
+        if (IncludeMP4InVariants && hasObject(images.variants, 'mp4'))
             collection = collection.concat(getPreviewImageCollectionFromObject(images.variants.mp4, 'video/mp4', Variant.Video));
     }
 

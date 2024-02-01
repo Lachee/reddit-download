@@ -39,17 +39,33 @@ export function rootHostname(url: string | URL): string {
 export function proxy(url: string | URL, fileName?: string, download?: boolean, absolute: boolean = false): string {
     if (typeof url !== 'string')
         url = url.toString();
-
-    // url is a local only one, we give up.
     if (!url.startsWith('http'))
-        return url;
-
+        return url; // Only HTTP and HTTPS routes can be proxied.
+    
     const params: Record<string, string> = { href: url };
     if (download) params.dl = download ? '1' : '0';
     if (fileName) params.fileName = fileName;
+    return endpoint('/proxy', params, absolute);
+}
+
+/**
+ * 
+ * @param endpoint The path to the API
+ * @param query Query parameters to pass onto the endpoint
+ * @param absolute Should the endpoint be given in absolute. Useful if it is expected third-parties will load this
+ * @returns the URL to the api
+ */
+export function endpoint(endpoint: string | URL, query?: Record<string, string>, absolute: boolean = false): string {
+    if (typeof endpoint !== 'string') {
+        for(const key in query) 
+            endpoint.searchParams.append(key, query[key]);
+        return endpoint.toString();
+    }
 
     const origin = absolute ? get(page).url.origin : '';
-    return `${origin}${ApiRoute}/proxy?` + new URLSearchParams(params).toString();
+    const route = `${origin}${ApiRoute}${endpoint}`;
+    if (!query) return route;
+    return `${route}?` + new URLSearchParams(query).toString();
 }
 
 /**
@@ -88,10 +104,10 @@ export function validateUrl(href: string, allowedRoots: string[]): URL | null {
 export type OGPProperty = { name: string, content: string };
 
 export function createOpenGraph(metadata: OGPProperty[]): string {
-    const sanatize = (value : string) => value.replaceAll('"', '\\"');
-    const ogtag = (name : string, value : string) => `<meta property="og:${sanatize(name)}" content="${sanatize(value)}" />`;
-        
-    const ogTags : string[] = [];
+    const sanatize = (value: string) => value.replaceAll('"', '\\"');
+    const ogtag = (name: string, value: string) => `<meta property="og:${sanatize(name)}" content="${sanatize(value)}" />`;
+
+    const ogTags: string[] = [];
     metadata.forEach(property => {
         if (property.name.startsWith('twitter')) {
             ogTags.push(`<meta property="${sanatize(property.name)}" content="${sanatize(property.content)}" />`);
