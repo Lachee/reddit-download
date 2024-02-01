@@ -36,7 +36,7 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 
 		// Cache miss, pull it another way
 		const post = await getMedia(url.toString(), { credentials });
-		await getCache().put(key), JSON.stringify(post), { expirationTtl: WEEK });
+		await getCache().put(key, JSON.stringify(post), { expirationTtl: WEEK });
 		return post;
 	}catch(e) {
 		error('failed to fetch the post media', e);
