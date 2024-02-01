@@ -5,8 +5,9 @@ import type { PageServerLoad } from './$types';
 
 import { type Post, getMedia, follow } from "$lib/reddit";
 import { getCache, normalize } from '$lib/cache';
-import { logger } from '$lib/log';
-const { log } = logger('page');
+
+import logger from '$lib/log';
+const { log, error } = logger('page');
 
 const credentials = { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET };
 
@@ -36,7 +37,7 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 		await getCache().put(normalize(`reddit:media:${url}`), JSON.stringify(post), { expirationTtl: 86400*7 });
 		return post;
 	}catch(e) {
-		console.error('failed to fetch the post media', e);
+		error('failed to fetch the post media', e);
 		return undefined;
 	}
 }

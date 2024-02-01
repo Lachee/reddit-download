@@ -1,7 +1,8 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
-  import { logger } from "$lib/log";
+
+  import logger from "$lib/log";
   const { log } = logger("confetti");
 
   type MinMax<T> = { min: T; max: T } | number;

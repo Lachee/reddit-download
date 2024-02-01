@@ -4,7 +4,7 @@ import { validateUrl, extname, UserAgent } from '$lib/helpers';
 import { MIME } from '$lib/mime';
 import { Domains } from '$lib/reddit';
 import { getCache, normalize } from '$lib/cache';
-import { logger } from '$lib/log';
+import logger  from '$lib/log';
 const { log } = logger('proxy');
 
 const STORE_TTL = -1;

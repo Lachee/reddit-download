@@ -13,6 +13,9 @@
   import type { Gif as RedgifPost } from "$lib/redgifs";
   import { validateUrl } from "$lib/helpers";
 
+  import logger from "$lib/log";
+  const { log, warn } = logger("page");
+
   // # Components
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import Footer from "$lib/components/Footer.svelte";
@@ -36,25 +39,25 @@
 
   onMount(() => {
     // We have the searchBox prefilled but no reddit data, we need to perform the search ourselves
-    console.log("page mount", data);
+    log("loaded content", data);
     if (!hasResult() && searchBox != "") search();
   });
 
   /** Performs a search based on the searchBox content */
   async function search(): Promise<Result> {
-    console.log("performing search...");
+    log("performing search...");
     searching = true;
     try {
       // Search Reddit
       if (validateUrl(searchBox, RedditDomains)) {
-        console.log("searching reddit", searchBox);
+        log("searching reddit", searchBox);
         result.reddit = await getRedditPost(searchBox);
         searchBox = result.reddit.permalink.toString();
         return result;
       }
 
       // No idea what we are searching for :shrug:
-      console.warn("unknown destination, not sure what we are looking for");
+      warn("unknown destination, not sure what we are looking for");
       return (result = data);
     } finally {
       searching = false;

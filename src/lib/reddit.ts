@@ -5,8 +5,13 @@ import fetchJsonp from 'fetch-jsonp';
 import { get, writable } from 'svelte/store';
 import { page } from '$app/stores';
 
+import logger from '$lib/log';
+const { log, warn, error, group, groupEnd } = logger('REDDIT');
+const debug = (...args: any[]) => {
+    if (browser) log(...args);
+}
+
 import thenby from 'thenby';
-import { logger } from '$lib/log';
 const { firstBy } = thenby;
 
 /** Enables the MP4 previews that are generated from gifs */
@@ -119,11 +124,6 @@ export type ReqInit = Partial<{
     headers: Record<string, string>;
     credentials: Credentials;
 }>;
-
-const { log, warn, error, group, groupEnd } = logger('REDDIT');
-const debug = (...args: any[]) => {
-    if (browser) log(...args);
-}
 
 /** Follows the shortened links */
 export async function follow(href: string, init?: ReqInit): Promise<URL> {

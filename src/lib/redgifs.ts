@@ -1,4 +1,5 @@
-import { logger } from "$lib/log";
+import logger from "$lib/log";
+const { log, warn, error } = logger('redgif');
 
 const BASE_URI : string = "https://api.redgifs.com";
 const USER_AGENT : string = "redgifs (https://github.com/lachee/reddit-downloader 1.0.0) TypeScript/2.4.1"
@@ -51,7 +52,6 @@ export interface Gif {
     sexuality : string[]
 }
 
-const { log, warn, error } = logger('redgif');
 
 function cleanID(url : string) : string {
     const w = url.lastIndexOf('watch/');

@@ -2,13 +2,13 @@
   import Device from "svelte-device-info";
   import { combine, convertToGif } from "$lib/ffmpeg";
   import { proxy } from "$lib/helpers";
-  import { DefaultFormatter, logger } from "$lib/log";
   import { extmime } from "$lib/mime";
   import { Variant, type Media } from "$lib/reddit";
   import { ProgressBar } from "@skeletonlabs/skeleton";
   import Sparkle from "./Sparkle.svelte";
   import { browser } from "$app/environment";
 
+  import logger from "$lib/log";
   const { log, warn, error } = logger("MEDIA");
 
   export let name: string;

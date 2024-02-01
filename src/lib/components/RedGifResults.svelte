@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { deserialize } from "$app/forms";
   import { convertToGif } from "$lib/ffmpeg";
   import type { Gif } from "$lib/redgifs";
   import {
@@ -8,6 +7,9 @@
     SlideToggle,
   } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
+
+  import logger from "$lib/log";
+  const { log } = logger("redgif");
 
   export let gif: Gif;
   let videoPlayer: HTMLVideoElement;
@@ -24,10 +26,10 @@
   let extension: string = "";
   let fileName = "";
   $: fileName = `${spoiler ? "SPOILER_" : ""}${gif.id}.${extension}`;
-  $: console.log("redgif", gif);
+  $: log("redgif", gif);
 
   onMount(() => {
-    console.log("processing reddit");
+    log("processing redgif");
     processing = true;
     videoURL = "/download?get=" + encodeURIComponent(gif.permalink);
     extension = "mp4";
@@ -37,7 +39,7 @@
 
   async function share() {
     let shareData: ShareData;
-    console.log("preparing to share...");
+    log("preparing to share...");
     sharing = true;
     await navigator.share({
       title: gif.id,
@@ -49,7 +51,7 @@
     gifPromise = (async () => {
       const result = await convertToGif(videoURL);
       gifDataUrl = URL.createObjectURL(new Blob([result]));
-      console.log("finished conversion", result, gifDataUrl);
+      log("finished conversion", result, gifDataUrl);
       return result;
     })();
   }

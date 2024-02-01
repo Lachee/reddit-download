@@ -1,4 +1,4 @@
-import { logger, type Logger } from "$lib/log";
+import { default as logger, type Logger } from "$lib/log";
 
 export interface CachePutOptions {
     expiration?: number;

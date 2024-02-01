@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { ProgressBar } from "@skeletonlabs/skeleton";
-  import { combine } from "$lib/ffmpeg";
   import {
     type Post,
     type Media,
@@ -12,7 +11,9 @@
   import RedditMedia from "./RedditMedia.svelte";
   import { proxy, createOpenGraph } from "$lib/helpers";
   import { extmime } from "$lib/mime";
-  import Sparkle from "./Sparkle.svelte";
+
+  import logger from "$lib/log";
+  const { log } = logger("result");
 
   let elemCarousel: HTMLDivElement;
 
@@ -59,7 +60,7 @@
       }
     }
 
-    console.log(">> Best Variants ", best);
+    log("Best Variants ", best);
     return best;
   }
 

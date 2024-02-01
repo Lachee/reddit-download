@@ -13,7 +13,7 @@ export const DefaultFormatter = (prefix : string) => {
     return now.toLocaleTimeString() + ` [${prefix.toLowerCase()}]`
 }
 
-export function logger(prefix : string, formatter? : (prefix : string) => string) : Logger {
+export default function logger(prefix : string, formatter? : (prefix : string) => string) : Logger {
     const p = (formatter ?? DefaultFormatter);
     return {
         prefix,
