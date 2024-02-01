@@ -2,7 +2,9 @@ import { MIME } from "./mime";
 
 import { page } from '$app/stores';
 import { get } from "svelte/store";
+
 export const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
+export const ApiRoute = '/api';
 
 /**
  * Gets the extension of the given file
@@ -31,6 +33,7 @@ export function rootHostname(url: string | URL): string {
  * @param url The URL to proxy
  * @param fileName The fileName to give the media
  * @param download Include the download header
+ * @param absolute The proxy path should be the absolute URL of the current page.
  * @returns 
  */
 export function proxy(url: string | URL, fileName?: string, download?: boolean, absolute: boolean = false): string {
@@ -42,15 +45,11 @@ export function proxy(url: string | URL, fileName?: string, download?: boolean, 
         return url;
 
     const params: Record<string, string> = { href: url };
-
-    if (download)
-        params.dl = download ? '1' : '0';
-
-    if (fileName)
-        params.fileName = fileName;
+    if (download) params.dl = download ? '1' : '0';
+    if (fileName) params.fileName = fileName;
 
     const origin = absolute ? get(page).url.origin : '';
-    return `${origin}/api/proxy?` + new URLSearchParams(params).toString();
+    return `${origin}${ApiRoute}/proxy?` + new URLSearchParams(params).toString();
 }
 
 /**

@@ -1,8 +1,10 @@
-import { browser } from '$app/environment';
 import { createFFmpeg, type FFmpeg } from '@ffmpeg/ffmpeg';
 
+import { browser } from '$app/environment';
+import { proxy } from '$lib/helpers';
+
 import logger from '$lib/log';
-const { log, group, groupEnd } = logger('FFMPEG');
+const { log, warn, group, groupEnd } = logger('FFMPEG');
 const logProcess = (params: { type: string, message: string }) => log(`[${params.type.toUpperCase()}]`, params.message);
 
 type ProgressCallback = (progress: number) => void;
@@ -136,11 +138,11 @@ async function fetchFile(input: string, init?: RequestInit | undefined): Promise
     try {
         response = await fetch(input, init);
     } catch (error) {
-        log('failed to download the file', input, error);
+        warn('failed to download the file', input, error);
         if (!browser) throw error;
 
         log('attempting to download a proxied version of the file');
-        response = await fetch(`/api/proxy?href=${encodeURIComponent(input)}`);
+        response = await fetch(proxy(input));
     }
 
     // Validate response
