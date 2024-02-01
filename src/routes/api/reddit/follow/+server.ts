@@ -6,9 +6,10 @@ import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/stati
 import { get } from 'svelte/store';
 import { getCache } from '$lib/cache';
 import { normalize } from 'path';
+import { WEEK } from '$lib/time';
 
 const AUTHENTICATION_FOR_FOLLOW = false;
-const CACHE_TTL = 86400 * 365;
+const CACHE_TTL = WEEK;
 
 /** Follows a given reddit link to resolve the short links */
 export const GET: RequestHandler = async (evt) => {

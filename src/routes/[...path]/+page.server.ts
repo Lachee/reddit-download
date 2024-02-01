@@ -7,6 +7,7 @@ import { type Post, getMedia, follow } from "$lib/reddit";
 import { getCache, normalize } from '$lib/cache';
 
 import logger from '$lib/log';
+import { WEEK } from '$lib/time';
 const { log, error } = logger('page');
 
 const credentials = { username: BOT_USERNAME, password: BOT_PASSWORD, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET };
@@ -28,13 +29,14 @@ async function loadPost(link : string) : Promise<Post|undefined> {
 		const url = await follow(link);
 
 		// Try the cache
-		const cached = await getCache().get(normalize(`reddit:media:${url}`));
+		const key = normalize(`reddit:media:${url}`);
+		const cached = await getCache().get(key);
 		if (cached != null) 
 			return JSON.parse(cached) as Post; 
 
 		// Cache miss, pull it another way
 		const post = await getMedia(url.toString(), { credentials });
-		await getCache().put(normalize(`reddit:media:${url}`), JSON.stringify(post), { expirationTtl: 86400*7 });
+		await getCache().put(key), JSON.stringify(post), { expirationTtl: WEEK });
 		return post;
 	}catch(e) {
 		error('failed to fetch the post media', e);

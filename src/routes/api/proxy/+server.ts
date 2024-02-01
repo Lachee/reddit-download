@@ -5,10 +5,11 @@ import { MIME } from '$lib/mime';
 import { Domains } from '$lib/reddit';
 import { getCache, normalize } from '$lib/cache';
 import logger  from '$lib/log';
+import { WEEK } from '$lib/time';
 const { log } = logger('proxy');
 
-const STORE_TTL = -1;
-const CACHE_TTL = 3600;
+const STORE_TTL = -1;       // We cannot actually store the media because a CF worker does not have enough memory
+const CACHE_TTL = WEEK;     // How long we wish to tell the browser to store the cached results
 
 function toB64(data: ArrayBuffer): string {
     let binary = '';
