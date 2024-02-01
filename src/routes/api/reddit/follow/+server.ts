@@ -4,8 +4,7 @@ import { validateUrl, UserAgent } from '$lib/helpers';
 import { authentication, authenticate, follow, Domains } from '$lib/reddit';
 import { CLIENT_ID, CLIENT_SECRET, BOT_USERNAME, BOT_PASSWORD } from '$env/static/private';
 import { get } from 'svelte/store';
-import { getCache } from '$lib/cache';
-import { normalize } from 'path';
+import { getCache, normalize } from '$lib/cache';
 import { WEEK } from '$lib/time';
 
 const AUTHENTICATION_FOR_FOLLOW = false;
