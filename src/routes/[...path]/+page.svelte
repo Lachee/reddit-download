@@ -1,113 +1,135 @@
 <script lang="ts">
-  // # Svelte
-  import { onMount } from "svelte";
-  import { page } from "$app/stores";
-  import type { PageData } from "./$types";
+  import type { PageData } from './$types';
 
-  // # Library
-  import {
-    type Post as RedditPost,
-    getMedia as getRedditPost,
-    Domains as RedditDomains,
-  } from "$lib/reddit";
-  import type { Gif as RedgifPost } from "$lib/redgifs";
-  import { validateUrl } from "$lib/helpers";
-
-  import logger from "$lib/log";
-  const { log, warn } = logger("page");
-
-  // # Components
-  import { ProgressBar } from "@skeletonlabs/skeleton";
-  import Footer from "$lib/components/Footer.svelte";
-  import RedGifResults from "$lib/components/RedGifResults.svelte";
-  import RedditResults from "$lib/components/RedditResults.svelte";
-  import Searchbox from "$lib/components/Searchbox.svelte";
-
-  export let data: PageData;
-
-  interface Result {
-    reddit?: RedditPost;
-    redgif?: RedgifPost;
-  }
-
-  let result: Result = data;
-  let searching: boolean = false;
-  const hasResult = () => result.reddit || result.redgif;
-
-  let searchBox: string =
-    $page.url.searchParams.get("share") || data.source || "";
-
-  onMount(() => {
-    // We have the searchBox prefilled but no reddit data, we need to perform the search ourselves
-    log("loaded content", data);
-    if (!hasResult() && searchBox != "") search();
-  });
-
-  /** Performs a search based on the searchBox content */
-  async function search(): Promise<Result> {
-    log("performing search...");
-    searching = true;
-    try {
-      // Search Reddit
-      if (validateUrl(searchBox, RedditDomains)) {
-        log("searching reddit", searchBox);
-        result.reddit = await getRedditPost(searchBox);
-        searchBox = result.reddit.permalink.toString();
-        return result;
-      }
-
-      // No idea what we are searching for :shrug:
-      warn("unknown destination, not sure what we are looking for");
-      return (result = data);
-    } finally {
-      searching = false;
-    }
-  }
+  let { data }: { data: PageData } = $props();
 </script>
 
-<div class="container mx-auto p-8 space-y-8">
-  <h1 class="h1">Reddit Downloader</h1>
-  <p>Download Reddit videos & gifs without the ads!</p>
-  <Searchbox
-    bind:value={searchBox}
-    placeholder="reddit.com/r/..."
-    on:click={() => search()}
-    on:clear={() => (result = {})}
-  />
 
-  {#if searching}
-    <ProgressBar />
-  {:else if result.reddit !== undefined}
-    <RedditResults post={result.reddit} />
-  {:else if result.redgif !== undefined}
-    <RedGifResults gif={result.redgif} />
-  {:else}
-    <p>
-      Your browser will download and process the videos / gifs. They will appear
-      here ready for sharing or saving to file.<br />
-      <strong>"RapidSave" is garbage</strong>, don't use that adware, use this
-      instead.
-    </p>
-  {/if}
+<main class="page">
+    {#await data.post}
+        <section class="card">
+            <p>Loading Reddit post...</p>
+        </section>
+    {:then redditPost}
+        {@const post = redditPost.post}
+        <article class="card">
+            <header>
+                <div class="meta">
+                    <span>{post.subredditName ?? `r/${post.subreddit}`}</span>
+                    <span>•</span>
+                    <span>u/{post.author}</span>
+                </div>
 
-  <div class="block card card-hover p-4">
-    <header class="card-header">
-      <span class="h3">Hotlink Directly Here!</span>
-    </header>
-    <section class="p-4">
-      Add the <strong>DL-</strong> prefix to the <strong>reddit.com</strong>
-      to download the video quickly and easily!<br />
-      {#if !hasResult()}
-        <code>https://www.dl-reddit.com/r/...</code>
-      {:else if result.reddit !== undefined}
-        <code
-          >https://dl-reddit.com/{new URL(result?.reddit.permalink)
-            .pathname}</code
-        >
-      {:else}
-        <code>https://www.dl-reddit.com/r/...</code>
-      {/if}
-    </section>
-  </div>
-  <Footer />
-</div>
+                <h1>{post.title}</h1>
+
+                <div class="stats">
+                    <span>{post.score ?? 0} points</span>
+                    <span>{post.comments ?? post.num_comments ?? 0} comments</span>
+
+                    {#if post.createdAt}
+                        <span>{post.createdAt.toLocaleString()}</span>
+                    {:else if post.created_utc}
+                        <span>{new Date(post.created_utc * 1000).toLocaleString()}</span>
+                    {/if}
+                </div>
+            </header>
+
+            {#if post.body}
+                <div class="body">
+                    {post.body}
+                </div>
+            {:else if post.selftext}
+                <div class="body">
+                    {post.selftext}
+                </div>
+            {/if}
+
+            {#if post.url && !post.isSelf && !post.is_self}
+                <p>
+                    <a href={post.url} target="_blank" rel="noreferrer">
+                        Open linked content
+                    </a>
+                </p>
+            {/if}
+
+            {#if post.permalink}
+                <p>
+                    <a href={post.permalink} target="_blank" rel="noreferrer">
+                        Open on Reddit
+                    </a>
+                </p>
+            {/if}
+
+            {#if post.isNsfw || post.over_18}
+                <p class="tag">NSFW</p>
+            {/if}
+
+            {#if post.isSpoiler || post.spoiler}
+                <p class="tag">Spoiler</p>
+            {/if}
+        </article>
+    {:catch error}
+        <section class="card error">
+            <h1>Failed to load Reddit post</h1>
+            <pre>{error instanceof Error ? error.message : String(error)}</pre>
+        </section>
+    {/await}
+</main>
+
+<style>
+    .page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 1.5rem;
+        background: white;
+    }
+
+    .meta,
+    .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    h1 {
+        margin: 0.75rem 0;
+        line-height: 1.2;
+    }
+
+    .body {
+        margin-top: 1.5rem;
+        white-space: pre-wrap;
+        line-height: 1.5;
+    }
+
+    a {
+        color: #0066cc;
+    }
+
+    .tag {
+        display: inline-block;
+        margin-right: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        background: #eee;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .error {
+        border-color: #d33;
+    }
+
+    pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+</style>

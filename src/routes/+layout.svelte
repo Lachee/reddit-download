@@ -1,24 +1,9 @@
-<script>
-  import "../app.pcss";
-  // Your selected Skeleton theme:
-  //import "@skeletonlabs/skeleton/themes/theme-skeleton.css";
-  //import "@skeletonlabs/skeleton/themes/theme-gold-nouveau.css";
+<script lang="ts">
+	import './layout.css';
+	import favicon from '$lib/assets/favicon.svg';
 
-  // This contains the bulk of Skeletons required styles:
-  //import "@skeletonlabs/skeleton/styles/skeleton.css";
-
-  // Finally, your application's global stylesheet (sometimes labeled 'app.css')
-  import { AppShell } from "@skeletonlabs/skeleton";
-  import Footer from "$lib/components/Footer.svelte";
-
-  import { page } from "$app/stores";
+	let { children } = $props();
 </script>
 
-<AppShell>
-  <slot />
-  <svelte:fragment slot="pageFooter">
-    <div class="container mx-auto p-8 space-y-8">
-      <!--<Footer />-->
-    </div>
-  </svelte:fragment>
-</AppShell>
+<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+{@render children()}
