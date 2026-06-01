@@ -1,7 +1,6 @@
 import { type Post } from "$lib/reddit/schema/postSchema";
 import { type MediaMetadataItem } from "$lib/reddit/schema/mediaMetadataItemSchema";
 import { XMLParser } from 'fast-xml-parser';
-import secureMediaSchema, { type SecureMedia } from "$lib/reddit/schema/secureMediaSchema";
 import MpdDocumentSchema, { type MpdDocument, type MpdPeriod } from "$lib/reddit/schema/mpd";
 import type { Video } from "$lib/reddit/schema/videoSchema";
 
@@ -26,19 +25,19 @@ export enum Variant {
   /** Video Clip that requires combining with PartialAudio */
   PartialVideo = 'video_only',
   /** Partial audio channel that needs combing with a VideoClip */
-  PartialAudio = 'audio',
+  PartialAudio = 'audio_only',
 }
 
 export const VariantOrder = [
   Variant.PartialVideo,
-  Variant.PartialAudio,
   Variant.Video,
   Variant.GIF,
   Variant.Image,
   Variant.Thumbnail,
   Variant.Preview,
+  Variant.PartialAudio,
   Variant.Blur,
-] as const;
+];
 
 export type Media = {
   id: string
@@ -76,6 +75,7 @@ export async function getMedia(post: Post): Promise<Media[]> {
       media.push(...redditVideoPreview);
     }
 
+    // TODO: Preview image collection
   }
 
   if (post.thumbnail) {
@@ -108,7 +108,23 @@ export async function getMedia(post: Post): Promise<Media[]> {
     }
   }
 
+  // TODO: Handle Imgur
+
   return media;
+}
+
+export function sort(media : Media[], order: Variant[] = VariantOrder): Media[] {
+  const sorted = order ?? VariantOrder;
+
+  return media.sort((a: Media, b: Media) => {
+    const variantDiff = sorted.indexOf(a.variant) - sorted.indexOf(b.variant);
+    if (variantDiff !== 0)
+      return variantDiff;
+
+    const aWidth = a.dimension?.width ?? 0;
+    const bWidth = b.dimension?.width ?? 0;
+    return bWidth - aWidth;
+  });
 }
 
 /** gets the collections within the post.media_collection */
@@ -242,9 +258,8 @@ function parseMediaFromDash(mpdContent: string, baseUrl: string): Media[] {
       const width = +(representation['@_width'] ?? representation['@_maxWidth'] ?? 0);
       const height = +(representation['@_height'] ?? representation['@_maxHeight'] ?? 0);
 
-      let url = `${baseUrl}/DASH_${width}.mp4`;
-      if ('BaseURL' in representation && typeof representation.BaseURL === 'string')
-        url = `${baseUrl}/${representation.BaseURL}`;
+      const repBaseUrl = flattenArrayable(representation.BaseURL);
+      const url = `${baseUrl}/${repBaseUrl}`
 
       media.push({
         id:        representation['@_id'] ?? '',

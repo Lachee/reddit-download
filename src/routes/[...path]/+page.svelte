@@ -10,8 +10,7 @@
         <section class="card">
             <p>Loading Reddit post...</p>
         </section>
-    {:then redditPost}
-        {@const post = redditPost.post}
+    {:then post}
         <article class="card">
             <header>
                 <div class="meta">

@@ -19,6 +19,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.2",
+		"@types/node": "^25.9.1",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.2.2",
@@ -27,6 +28,9 @@
 		"wrangler": "^4.81.0"
 	},
 	"dependencies": {
+		"@ffmpeg/ffmpeg": "^0.12.15",
+		"@ffmpeg/util": "^0.12.2",
+		"@types/ffmpeg": "^1.0.7",
 		"fast-xml-parser": "^5.8.0",
 		"zod": "^4.4.3"
 	}
