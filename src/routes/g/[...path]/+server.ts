@@ -17,7 +17,7 @@ async function proxy(href: string): Promise<Response> {
 }
 
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
-  const post = await fetchPost(fetch, params.path);
+  const post = await fetchPost(fetch, `r/${params.path}`);
   const media = await getMedia(post);
   sort(media);
 
