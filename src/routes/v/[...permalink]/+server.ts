@@ -2,17 +2,17 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchPost } from "$lib/reddit/server/Post";
 import type { Post } from "$lib/reddit/schema/postSchema";
-import { getMedia, type Media, sort, Variant } from "$lib/reddit/server/Media";
+import { fetchMedia, type Media, sort, Variant } from "$lib/reddit/server/Media";
 import { authenticate } from "$lib/reddit/server/Authentication";
 import { combineStream } from "$lib/server/ffmpeg/Combine";
 import { Readable } from "node:stream";
+import { normalizePermalink } from "$lib/reddit/Utilities";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
-  const post = await fetchPost(fetch, `r/${params.path}`);
-  const media = await getMedia(post);
-  sort(media);
+  const post = await fetchPost(fetch, normalizePermalink(params.permalink));
+  const media = await fetchMedia(post).then(sort)
 
   const { access_token } = await authenticate(fetch);
   const best = media[0];

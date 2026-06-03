@@ -45,6 +45,7 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
   console.log('Fetching post from:', url.toString());
   const response = await fetch(url, {
     method:  'GET',
+    redirect: 'error',
     headers: {
       'User-Agent':    USER_AGENT,
       'Authorization': `Bearer ${access_token}`

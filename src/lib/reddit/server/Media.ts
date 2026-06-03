@@ -47,7 +47,11 @@ export type Media = {
   dimension?: { width: number, height?: number }
 }
 
-export async function getMedia(post: Post): Promise<Media[]> {
+/** fetches all the metadata of a post's media.
+ * Any DASH manifests are downloaded and parsed.
+ * @param post
+ */
+export async function fetchMedia(post: Post): Promise<Media[]> {
   const media: Media[] = [];
 
   // Get media variants
@@ -116,7 +120,7 @@ export async function getMedia(post: Post): Promise<Media[]> {
 export function sort(media : Media[], order: Variant[] = VariantOrder): Media[] {
   const sorted = order ?? VariantOrder;
 
-  return media.sort((a: Media, b: Media) => {
+  return [...media].sort((a: Media, b: Media) => {
     const variantDiff = sorted.indexOf(a.variant) - sorted.indexOf(b.variant);
     if (variantDiff !== 0)
       return variantDiff;
