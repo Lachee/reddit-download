@@ -11,21 +11,33 @@ export function keyName(...opts: (string | { toString(): string })[]): string {
   return opts.map(opt => typeof opt === "string" ? opt : opt.toString()).join(":");
 }
 
+function cleanup() {
+  caches.forEach((entry, key) => {
+    try {
+      if (isExpired(entry)) {
+        caches.delete(key);
+      }
+    } catch (e) {
+      console.error('Error cleaning up cache', e);
+    }
+  });
+}
+
 function isExpired(entry: CacheEntry<any>): boolean {
   return entry.expiresAt !== 0 && entry.expiresAt < Date.now();
 }
 
-export async function cacheSemaphore<TCacheData, TReturn>(key : string, cachePromise: (store: (value: TCacheData) => void, abort: (reason?: any) => void) => Promise<TReturn>, ttl : number = 0): Promise<TReturn> {
-  let semaphoreResolve! : (value: TCacheData) => void;
-  let semaphoreReject! : (reason?: any) => void;
+export async function cacheSemaphore<TCacheData, TReturn>(key: string, cachePromise: (store: (value: TCacheData) => void, abort: (reason?: any) => void) => Promise<TReturn>, ttl: number = 0): Promise<TReturn> {
+  let semaphoreResolve!: (value: TCacheData) => void;
+  let semaphoreReject!: (reason?: any) => void;
   const semaphore = new Promise<TCacheData>((resolve, reject) => {
     semaphoreResolve = resolve;
     semaphoreReject = reject;
   })
 
   const entry: CacheEntry<TCacheData> = {
-    value: undefined,
-    promise: semaphore,
+    value:     undefined,
+    promise:   semaphore,
     expiresAt: ttl > 0 ? Date.now() + ttl : 0,
     completed: false,
   }
@@ -68,7 +80,7 @@ export async function getCache<T>(key: string): Promise<T | undefined> {
 export function setCache<T>(key: string, value: T, ttl: number = 0): Promise<void> {
   const entry: CacheEntry<T> = {
     value,
-    promise: Promise.resolve(value),
+    promise:   Promise.resolve(value),
     expiresAt: ttl > 0 ? Date.now() + ttl : 0,
     completed: true,
   };
@@ -84,7 +96,7 @@ export function setPendingCache<T>(
 ): Promise<void> {
   const entry: CacheEntry<T> = {
     promise,
-    value: undefined,
+    value:     undefined,
     expiresAt: ttl > 0 ? Date.now() + ttl : 0,
     completed: false,
   };
@@ -102,3 +114,6 @@ export function setPendingCache<T>(
   caches.set(key, entry);
   return Promise.resolve();
 }
+
+cleanup();
+setInterval(cleanup, 1000);
