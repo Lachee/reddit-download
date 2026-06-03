@@ -30,43 +30,12 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
     const media = await fetchMedia(fetch, post).then(sort)
 
-    // Find the best available gif and video
-    // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
-    const gif = media.find(m => m.variant === Variant.GIF);
-    const video = media.find(m => m.variant === Variant.Video || m.variant === Variant.PartialVideo);
-    const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
+    // Find the best available image and video
+    // We will determine if we should convert the video to a image by checking if the video is wider than the image.
+    const best = media.find(m => m.variant === Variant.Image);
 
-    if (shouldConvert && video) {
-      console.log('The best is a video, converting to a gif.');
-      const scale = video.dimension?.height || video.dimension?.width || 480;
-      const opts: ConvertOptions = {
-        videoPath: video.href,
-        fps:       scale > 360 ? 10 : 20,
-        scale:     scale,
-      };
-      opts.fps = 10;
-
-      const { stream, ffmpeg } = convertStream(opts);
-      const headers = {
-        "Content-Type":        "image/gif",
-        "Content-Disposition": `inline; filename="animated.gif"`,
-        "Cache-Control":       "public, max-age=3600",
-      };
-
-      const body = createReadableStream(stream, ffmpeg, (bytes) => store({
-        body:   bytes,
-        status: 200,
-        headers,
-      }), abort);
-
-      return new Response(body, {
-        status: 200,
-        headers,
-      });
-    }
-
-    // Otherwise, use the best gif or whatever we have as a fallback
-    const { href } = gif ?? media[0];
+    // Otherwise, use the best image or whatever we have as a fallback
+    const { href } = best ?? media[0];
     const response = await fetch(href, {
       redirect: 'follow',
       headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
@@ -75,7 +44,7 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
     const init = {
       status:  200,
       headers: {
-        "Content-Type":  response.headers.get('Content-Type') ?? 'image/gif',
+        "Content-Type":  response.headers.get('Content-Type') ?? 'image/jpeg',
         "Cache-Control": "public, max-age=3600",
       }
     }

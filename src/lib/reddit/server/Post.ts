@@ -56,8 +56,5 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
   if (response.status !== 200)
     throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
 
-  const json = await response.json();
-  console.log('Response JSON:', json);
-
-  return postResponseSchema.parse(json);
+  return await response.json().then(postResponseSchema.parse);
 }

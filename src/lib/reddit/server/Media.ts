@@ -47,12 +47,20 @@ export type Media = {
   dimension?: { width: number, height?: number }
 }
 
-/** fetches all the metadata of a post's media.
- * Any DASH manifests are downloaded and parsed.
- * @param post
- */
-export async function fetchMedia(post: Post): Promise<Media[]> {
-  const media: Media[] = [];
+export type MediaCollection = {
+  name: string,
+  media: Media[]
+}
+export type MediaCollectionQuery = {
+  name: string,
+  query: (fetch : Fetch) => Promise<Media[]>
+}
+
+export function getMediaCollection(post: Post): (MediaCollection | MediaCollectionQuery)[] {
+  if (post === undefined)
+    throw new Error('post is undefined');
+
+  const media: (MediaCollection | MediaCollectionQuery)[] = [];
 
   // Get media variants
   if (post.media_metadata) {
@@ -62,36 +70,76 @@ export async function fetchMedia(post: Post): Promise<Media[]> {
       // FIXME: Make the media variant collection contain the id
       const order: string[] = post.gallery_data.items.map((item: any) => item.media_id as string);
       const entries = gallery.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-      media.push(...entries);
+      media.push({ name: 'gallery', media: entries });
     } else {
-      media.push(...gallery);
+      media.push({ name: 'gallery', media: gallery });
     }
   }
 
+  // Secure Media
   if (post.secure_media && post.secure_media.reddit_video) {
-    const secureMedia = await fetchMediaFromRedditVideo(fetch, post.secure_media.reddit_video);
-    media.push(...secureMedia);
+    if (post.secure_media.reddit_video.fallback_url) {
+      media.push({
+        name: 'secure_video_fallback',
+        media: [{
+          id:        post.secure_media.reddit_video.fallback_url,
+          mime:      'video/mp4',
+          variant:   Variant.Video,
+          href:      post.secure_media.reddit_video.fallback_url,
+          dimension: post.secure_media.reddit_video.width ? {
+            width:  post.secure_media.reddit_video.width,
+            height: post.secure_media.reddit_video.height ?? undefined
+          } : undefined
+        }]
+      })
+    }
+    media.push({
+      name: 'secure_video',
+      query: (fetch) =>  fetchDashMediaFromRedditVideo(fetch, post.secure_media!.reddit_video!)
+    });
   }
 
+  // Preview Media
   if (post.preview) {
     if (post.preview.reddit_video_preview) {
-      const redditVideoPreview = await fetchMediaFromRedditVideo(fetch, post.preview.reddit_video_preview);
-      media.push(...redditVideoPreview);
+      if (post.preview.reddit_video_preview.fallback_url) {
+        media.push({
+          name: 'preview_video_fallback',
+          media: [{
+            id:        post.preview.reddit_video_preview.fallback_url,
+            mime:      'video/mp4',
+            variant:   Variant.Video,
+            href:      post.preview.reddit_video_preview.fallback_url,
+            dimension: post.preview.reddit_video_preview.width ? {
+              width:  post.preview.reddit_video_preview.width,
+              height: post.preview.reddit_video_preview.height ?? undefined
+            } : undefined
+          }]
+        })
+      }
+      media.push({
+        name: 'preview_video',
+        query: (fetch) => fetchDashMediaFromRedditVideo(fetch, post.preview!.reddit_video_preview!)
+      });
     }
 
     // TODO: Preview image collection
   }
 
+  // Thumbnail
   if (post.thumbnail) {
     media.push({
-      id:      post.id,
-      mime:    'image/jpeg',
-      variant: Variant.Thumbnail,
-      href:    post.thumbnail,
+      name: 'thumbnail',
+      media: [{
+        id:      post.id,
+        mime:    'image/jpeg',
+        variant: Variant.Thumbnail,
+        href:    post.thumbnail,
+      }]
     })
   }
 
-  // Parse the url_overriden_by_dest. This maybe a special case
+  // URL Override
   if ('url_overridden_by_dest' in post && typeof post.url_overridden_by_dest === 'string') {
     const overridden: string = post.url_overridden_by_dest;
     if (overridden.includes('.', overridden.lastIndexOf('/'))) {
@@ -108,7 +156,10 @@ export async function fetchMedia(post: Post): Promise<Media[]> {
         overriddenMedia.mime = 'video/mp4';
         overriddenMedia.variant = Variant.Video;
       }
-      media.push(overriddenMedia);
+      media.push({
+        name: 'overridden',
+        media: [overriddenMedia]
+      });
     }
   }
 
@@ -117,10 +168,30 @@ export async function fetchMedia(post: Post): Promise<Media[]> {
   return media;
 }
 
-export function sort(media : Media[], order: Variant[] = VariantOrder): Media[] {
+/** fetches all the metadata of a post's media.
+ * Any DASH manifests are downloaded and parsed.
+ * @param post
+ */
+export async function fetchMedia(fetch: Fetch, post: Post): Promise<Media[]> {
+  const media: Media[] = [];
+  const collections = getMediaCollection(post);
+
+  for (const collection of collections) {
+    if ('query' in collection) {
+      const collectionMedia = await collection.query(fetch);
+      media.push(...collectionMedia);
+    } else {
+      media.push(...collection.media);
+    }
+  }
+
+  return media;
+}
+
+export function sort(media: Media[], order: Variant[] = VariantOrder): Media[] {
   const sorted = order ?? VariantOrder;
 
-  return [...media].sort((a: Media, b: Media) => {
+  return [ ...media ].sort((a: Media, b: Media) => {
     const variantDiff = sorted.indexOf(a.variant) - sorted.indexOf(b.variant);
     if (variantDiff !== 0)
       return variantDiff;
@@ -210,7 +281,7 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
 }
 
 /** Downloads and parses the DASH manifest from the secure_media.reddit_video.dash_url. */
-async function fetchMediaFromRedditVideo(fetch: Fetch, redditVideo: Video): Promise<Media[]> {
+async function fetchDashMediaFromRedditVideo(fetch: Fetch, redditVideo: Video): Promise<Media[]> {
 
   if (!redditVideo.dash_url)
     throw new Error('SecureMedia does not contain a dash_url');
@@ -220,22 +291,7 @@ async function fetchMediaFromRedditVideo(fetch: Fetch, redditVideo: Video): Prom
   const url = new URL(response.url);
   const basePath = url.pathname.substring(0, url.pathname.lastIndexOf('/'));
   const baseUrl = `${url.origin}${basePath}`;
-
-  const media = parseMediaFromDash(dash, baseUrl);
-  if (redditVideo.fallback_url) {
-    media.push({
-      id:        redditVideo.fallback_url,
-      mime:      'video/mp4',
-      variant:   Variant.Video,
-      href:      redditVideo.fallback_url,
-      dimension: redditVideo.width ? {
-        width:  redditVideo.width,
-        height: redditVideo.height ?? undefined
-      } : undefined
-    })
-  }
-
-  return media;
+  return parseMediaFromDash(dash, baseUrl);
 }
 
 /** Parses the DASH manifest and returns the media sources. */

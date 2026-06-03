@@ -4,17 +4,17 @@
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import Badge from "$lib/components/Badge.svelte";
   import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
+  import { PostType } from "$lib/reddit/PostType";
 
   let { data }: { data: PageData } = $props();
-  let { post } = $derived(data);
-
+  let { post, type } = $derived(data);
 </script>
 
-<OpenGraph properties={getOpenGraphProperties(post, [])}/>
+<OpenGraph properties={getOpenGraphProperties(post)}/>
 
 <main class="max-w-225 mx-auto p-8">
     <div class="mb-8">
-        <SearchBar value={post.permalink} />
+        <SearchBar value={post.permalink}/>
     </div>
     <article class="border-2 border-gray-200 rounded-2xl p-8 bg-white">
         <header>
@@ -25,6 +25,22 @@
             </div>
 
             <h1 class="text-2xl font-bold my-3 leading-tight">{post.title}</h1>
+
+            <div class="flex flex-wrap my-3 gap-2 text-gray-500 text-sm">
+                <Badge theme="orange">{type}</Badge>
+                {#if post.over_18}
+                    <Badge theme="purple">NSFW</Badge>
+                {/if}
+                {#if post.spoiler}
+                    <Badge theme="gray">Spoiler</Badge>
+                {/if}
+                {#if post.is_gallery}
+                    <Badge theme="green">Gallery</Badge>
+                {/if}
+                {#if post.is_video}
+                    <Badge theme="blue">Video</Badge>
+                {/if}
+            </div>
 
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.score ?? 0} points</span>
@@ -37,21 +53,6 @@
                 {/if}
             </div>
 
-            <div class="flex flex-wrap mt-1 gap-2 text-gray-500 text-sm">
-
-                {#if post.over_18}
-                <Badge theme="purple">NSFW</Badge>
-                    {/if}
-                {#if post.spoiler}
-                    <Badge theme="gray">Spoiler</Badge>
-                {/if}
-                {#if post.is_gallery}
-                    <Badge theme="green">Gallery</Badge>
-                {/if}
-                {#if post.is_video}
-                    <Badge theme="blue">Video</Badge>
-                {/if}
-            </div>
         </header>
 
         {#if post.body}
@@ -65,8 +66,10 @@
         {/if}
 
         <div class="mt-6  rounded-lg overflow-hidden">
-            {#if post.url?.endsWith('.gif')}
+            {#if type === PostType.GIF}
                 <img class="w-full h-auto" src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
+            {:else if type === PostType.Image || type === PostType.Gallery}
+                <img class="w-full h-auto" src="/i/{post.permalink.substring(3)}" alt="{post.title}"/>
             {:else}
                 <video class="w-full h-auto" controls src="/v/{post.permalink.substring(3)}"></video>
             {/if}
@@ -82,7 +85,8 @@
 
         {#if post.permalink}
             <p>
-                <a href={post.permalink} target="_blank" rel="noreferrer" class="text-orange-600 hover:underline font-medium">
+                <a href={post.permalink} target="_blank" rel="noreferrer"
+                   class="text-orange-600 hover:underline font-medium">
                     Open on Reddit
                 </a>
             </p>

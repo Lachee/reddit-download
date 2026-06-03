@@ -57,7 +57,12 @@ export async function cacheSemaphore<TCacheData, TReturn>(key: string, cacheProm
   caches.set(key, entry);
 
   // call the function, returning the resolve functions
-  return await cachePromise(semaphoreResolve, semaphoreReject);
+  return await cachePromise(semaphoreResolve, semaphoreReject).catch(e => {
+    console.error('Error in cachePromise', e);
+    semaphoreReject();
+    caches.delete(key);
+    throw e;
+  })
 }
 
 

@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
 
   return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const media = await fetchMedia(post).then(sort)
+    const media = await fetchMedia(fetch, post).then(sort)
     const best = media[0];
 
     if (best.variant === Variant.PartialVideo) {
@@ -60,15 +60,24 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
 
     // Otherwise, use the best gif or whatever we have as a fallback
     const { href } = best;
-    const response = await fetch(href, { headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent } });
+    const response = await fetch(href, {
+      redirect: 'follow',
+      headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
+    });
+    const init = {
+      status:  200,
+      headers: {
+        "Content-Type":  response.headers.get('Content-Type') ?? 'image/mp4',
+        "Cache-Control": "public, max-age=3600",
+      }
+    }
     response.bytes().then(bytes => {
       store({
-        body:    bytes,
-        status:  response.status,
-        headers: response.headers,
+        body: bytes,
+        ...init
       });
     })
 
-    return response;
+    return new Response(response.body, init);
   })
 };

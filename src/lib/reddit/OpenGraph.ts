@@ -1,6 +1,6 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
 import type { OGPProperty } from "$lib/components/OpenGraph.svelte";
-import { type Media, sort, Variant } from "$lib/reddit/server/Media";
+import { getMediaCollection, type Media, sort, Variant } from "$lib/reddit/server/Media";
 import { page } from '$app/state';
 import { normalizePermalink } from "$lib/reddit/Utilities";
 
@@ -14,10 +14,10 @@ const VariantOrder = [
   Variant.PartialAudio,
 ];
 
-export function getOpenGraphProperties(post: Post, media: Media[]): OGPProperty[] {
+export function getOpenGraphProperties(post: Post): OGPProperty[] {
   const permalink = normalizePermalink(post.permalink);
   const properties: OGPProperty[] = [
-    { name: 'og:site_name', content: post.url + (media.length > 1 ? ` - gallery of ${media.length}` : '') },
+    { name: 'og:site_name', content: post.url ?? post.title},
     { name: 'og:title', content: post.title },
     { name: 'og:url', content: new URL(`/${permalink}`, page.url.origin).toString() },
     { name: 'twitter:site', content: '@reddit' },
@@ -25,9 +25,16 @@ export function getOpenGraphProperties(post: Post, media: Media[]): OGPProperty[
   ];
 
   const gifLink = new URL(`/g${permalink.substring(1)}`, page.url.origin).toString();
+  const imageLink = new URL(`/i${permalink.substring(1)}`, page.url.origin).toString();
   const videoLink = new URL(`/v${permalink.substring(1)}`, page.url.origin).toString();
+  const media = getMediaCollection(post)
+    .filter(collection => 'media' in collection)
+    .map(collection => collection.media)
+    .flat()
+
   for (const m of sort(media, VariantOrder)) {
     switch (m.variant) {
+      case Variant.Image:
       case Variant.GIF:
         properties.push({ name: 'og:type', content: 'website' });
         properties.push({ name: 'og:image', content: gifLink });
@@ -39,7 +46,7 @@ export function getOpenGraphProperties(post: Post, media: Media[]): OGPProperty[
         }
 
         properties.push({ name: 'twitter:card', content: 'summary_large_image' });
-        properties.push({ name: 'twitter:image:src', content: gifLink });
+        properties.push({ name: 'twitter:image:src', content: m.variant === Variant.Image ? imageLink : gifLink });
         break;
 
       case Variant.Video:
