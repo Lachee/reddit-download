@@ -44,9 +44,9 @@
         {/if}
 
         {#if post.url?.endsWith('.gif')}
-            <img src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
+            <img class="w-full h-auto rounded-lg" src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
         {:else}
-            <video controls src="/v/{post.permalink.substring(3)}"></video>
+            <video class="w-full h-auto rounded-lg" controls src="/v/{post.permalink.substring(3)}"></video>
         {/if}
 
         {#if post.url && !post.isSelf && !post.is_self}
@@ -83,10 +83,11 @@
     }
 
     .card {
-        border: 1px solid #ddd;
+        border: 1px solid #eee;
         border-radius: 12px;
         padding: 1.5rem;
         background: white;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     }
 
     .meta,
