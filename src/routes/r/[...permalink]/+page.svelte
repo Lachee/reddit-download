@@ -2,6 +2,7 @@
   import SearchBar from "$lib/components/SearchBar.svelte";
   import type { PageData } from './$types';
   import OpenGraph from "$lib/components/OpenGraph.svelte";
+  import Badge from "$lib/components/Badge.svelte";
   import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
 
   let { data }: { data: PageData } = $props();
@@ -11,21 +12,21 @@
 
 <OpenGraph properties={getOpenGraphProperties(post, [])}/>
 
-<main class="page">
+<main class="max-w-225 mx-auto p-8">
     <div class="mb-8">
         <SearchBar value={post.permalink} />
     </div>
-    <article class="card">
+    <article class="border-2 border-gray-200 rounded-2xl p-8 bg-white">
         <header>
-            <div class="meta">
+            <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.subredditName ?? `r/${post.subreddit}`}</span>
                 <span>•</span>
                 <span>u/{post.author}</span>
             </div>
 
-            <h1>{post.title}</h1>
+            <h1 class="text-2xl font-bold my-3 leading-tight">{post.title}</h1>
 
-            <div class="stats">
+            <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.score ?? 0} points</span>
                 <span>{post.comments ?? post.num_comments ?? 0} comments</span>
 
@@ -35,27 +36,45 @@
                     <span>{new Date(post.created_utc * 1000).toLocaleString()}</span>
                 {/if}
             </div>
+
+            <div class="flex flex-wrap mt-1 gap-2 text-gray-500 text-sm">
+
+                {#if post.over_18}
+                <Badge theme="purple">NSFW</Badge>
+                    {/if}
+                {#if post.spoiler}
+                    <Badge theme="gray">Spoiler</Badge>
+                {/if}
+                {#if post.is_gallery}
+                    <Badge theme="green">Gallery</Badge>
+                {/if}
+                {#if post.is_video}
+                    <Badge theme="blue">Video</Badge>
+                {/if}
+            </div>
         </header>
 
         {#if post.body}
-            <div class="body">
+            <div class="mt-6 whitespace-pre-wrap leading-relaxed">
                 {post.body}
             </div>
         {:else if post.selftext}
-            <div class="body">
+            <div class="mt-6 whitespace-pre-wrap leading-relaxed">
                 {post.selftext}
             </div>
         {/if}
 
-        {#if post.url?.endsWith('.gif')}
-            <img class="w-full h-auto rounded-lg" src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
-        {:else}
-            <video class="w-full h-auto rounded-lg" controls src="/v/{post.permalink.substring(3)}"></video>
-        {/if}
+        <div class="mt-6  rounded-lg overflow-hidden">
+            {#if post.url?.endsWith('.gif')}
+                <img class="w-full h-auto" src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
+            {:else}
+                <video class="w-full h-auto" controls src="/v/{post.permalink.substring(3)}"></video>
+            {/if}
+        </div>
 
         {#if post.url && !post.isSelf && !post.is_self}
             <p>
-                <a href={post.url} target="_blank" rel="noreferrer">
+                <a href={post.url} target="_blank" rel="noreferrer" class="text-orange-600 hover:underline font-medium">
                     Open linked content
                 </a>
             </p>
@@ -63,77 +82,10 @@
 
         {#if post.permalink}
             <p>
-                <a href={post.permalink} target="_blank" rel="noreferrer">
+                <a href={post.permalink} target="_blank" rel="noreferrer" class="text-orange-600 hover:underline font-medium">
                     Open on Reddit
                 </a>
             </p>
         {/if}
-
-        {#if post.isNsfw || post.over_18}
-            <p class="tag">NSFW</p>
-        {/if}
-
-        {#if post.isSpoiler || post.spoiler}
-            <p class="tag">Spoiler</p>
-        {/if}
     </article>
 </main>
-
-<style>
-    .page {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-
-    .card {
-        border: 1px solid #eee;
-        border-radius: 12px;
-        padding: 1.5rem;
-        background: white;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    }
-
-    .meta,
-    .stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        color: #666;
-        font-size: 0.9rem;
-    }
-
-    h1 {
-        margin: 0.75rem 0;
-        line-height: 1.2;
-    }
-
-    .body {
-        margin-top: 1.5rem;
-        white-space: pre-wrap;
-        line-height: 1.5;
-    }
-
-    a {
-        color: #0066cc;
-    }
-
-    .tag {
-        display: inline-block;
-        margin-right: 0.5rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 999px;
-        background: #eee;
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
-
-    .error {
-        border-color: #d33;
-    }
-
-    pre {
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-    }
-</style>

@@ -19,7 +19,7 @@
     }
 </script>
 
-<form onsubmit={handleSubmit} class="relative w-full max-w-2xl mx-auto group">
+<form onsubmit={handleSubmit} class="relative w-full max-w-225 mx-auto group">
     <input
         type="text"
         bind:value={url}
