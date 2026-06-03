@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-
+    import LoadingBar from "$lib/components/LoadingBar.svelte";
 	let { children } = $props();
 </script>
 
@@ -9,10 +9,12 @@
     <link rel="icon" href={favicon} />
 </svelte:head>
 
+<LoadingBar />
+
 <div class="min-h-screen bg-gray-50 flex flex-col">
     <header class="p-6">
         <nav class="max-w-7xl mx-auto flex justify-between items-center">
-            <a href="/" class="text-2xl font-black text-gray-900 flex items-center gap-2">
+            <a href="/" class="text-2xl font-black text-gray-900 flex items-center gap-2" data-sveltekit-reload>
                 <span class="bg-orange-600 text-white p-1 rounded">dl</span>
                 <span>Reddit</span>
             </a>

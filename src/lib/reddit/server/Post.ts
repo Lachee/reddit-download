@@ -52,9 +52,12 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
     }
   })
 
+  console.log('Response status:', response.status);
   if (response.status !== 200)
     throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
 
+  const json = await response.json();
+  console.log('Response JSON:', json);
 
-  return await response.json().then(postResponseSchema.parse);
+  return postResponseSchema.parse(json);
 }

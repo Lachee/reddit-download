@@ -1,16 +1,20 @@
 <script lang="ts">
+  import SearchBar from "$lib/components/SearchBar.svelte";
   import type { PageData } from './$types';
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
 
   let { data }: { data: PageData } = $props();
-  let { post, media } = $derived(data);
+  let { post } = $derived(data);
 
 </script>
 
-<OpenGraph properties={getOpenGraphProperties(post, media)}/>
+<OpenGraph properties={getOpenGraphProperties(post, [])}/>
 
 <main class="page">
+    <div class="mb-8">
+        <SearchBar value={post.permalink} />
+    </div>
     <article class="card">
         <header>
             <div class="meta">

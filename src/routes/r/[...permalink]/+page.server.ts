@@ -6,9 +6,7 @@ import { normalizePermalink } from "$lib/reddit/Utilities";
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
   const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-  const media = await fetchMedia(post).then(sort)
   return {
-    post,
-    media
+    post
   };
 };
