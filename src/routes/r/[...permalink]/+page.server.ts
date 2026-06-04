@@ -9,7 +9,6 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
   const collections = getMediaCollection(post);
   const type = getPostType(post, collections);
 
-  console.log('Post', { post, type, collections })
   return {
     post,
     type,

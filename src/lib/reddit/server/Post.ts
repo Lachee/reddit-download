@@ -23,8 +23,6 @@ export const postResponseSchema = z.array(listingSchema)
 
 export async function fetchPost(fetch: typeof window.fetch, path: string) : Promise<Post> {
   const { access_token } = await authenticate(fetch);
-
-  console.log('Looking up post ', path);
   const { pathname } = await follow(fetch, path);
   const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
 
@@ -38,7 +36,6 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
     }
   })
 
-  console.log('Response status:', response.status);
   if (response.status !== 200)
     throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
 

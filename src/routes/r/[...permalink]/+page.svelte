@@ -4,10 +4,10 @@
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import Badge from "$lib/components/Badge.svelte";
   import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
-  import { PostType } from "$lib/reddit/PostType";
+  import PostMediaPreview from "$lib/components/PostMediaPreview.svelte";
 
   let { data }: { data: PageData } = $props();
-  let { post, type } = $derived(data);
+  let { post, type, collections } = $derived(data);
 </script>
 
 <OpenGraph properties={getOpenGraphProperties(post)}/>
@@ -37,9 +37,6 @@
                 {#if post.is_gallery}
                     <Badge theme="green">Gallery</Badge>
                 {/if}
-                {#if post.is_video}
-                    <Badge theme="blue">Video</Badge>
-                {/if}
             </div>
 
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
@@ -65,14 +62,8 @@
             </div>
         {/if}
 
-        <div class="mt-6  rounded-lg overflow-hidden">
-            {#if type === PostType.GIF}
-                <img class="w-full h-auto" src="/g/{post.permalink.substring(3)}" alt="{post.title}"/>
-            {:else if type === PostType.Image || type === PostType.Gallery}
-                <img class="w-full h-auto" src="/i/{post.permalink.substring(3)}" alt="{post.title}"/>
-            {:else}
-                <video class="w-full h-auto" controls src="/v/{post.permalink.substring(3)}"></video>
-            {/if}
+        <div class="mt-6">
+            <PostMediaPreview post={post} collections={collections}/>
         </div>
 
         {#if post.url && !post.isSelf && !post.is_self}
