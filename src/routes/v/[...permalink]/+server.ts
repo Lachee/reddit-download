@@ -40,13 +40,13 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
         });
 
         const headers = {
-          "Content-Type":        "video.mp4",
+          "Content-Type": "video.mp4",
           "Content-Disposition": `inline; filename="video.mp4"`,
-          "Cache-Control":       "public, max-age=3600",
+          "Cache-Control": "public, max-age=3600",
         };
 
         const body = createReadableStream(stream, ffmpeg, (bytes) => store({
-          body:   bytes,
+          body: bytes,
           status: 200,
           headers,
         }), abort);
@@ -65,19 +65,20 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
       headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
     const init = {
-      status:  200,
+      status: 200,
       headers: {
-        "Content-Type":  response.headers.get('Content-Type') ?? 'image/mp4',
+        "Content-Type": response.headers.get('Content-Type') ?? 'image/mp4',
         "Cache-Control": "public, max-age=3600",
       }
     }
-    response.bytes().then(bytes => {
-      store({
-        body: bytes,
-        ...init
-      });
-    })
 
-    return new Response(response.body, init);
+    // It's unclear if we actually need to cache this or if we can just store zero bytes, forcing new requests.
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    store({
+      body: bytes,
+      ...init
+    });
+
+    return new Response(bytes, init);
   })
 };

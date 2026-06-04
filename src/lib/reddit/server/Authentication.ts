@@ -1,4 +1,4 @@
-import { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 const USER_AGENT = 'node:com.lachee.redditclient:v0.1.0 (by /u/Lachee)'
 
@@ -12,14 +12,14 @@ type RedditAuthToken = {
 }
 
 let auth: RedditAuthToken | undefined;
-let pending : Promise<RedditAuthToken> | undefined;
+let pending: Promise<RedditAuthToken> | undefined;
 
-function isValidAuth() :boolean {
+function isValidAuth(): boolean {
   // Refresh 60 seconds early so you do not race the expiry.
   return auth !== undefined && auth.expires_at > Date.now() + 60_000;
 }
 
-export async function authenticate(fetch: typeof window.fetch) : Promise<RedditAuthToken> {
+export async function authenticate(fetch: typeof window.fetch): Promise<RedditAuthToken> {
   if (isValidAuth())
     return auth!;
 
@@ -29,7 +29,16 @@ export async function authenticate(fetch: typeof window.fetch) : Promise<RedditA
   return pending = requestAuthentication(fetch).finally(() => pending = undefined);
 }
 
-async function requestAuthentication(fetch: typeof window.fetch) : Promise<RedditAuthToken> {
+async function requestAuthentication(fetch: typeof window.fetch): Promise<RedditAuthToken> {
+  const REDDIT_CLIENT_ID = env.REDDIT_CLIENT_ID;
+  const REDDIT_CLIENT_SECRET = env.REDDIT_CLIENT_SECRET;
+  const REDDIT_USERNAME = env.REDDIT_USERNAME;
+  const REDDIT_PASSWORD = env.REDDIT_PASSWORD;
+
+  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET || !REDDIT_USERNAME || !REDDIT_PASSWORD) {
+    throw new Error('Missing Reddit credentials. Set REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, and REDDIT_PASSWORD.');
+  }
+
   console.log('Authenticating with Reddit as ', REDDIT_USERNAME);
 
   const form = new FormData();
@@ -39,10 +48,10 @@ async function requestAuthentication(fetch: typeof window.fetch) : Promise<Reddi
 
   const basicAuth = btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`);
   const response = await fetch('https://www.reddit.com/api/v1/access_token', {
-    method:  'POST',
-    body:    form,
+    method: 'POST',
+    body: form,
     headers: {
-      'User-Agent':    USER_AGENT,
+      'User-Agent': USER_AGENT,
       'Authorization': `Basic ${basicAuth}`,
     },
   });
@@ -58,10 +67,10 @@ async function requestAuthentication(fetch: typeof window.fetch) : Promise<Reddi
 
   return auth = {
     access_token: data.access_token,
-    scope:        data.scope,
-    token_type:   data.token_type,
-    expires_in:   data.expires_in,
-    expires_at:   Date.now() + (data.expires_in * 1000),
+    scope: data.scope,
+    token_type: data.token_type,
+    expires_in: data.expires_in,
+    expires_at: Date.now() + (data.expires_in * 1000),
     get authorization(): string {
       return `${data.token_type} ${data.access_token}`
     }
