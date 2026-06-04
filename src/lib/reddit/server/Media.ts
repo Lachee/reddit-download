@@ -1,7 +1,7 @@
 import { type Post } from "$lib/reddit/schema/postSchema";
 import { type MediaMetadataItem } from "$lib/reddit/schema/mediaMetadataItemSchema";
 import { XMLParser } from 'fast-xml-parser';
-import MpdDocumentSchema, { type MpdDocument, type MpdPeriod } from "$lib/reddit/schema/mpd";
+import MpdDocumentSchema, { type MpdDocument, type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
 import type { Video } from "$lib/reddit/schema/videoSchema";
 
 type Fetch = typeof window.fetch;

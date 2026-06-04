@@ -3,6 +3,7 @@ import previewImageSchema from "$lib/reddit/schema/previewImageSchema";
 import mediaMetadataItemSchema from "$lib/reddit/schema/mediaMetadataItemSchema";
 import secureMediaSchema from "$lib/reddit/schema/secureMediaSchema";
 import videoSchema from "$lib/reddit/schema/videoSchema";
+import galleryDataSchema from "$lib/reddit/schema/galleryDataSchema";
 
 const postSchema =  z.object({
   id: z.string(),
@@ -52,12 +53,7 @@ const postSchema =  z.object({
   secure_media: secureMediaSchema.nullable().optional(),
   media_metadata: z.record(z.string(), mediaMetadataItemSchema).optional(),
 
-  gallery_data: z.object({
-    items: z.array(z.object({
-      media_id: z.string(),
-      id: z.number().optional(),
-    }).loose()),
-  }).loose().optional(),
+  gallery_data: galleryDataSchema.optional(),
 
   crosspost_parent: z.string().optional(),
   crosspost_parent_list: z.array(z.unknown()).optional(),

@@ -7,8 +7,12 @@ import { getPostType, PostType } from "$lib/reddit/PostType";
 export const load: PageServerLoad = async ({ params, fetch }) => {
   const post = await fetchPost(fetch, normalizePermalink(params.permalink));
   const collections = getMediaCollection(post);
+  const type = getPostType(post, collections);
+
+  console.log('Post', { post, type, collections })
   return {
     post,
-    type: getPostType(post, collections),
+    type,
+    collections: collections.filter(c => 'media' in c),
   };
 };

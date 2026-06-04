@@ -19,34 +19,20 @@ const listingSchema = z.object({
   }).loose(),
 }).loose();
 
-export const postResponseSchema = z
-  .array(listingSchema)
-  .min(1)
-  .transform((listings) => {
-    const firstListing = listings[0];
-    const firstChild = firstListing.data.children[0];
-    if (!firstChild || firstChild.kind !== 't3') {
-      throw new Error('Reddit response did not contain a post as the first child');
-    }
-
-    return postSchema.parse({
-      kind: firstChild.kind,
-      ...(firstChild.data as object),
-    });
-  });
+export const postResponseSchema = z.array(listingSchema)
 
 export async function fetchPost(fetch: typeof window.fetch, path: string) : Promise<Post> {
   const { access_token } = await authenticate(fetch);
 
   console.log('Looking up post ', path);
-  const {  pathname  } = await follow(fetch, path);
-  const url = new URL(`${pathname}.json?raw_json=1`,'https://oauth.reddit.com');
+  const { pathname } = await follow(fetch, path);
+  const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
 
   console.log('Fetching post from:', url.toString());
-  const response = await fetch(url, {
-    method:  'GET',
-    redirect: 'error',
-    headers: {
+  const response = await fetch(url.toString(), {
+    method:   'GET',
+    redirect: 'follow',
+    headers:  {
       'User-Agent':    USER_AGENT,
       'Authorization': `Bearer ${access_token}`
     }
@@ -56,5 +42,29 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
   if (response.status !== 200)
     throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
 
-  return await response.json().then(postResponseSchema.parse);
+  // Reddit for some reason breaks the node Response.json().
+  const json = await response.text().then(JSON.parse);
+  const validation = postResponseSchema.safeParse(json);
+  if (!validation.success) {
+    console.error('Failed to parse post response:', validation.error.message, json);
+    throw new Error('Failed to parse post response: ' + validation.error.message);
+  }
+
+  // Find the first listing child that is a post
+  let post: Post | undefined;
+  for(const listing of validation.data) {
+    for (const child of listing.data.children) {
+      if (child.kind === 't3') {
+        post = child.data as Post;
+        break;
+      }
+    }
+  }
+
+
+  if (post === undefined)
+    throw new Error('Failed to find post in response');
+
+  postSchema.parse(post);
+  return post;
 }
