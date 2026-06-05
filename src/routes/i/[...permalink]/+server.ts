@@ -1,13 +1,15 @@
-import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchPost } from "$lib/reddit/server/Post";
-import type { Post } from "$lib/reddit/schema/postSchema";
-import { fetchMedia, type Media, sort, Variant } from "$lib/reddit/server/Media";
-import { authenticate } from "$lib/reddit/server/Authentication";
-import { type ConvertOptions, convertStream } from "$lib/server/ffmpeg/Gif";
+import {
+  getMediaCollection,
+  type Media,
+  type QueryableMediaCollection,
+  queryMediaCollection,
+  sort, type Variant,
+  VariantType
+} from "$lib/reddit/server/Media";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { getCache, cacheSemaphore, keyName } from "$lib/cache/MemoryCache";
-import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
@@ -17,9 +19,23 @@ type CachedResponse = {
   headers: HeadersInit,
 }
 
+function findBestMedia(collection : Media[]) : Media {
+  let bestMedia : Media = collection[0];
+  let bestVariant : Variant = bestMedia.variants[0];
+  for (const media of collection) {
+    const variant = media.variants.find(v => v.type === VariantType.Image);
+    if (variant && variant.dimension && bestVariant.dimension && variant.dimension.width > bestVariant.dimension.width) {
+      bestMedia = media;
+      bestVariant = variant;
+    }
+  }
+  return bestMedia;
+}
+
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
   // Return the cached response if it exists / is currently being processed
-  const key = keyName('GET', url.pathname);
+  const mediaId = url.searchParams.get('media');
+  const key = keyName('GET', url.pathname, mediaId ?? '');
   const cached = await getCache<CachedResponse>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
@@ -28,14 +44,19 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
   // We do not have a cache, so lets stream a response and store the result at the end
   return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const media = await fetchMedia(fetch, post).then(sort)
+    const collection = getMediaCollection(post).filter(col => 'variants' in col);
+
+    const media = mediaId
+                 ? collection.find(col => col.id === mediaId)
+                 : findBestMedia(collection);
+
+    if (media === undefined)
+      throw new Error('No media found');
 
     // Find the best available image and video
     // We will determine if we should convert the video to a image by checking if the video is wider than the image.
-    const best = media.find(m => m.variant === Variant.Image);
-
-    // Otherwise, use the best image or whatever we have as a fallback
-    const { href } = best ?? media[0];
+    const best = media.variants.find(m => m.type === VariantType.Image);
+    const { href } = best ?? media.variants[0];
     const response = await fetch(href, {
       redirect: 'follow',
       headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }

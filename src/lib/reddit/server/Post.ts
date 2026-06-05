@@ -40,7 +40,8 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
     throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
 
   // Reddit for some reason breaks the node Response.json().
-  const json = await response.text().then(JSON.parse);
+  const text = await response.text();
+  const json = JSON.parse(text);
   const validation = postResponseSchema.safeParse(json);
   if (!validation.success) {
     console.error('Failed to parse post response:', validation.error.message, json);

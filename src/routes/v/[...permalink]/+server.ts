@@ -1,11 +1,15 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchPost } from "$lib/reddit/server/Post";
-import type { Post } from "$lib/reddit/schema/postSchema";
-import { fetchMedia, type Media, sort, Variant } from "$lib/reddit/server/Media";
-import { authenticate } from "$lib/reddit/server/Authentication";
+import {
+  queryMediaCollection,
+  type Variant,
+  sort,
+  VariantType,
+  getMediaCollection,
+  type Media
+} from "$lib/reddit/server/Media";
 import { combineStream } from "$lib/server/ffmpeg/Combine";
-import { Readable } from "node:stream";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { cacheSemaphore, getCache, keyName } from "$lib/cache/MemoryCache";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
@@ -18,8 +22,21 @@ type CachedResponse = {
   headers: HeadersInit,
 }
 
+function findBestVariant(variants: Variant[]): Variant {
+  let bestVariant: Variant = variants[0];
+  for (const variant of variants) {
+    if (variant.type === VariantType.PartialVideo && bestVariant.type != VariantType.PartialVideo)
+      bestVariant = variant;
+
+    if (variant.dimension && (!bestVariant.dimension || bestVariant.dimension.width < variant.dimension.width))
+      bestVariant = variant;
+  }
+  return bestVariant;
+}
+
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
-  const key = keyName('GET', url.pathname);
+  const mediaId = url.searchParams.get('media');
+  const key = keyName('GET', url.pathname, mediaId ?? '');
   const cached = await getCache<Response>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
@@ -27,12 +44,18 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
 
   return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const media = await fetchMedia(fetch, post).then(sort)
-    const best = media[0];
+    const collection = await queryMediaCollection(fetch, getMediaCollection(post))
+    const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
+      .filter(
+        v => v.type === VariantType.Video
+          || v.type === VariantType.PartialVideo
+          || v.type === VariantType.PartialAudio
+      );
 
-    if (best.variant === Variant.PartialVideo) {
+    const best = findBestVariant(variants);
+    if (best.type === VariantType.PartialVideo) {
       const video = best;
-      const audio = media.find(m => m.variant === Variant.PartialAudio);
+      const audio = variants.find(m => m.type === VariantType.PartialAudio);
       if (audio) {
         const { stream, ffmpeg } = combineStream({
           videoPath: video.href,
@@ -40,13 +63,13 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
         });
 
         const headers = {
-          "Content-Type": "video.mp4",
+          "Content-Type":        "video.mp4",
           "Content-Disposition": `inline; filename="video.mp4"`,
-          "Cache-Control": "public, max-age=3600",
+          "Cache-Control":       "public, max-age=3600",
         };
 
         const body = createReadableStream(stream, ffmpeg, (bytes) => store({
-          body: bytes,
+          body:   bytes,
           status: 200,
           headers,
         }), abort);
@@ -62,12 +85,12 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
     const { href } = best;
     const response = await fetch(href, {
       redirect: 'follow',
-      headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
+      headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
     const init = {
-      status: 200,
+      status:  200,
       headers: {
-        "Content-Type": response.headers.get('Content-Type') ?? 'image/mp4',
+        "Content-Type":  response.headers.get('Content-Type') ?? 'image/mp4',
         "Cache-Control": "public, max-age=3600",
       }
     }

@@ -1,14 +1,11 @@
-import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchPost } from "$lib/reddit/server/Post";
-import type { Post } from "$lib/reddit/schema/postSchema";
-import { fetchMedia, type Media, sort, Variant } from "$lib/reddit/server/Media";
-import { authenticate } from "$lib/reddit/server/Authentication";
+import { getMediaCollection, queryMediaCollection, sort, type Variant, VariantType } from "$lib/reddit/server/Media";
 import { type ConvertOptions, convertStream } from "$lib/server/ffmpeg/Gif";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { getCache, cacheSemaphore, keyName } from "$lib/cache/MemoryCache";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
-import {probeDuration} from "$lib/server/ffmpeg/Probe";
+import { probeDuration } from "$lib/server/ffmpeg/Probe";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 const LongestVideoDuration = 15;
@@ -19,9 +16,22 @@ type CachedResponse = {
   headers: HeadersInit,
 }
 
+function findBestVariant(variants: Variant[]): Variant {
+  let bestVariant: Variant = variants[0];
+  for (const variant of variants) {
+    if (variant.type === VariantType.PartialVideo && bestVariant.type != VariantType.PartialVideo)
+      bestVariant = variant;
+
+    if (variant.dimension && (!bestVariant.dimension || bestVariant.dimension.width < variant.dimension.width))
+      bestVariant = variant;
+  }
+  return bestVariant;
+}
+
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
   // Return the cached response if it exists / is currently being processed
-  const key = keyName('GET', url.pathname);
+  const mediaId = url.searchParams.get('media');
+  const key = keyName('GET', url.pathname, mediaId ?? '');
   const cached = await getCache<CachedResponse>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
@@ -30,17 +40,18 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
   // We do not have a cache, so lets stream a response and store the result at the end
   return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const media = await fetchMedia(fetch, post).then(sort)
-    const responseHeaders : Record<string, string> = {
-      "Content-Type": "image/gif",
+    const collection = await queryMediaCollection(fetch, getMediaCollection(post))
+    const responseHeaders: Record<string, string> = {
+      "Content-Type":        "image/gif",
       "Content-Disposition": `inline; filename="animated.gif"`,
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control":       "public, max-age=3600",
     };
 
     // Find the best available gif and video
     // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
-    const gif = media.find(m => m.variant === Variant.GIF);
-    const video = media.find(m => m.variant === Variant.Video || m.variant === Variant.PartialVideo);
+    const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
+    const gif = findBestVariant(variants.filter(m => m.type === VariantType.GIF));
+    const video = findBestVariant(variants.filter(m => m.type === VariantType.Video || m.type === VariantType.PartialVideo));
     const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
 
     if (shouldConvert && video) {
@@ -56,8 +67,8 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
         const scale = video.dimension?.height || video.dimension?.width || 480;
         const opts: ConvertOptions = {
           videoPath: video.href,
-          fps: scale > 360 ? 10 : 20,
-          scale: scale,
+          fps:       scale > 360 ? 10 : 20,
+          scale:     scale,
         };
         opts.fps = 10;
 
@@ -66,15 +77,15 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
         responseHeaders['X-Converted-FPS'] = `${opts.fps}fps`;
 
         console.log('The best is a video, converting to a gif...', opts);
-        const {stream, ffmpeg} = convertStream(opts);
+        const { stream, ffmpeg } = convertStream(opts);
         const body = createReadableStream(stream, ffmpeg, (bytes) => store({
-          body: bytes,
-          status: 200,
+          body:    bytes,
+          status:  200,
           headers: responseHeaders,
         }), abort);
 
         return new Response(body, {
-          status: 200,
+          status:  200,
           headers: responseHeaders,
         });
       } else {
@@ -84,11 +95,11 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
     }
 
     // Otherwise, use the best gif or whatever we have as a fallback
-    const { href } = gif ?? media[0];
+    const { href } = gif ?? variants[0];
     console.log("Fetching media from", href)
     const response = await fetch(href, {
       redirect: 'follow',
-      headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
+      headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
 
     responseHeaders['Content-Type'] = response.headers.get('Content-Type') ?? 'image/gif';

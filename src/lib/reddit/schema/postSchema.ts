@@ -41,6 +41,8 @@ const postSchema =  z.object({
   is_video: z.boolean().optional(),
 
   thumbnail: z.string().optional(),
+  thumbnail_width: z.number().optional(),
+  thumbnail_height: z.number().optional(),
   post_hint: z.string().optional(),
 
   preview: z.object({

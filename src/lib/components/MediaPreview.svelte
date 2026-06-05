@@ -1,34 +1,32 @@
 <script lang="ts">
   import type { Post } from "$lib/reddit/schema/postSchema";
-  import type { MediaCollection } from "$lib/reddit/server/Media";
-  import { getPostType, PostType } from "$lib/reddit/PostType";
+  import { type Media, type Variant, VariantType, sort as sortVariants } from "$lib/reddit/server/Media";
 
   let {
         post,
-        collections
+        media
       }: {
-    post: Post,
-    collections: MediaCollection[]
+    post: Pick<Post, 'title' | 'permalink'>,
+    media: Media
   } = $props();
 
   let loading = $state(true);
-  let type = $derived(getPostType(post, collections));
+  let variant = $derived(sortVariants(media.variants)[0]);
+  let type = $derived(variant.type);
 
-  let mediaElement: HTMLImageElement | HTMLVideoElement | undefined = $state();
+  let mediaElement: HTMLImageElement | HTMLVideoElement | HTMLAudioElement | undefined = $state();
 
-  const baselineMedia = $derived(
-    collections
-      .flatMap(c => c.variants)
-      .find(m => m.dimension?.width)
-  );
+  /** The first variant with a defined dimension, used as baseline for sizing. */
+  const baselineDimensionalVariant = $derived(variant.dimension ? variant : media.variants.find(m => m.dimension?.width));
 
-  let width = $derived(baselineMedia?.dimension?.width ?? 480);
-  let height = $derived(baselineMedia?.dimension?.height ?? width / (16 / 9));
+  let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
+  let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
 
   const isGifVideo = $derived(
-    post.secure_media?.reddit_video?.is_gif ||
-    post.preview?.reddit_video_preview?.is_gif ||
-    post.url?.endsWith('.gifv')
+    false
+    // post.secure_media?.reddit_video?.is_gif ||
+    // post.preview?.reddit_video_preview?.is_gif ||
+    // post.url?.endsWith('.gifv')
   );
 
   function onLoaded() {
@@ -37,23 +35,24 @@
 
   $effect(() => {
     // Reset loading state when post changes
+    void media;
     void post;
     loading = true;
 
     // We will check if the image is loaded already.
     // Fallback timer to hide loading if it gets stuck
     const timer = setTimeout(() => {
-        loading = false;
+      loading = false;
     }, 2000);
 
     Promise.resolve().then(() => {
-        if (mediaElement) {
-            if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
-                onLoaded();
-            } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
-                onLoaded();
-            }
+      if (mediaElement) {
+        if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
+          onLoaded();
+        } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
+          onLoaded();
         }
+      }
     });
 
     return () => clearTimeout(timer);
@@ -125,16 +124,15 @@
 
 <div
         class="rounded-lg overflow-hidden relative h-full m-auto"
-        style="max-height: {Math.min(height, 500)}px;  aspect-ratio: {width} / {height};"
+        style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
 >
     <div class="bubble-gradient" class:loaded={!loading}></div>
 
     <div class="w-full h-full">
-        {#if type === PostType.GIF}
-            <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}" alt="{post.title}" onload={onLoaded}/>
-        {:else if type === PostType.Image || type === PostType.Gallery}
-            <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}" alt="{post.title}" onload={onLoaded}/>
-        {:else}
+        {#if type === VariantType.GIF}
+            <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}?media={media.id}"
+                 alt="Cannot Load: {media.id}" onload={onLoaded}/>
+        {:else if type ===  VariantType.Video || type === VariantType.PartialVideo}
             <video bind:this={mediaElement}
                    class="w-full h-full"
                    controls={!isGifVideo}
@@ -142,8 +140,14 @@
                    muted={isGifVideo}
                    loop={isGifVideo}
                    playsinline
-                   src="/v/{post.permalink.substring(3)}"
+                   src="/v/{post.permalink.substring(3)}?media={media.id}"
                    oncanplay={onLoaded}></video>
+        {:else if type === VariantType.PartialAudio}
+            <span>Audio is not fully supported</span>
+            <audio bind:this={mediaElement} src={variant.href} controls oncanplay={onLoaded} />
+        {:else}
+            <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}?media={media.id}"
+                 alt="Cannot Load: {media.id}" onload={onLoaded}/>
         {/if}
     </div>
 </div>

@@ -1,18 +1,9 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
 import type { OGPProperty } from "$lib/components/OpenGraph.svelte";
-import { getMediaCollection, type Media, sort, Variant } from "$lib/reddit/server/Media";
+import { getMediaCollection, type Variant, sort, VariantType, VariantOrder } from "$lib/reddit/server/Media";
 import { page } from '$app/state';
 import { normalizePermalink } from "$lib/reddit/Utilities";
 
-const VariantOrder = [
-  Variant.GIF,
-  Variant.Video,
-  Variant.PartialVideo,
-  Variant.Image,
-  Variant.Thumbnail,
-  Variant.Blur,
-  Variant.PartialAudio,
-];
 
 export function getOpenGraphProperties(post: Post): OGPProperty[] {
   const permalink = normalizePermalink(post.permalink);
@@ -33,9 +24,9 @@ export function getOpenGraphProperties(post: Post): OGPProperty[] {
     .flat()
 
   for (const m of sort(media, VariantOrder)) {
-    switch (m.variant) {
-      case Variant.Image:
-      case Variant.GIF:
+    switch (m.type) {
+      case VariantType.Image:
+      case VariantType.GIF:
         properties.push({ name: 'og:type', content: 'website' });
         properties.push({ name: 'og:image', content: gifLink });
         properties.push({ name: 'og:image:type', content: m.mime });
@@ -46,11 +37,11 @@ export function getOpenGraphProperties(post: Post): OGPProperty[] {
         }
 
         properties.push({ name: 'twitter:card', content: 'summary_large_image' });
-        properties.push({ name: 'twitter:image:src', content: m.variant === Variant.Image ? imageLink : gifLink });
+        properties.push({ name: 'twitter:image:src', content: m.type === VariantType.Image ? imageLink : gifLink });
         break;
 
-      case Variant.Video:
-      case Variant.PartialVideo:
+      case VariantType.Video:
+      case VariantType.PartialVideo:
         properties.push({ name: 'og:type', content: 'video.other' });
         properties.push({ name: 'twitter:player', content: videoLink });
         properties.push({ name: 'og:video', content: videoLink });

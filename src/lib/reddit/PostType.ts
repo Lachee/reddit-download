@@ -1,5 +1,5 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
-import { type MediaCollection, type MediaCollectionQuery, Variant } from "$lib/reddit/server/Media";
+import { type Media, type QueryableMedia, VariantType } from "$lib/reddit/server/Media";
 
 export enum PostType {
   Video = 'video',
@@ -10,10 +10,10 @@ export enum PostType {
 }
 
 
-export function getPostType(post : Post, collections : (MediaCollection | MediaCollectionQuery)[]) : PostType {
+export function getPostType(post : Post, collections : (Media | QueryableMedia)[]) : PostType {
   let type = PostType.Text;
   if (collections.some(c => c.type === 'secure_video' || c.type === 'preview_video')
-    || collections.some(c => 'media' in c && c.variants.some(m => m.variant === Variant.Video))) {
+    || collections.some(c => 'variants' in c && c.variants.some(m => m.type === VariantType.Video))) {
     type = PostType.Video;
   } else if (post.gallery_data || (post.media_metadata && Object.keys(post.media_metadata).length > 1)) {
     type = PostType.Gallery;
