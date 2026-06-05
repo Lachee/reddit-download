@@ -1,12 +1,16 @@
 <script lang="ts">
-	import './layout.css';
-	// import favicon from '$lib/assets/favicon.svg';
+    import { pwaInfo } from "virtual:pwa-info";
+    import "./layout.css";
     import LoadingBar from "$lib/components/LoadingBar.svelte";
-	let { children } = $props();
+    let { children } = $props();
+
+    let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
 </script>
 
 <svelte:head>
-    <link rel="icon" href="/favicon.png"/>
+    {@html webManifestLink}
+    <meta name="theme-color" content="#FF5700" />
+    <link rel="icon" href="/favicon.png" />
 </svelte:head>
 
 <LoadingBar />

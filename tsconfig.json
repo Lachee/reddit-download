@@ -11,6 +11,9 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-		"types": []
+		"types": [
+			"vite-plugin-pwa/svelte",
+			"vite-plugin-pwa/info"
+		]
 	}
 }
