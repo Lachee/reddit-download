@@ -18,7 +18,7 @@
 
   const baselineMedia = $derived(
     collections
-      .flatMap(c => c.media)
+      .flatMap(c => c.variants)
       .find(m => m.dimension?.width)
   );
 

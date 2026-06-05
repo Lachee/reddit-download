@@ -44,15 +44,18 @@ export type Media = {
   mime: Mime
   variant: Variant
   href: string
-  dimension?: { width: number, height?: number }
+  dimension?: { width: number, height: number }
 }
 
+/** All variants of a single piece of media */
 export type MediaCollection = {
-  name: string,
-  media: Media[]
+  id: string,
+  type: string,
+  variants: Media[]
 }
-export type MediaCollectionQuery = {
-  name: string,
+
+/** All variants of a single piece of media that isn't yet resolved */
+export type MediaCollectionQuery = Omit<MediaCollection, 'variants'> & {
   query: (fetch : Fetch) => Promise<Media[]>
 }
 
@@ -64,15 +67,13 @@ export function getMediaCollection(post: Post): (MediaCollection | MediaCollecti
 
   // Get media variants
   if (post.media_metadata) {
-    const gallery = getMediaFromMetadata(post.media_metadata);
+    const galleryCollections = getAllMediaCollectionsFromMetadata(post.media_metadata);
     if (post.gallery_data && post.gallery_data.items) {
-      // Sort the galleries by the order of the items in the gallery_data
-      // FIXME: Make the media variant collection contain the id
-      const order: string[] = post.gallery_data.items.map((item: any) => item.media_id as string);
-      const entries = gallery.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-      media.push({ name: 'gallery', media: entries });
+      // TODO: Sort
+      media.push(...galleryCollections)
     } else {
-      media.push({ name: 'gallery', media: gallery });
+      // We have no way to sort this so just slap it in.
+      media.push(...galleryCollections)
     }
   }
 
@@ -80,21 +81,23 @@ export function getMediaCollection(post: Post): (MediaCollection | MediaCollecti
   if (post.secure_media && post.secure_media.reddit_video) {
     if (post.secure_media.reddit_video.fallback_url) {
       media.push({
-        name: 'secure_video_fallback',
-        media: [{
+        id: post.secure_media.reddit_video.fallback_url,
+        type: 'secure_video.fallback',
+        variants: [{
           id:        post.secure_media.reddit_video.fallback_url,
           mime:      'video/mp4',
           variant:   Variant.Video,
           href:      post.secure_media.reddit_video.fallback_url,
-          dimension: post.secure_media.reddit_video.width ? {
-            width:  post.secure_media.reddit_video.width,
-            height: post.secure_media.reddit_video.height ?? undefined
+          dimension: post.secure_media.reddit_video.width || post.secure_media.reddit_video.height ? {
+            width:  post.secure_media.reddit_video.width ?? 0,
+            height: post.secure_media.reddit_video.height ?? 0
           } : undefined
         }]
       })
     }
     media.push({
-      name: 'secure_video',
+      id: post.secure_media.reddit_video.fallback_url!,
+      type: 'secure_video',
       query: (fetch) =>  fetchDashMediaFromRedditVideo(fetch, post.secure_media!.reddit_video!)
     });
   }
@@ -104,21 +107,23 @@ export function getMediaCollection(post: Post): (MediaCollection | MediaCollecti
     if (post.preview.reddit_video_preview) {
       if (post.preview.reddit_video_preview.fallback_url) {
         media.push({
-          name: 'preview_video_fallback',
-          media: [{
+          id: post.preview.reddit_video_preview.fallback_url,
+          type: 'preview_video.fallback',
+          variants: [{
             id:        post.preview.reddit_video_preview.fallback_url,
             mime:      'video/mp4',
             variant:   Variant.Video,
             href:      post.preview.reddit_video_preview.fallback_url,
-            dimension: post.preview.reddit_video_preview.width ? {
-              width:  post.preview.reddit_video_preview.width,
-              height: post.preview.reddit_video_preview.height ?? undefined
+            dimension: post.preview.reddit_video_preview.width || post.preview.reddit_video_preview.height ? {
+              width:  post.preview.reddit_video_preview.width ?? 0,
+              height: post.preview.reddit_video_preview.height ?? 0
             } : undefined
           }]
         })
       }
       media.push({
-        name: 'preview_video',
+        id: post.preview.reddit_video_preview.fallback_url!,
+        type: 'preview_video',
         query: (fetch) => fetchDashMediaFromRedditVideo(fetch, post.preview!.reddit_video_preview!)
       });
     }
@@ -129,8 +134,9 @@ export function getMediaCollection(post: Post): (MediaCollection | MediaCollecti
   // Thumbnail
   if (post.thumbnail) {
     media.push({
-      name: 'thumbnail',
-      media: [{
+      id: post.id,
+      type: 'thumbnail',
+      variants: [{
         id:      post.id,
         mime:    'image/jpeg',
         variant: Variant.Thumbnail,
@@ -157,8 +163,9 @@ export function getMediaCollection(post: Post): (MediaCollection | MediaCollecti
         overriddenMedia.variant = Variant.Video;
       }
       media.push({
-        name: 'overridden',
-        media: [overriddenMedia]
+        id: post.id,
+        type: 'overridden',
+        variants: [overriddenMedia]
       });
     }
   }
@@ -181,7 +188,7 @@ export async function fetchMedia(fetch: Fetch, post: Post): Promise<Media[]> {
       const collectionMedia = await collection.query(fetch);
       media.push(...collectionMedia);
     } else {
-      media.push(...collection.media);
+      media.push(...collection.variants);
     }
   }
 
@@ -202,8 +209,11 @@ export function sort(media: Media[], order: Variant[] = VariantOrder): Media[] {
   });
 }
 
-/** gets the collections within the post.media_collection */
-function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Media[] {
+/**
+ * Gets all the media collections that are defined in the metadata.
+ * @param metadata
+ */
+function getAllMediaCollectionsFromMetadata(metadata: Record<string, MediaMetadataItem>): MediaCollection[] {
   const gallery: Record<string, Media[]> = {};
 
   for (const [ id, item ] of Object.entries(metadata)) {
@@ -216,13 +226,13 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
     gallery[id] = collection;
 
     // Process the main served media
-    if (item.s.mp4) {
+    if (item.s.mp4 && mime !== 'image/gif') {
       collection.push({
         id,
         mime:      mime,
         variant:   Variant.Video,
         href:      item.s.mp4,
-        dimension: item.s.x ? { width: item.s.x, height: item.s.y } : undefined
+        dimension: item.s.x || item.s.y ? { width: item.s.x ?? 0, height: item.s.y ?? 0 } : undefined
       });
     }
 
@@ -232,7 +242,7 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
         mime:      mime,
         variant:   Variant.GIF,
         href:      item.s.gif,
-        dimension: item.s.x ? { width: item.s.x, height: item.s.y } : undefined
+        dimension: item.s.x || item.s.y ? { width: item.s.x ?? 0, height: item.s.y ?? 0 } : undefined
       })
     }
 
@@ -242,7 +252,7 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
         mime:      mime,
         variant:   Variant.Image,
         href:      item.s.u,
-        dimension: item.s.x ? { width: item.s.x, height: item.s.y } : undefined
+        dimension: item.s.x || item.s.y ? { width: item.s.x ?? 0, height: item.s.y ?? 0 } : undefined
       })
     }
 
@@ -255,7 +265,7 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
             mime:      mime,
             variant:   Variant.Image,
             href:      subItem.u,
-            dimension: subItem.x ? { width: subItem.x, height: subItem.y } : undefined
+            dimension: subItem.x || subItem.y ? { width: subItem.x ?? 0, height: subItem.y ?? 0 } : undefined
           })
         }
       }
@@ -277,7 +287,7 @@ function getMediaFromMetadata(metadata: Record<string, MediaMetadataItem>): Medi
     }
   }
 
-  return Object.values(gallery).flat();
+  return Object.entries(gallery).map(([name, media]) => ({ id: name, type:'gallery', variants: media })) satisfies MediaCollection[];
 }
 
 /** Downloads and parses the DASH manifest from the secure_media.reddit_video.dash_url. */

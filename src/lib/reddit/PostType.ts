@@ -12,8 +12,8 @@ export enum PostType {
 
 export function getPostType(post : Post, collections : (MediaCollection | MediaCollectionQuery)[]) : PostType {
   let type = PostType.Text;
-  if (collections.some(c => c.name === 'secure_video' || c.name === 'preview_video')
-    || collections.some(c => 'media' in c && c.media.some(m => m.variant === Variant.Video))) {
+  if (collections.some(c => c.type === 'secure_video' || c.type === 'preview_video')
+    || collections.some(c => 'media' in c && c.variants.some(m => m.variant === Variant.Video))) {
     type = PostType.Video;
   } else if (post.gallery_data || (post.media_metadata && Object.keys(post.media_metadata).length > 1)) {
     type = PostType.Gallery;
