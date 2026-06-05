@@ -1,22 +1,24 @@
 <script lang="ts">
-  import SearchBar from "$lib/components/SearchBar.svelte";
-  import type { PageData } from './$types';
-  import OpenGraph from "$lib/components/OpenGraph.svelte";
-  import Badge from "$lib/components/Badge.svelte";
-  import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
-  import PostMediaPreview from "$lib/components/PostMediaPreview.svelte";
+    import SearchBar from "$lib/components/SearchBar.svelte";
+    import type { PageData } from "./$types";
+    import OpenGraph from "$lib/components/OpenGraph.svelte";
+    import Badge from "$lib/components/Badge.svelte";
+    import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
+    import PostMediaPreview from "$lib/components/PostMediaPreview.svelte";
 
-  let { data }: { data: PageData } = $props();
-  let { post, type, collections } = $derived(data);
+    let { data }: { data: PageData } = $props();
+    let { post, type, collections } = $derived(data);
 </script>
 
-<OpenGraph properties={getOpenGraphProperties(post)}/>
+<OpenGraph properties={getOpenGraphProperties(post)} />
 
-<main class="max-w-225 mx-auto p-8">
-    <div class="mb-8">
-        <SearchBar value={post.permalink}/>
+<main class="max-w-225 mx-auto sm:p-0 md:p-8">
+    <div class="sm:mb-0 md:mb-8">
+        <SearchBar value={post.permalink} forceRounded={false} />
     </div>
-    <article class="border-2 border-gray-200 rounded-2xl p-8 bg-white">
+    <article
+        class="md:border-2 border-b-2 border-gray-200 md:rounded-2xl p-8 bg-white"
+    >
         <header>
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.subredditName ?? `r/${post.subreddit}`}</span>
@@ -46,10 +48,13 @@
                 {#if post.createdAt}
                     <span>{post.createdAt.toLocaleString()}</span>
                 {:else if post.created_utc}
-                    <span>{new Date(post.created_utc * 1000).toLocaleString()}</span>
+                    <span
+                        >{new Date(
+                            post.created_utc * 1000,
+                        ).toLocaleString()}</span
+                    >
                 {/if}
             </div>
-
         </header>
 
         {#if post.body}
@@ -63,12 +68,17 @@
         {/if}
 
         <div class="mt-6">
-            <PostMediaPreview post={post} collections={collections}/>
+            <PostMediaPreview {post} {collections} />
         </div>
 
         {#if post.url && !post.isSelf && !post.is_self}
             <p>
-                <a href={post.url} target="_blank" rel="noreferrer" class="text-orange-600 hover:underline font-medium">
+                <a
+                    href={post.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="text-orange-600 hover:underline font-medium"
+                >
                     Open linked content
                 </a>
             </p>
@@ -76,8 +86,12 @@
 
         {#if post.permalink}
             <p>
-                <a href={post.permalink} target="_blank" rel="noreferrer"
-                   class="text-orange-600 hover:underline font-medium">
+                <a
+                    href={post.permalink}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="text-orange-600 hover:underline font-medium"
+                >
                     Open on Reddit
                 </a>
             </p>
