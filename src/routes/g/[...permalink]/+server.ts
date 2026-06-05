@@ -8,8 +8,10 @@ import { type ConvertOptions, convertStream } from "$lib/server/ffmpeg/Gif";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { getCache, cacheSemaphore, keyName } from "$lib/cache/MemoryCache";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
+import {probeDuration} from "$lib/server/ffmpeg/Probe";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
+const LongestVideoDuration = 15;
 
 type CachedResponse = {
   body: BodyInit,
@@ -29,6 +31,11 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
   return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
     const media = await fetchMedia(fetch, post).then(sort)
+    const responseHeaders : Record<string, string> = {
+      "Content-Type": "image/gif",
+      "Content-Disposition": `inline; filename="animated.gif"`,
+      "Cache-Control": "public, max-age=3600",
+    };
 
     // Find the best available gif and video
     // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
@@ -37,47 +44,59 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
     const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
 
     if (shouldConvert && video) {
-      console.log('The best is a video, converting to a gif.');
-      const scale = video.dimension?.height || video.dimension?.width || 480;
-      const opts: ConvertOptions = {
-        videoPath: video.href,
-        fps:       scale > 360 ? 10 : 20,
-        scale:     scale,
-      };
-      opts.fps = 10;
+      // Ensure the video is not too long, otherwise we will not be able to convert it.
+      // We will report back any discrepancies in the headers.
+      console.log('The best is a video, checking if its eligible for conversion...', video.href);
+      const duration = await probeDuration(video.href);
+      responseHeaders['X-Converted-From'] = video.href;
+      responseHeaders['X-Converted-Duration'] = `${duration}s`;
+      responseHeaders['X-Converted-At'] = new Date().toISOString()
 
-      const { stream, ffmpeg } = convertStream(opts);
-      const headers = {
-        "Content-Type":        "image/gif",
-        "Content-Disposition": `inline; filename="animated.gif"`,
-        "Cache-Control":       "public, max-age=3600",
-      };
+      if (duration <= LongestVideoDuration) {
+        const scale = video.dimension?.height || video.dimension?.width || 480;
+        const opts: ConvertOptions = {
+          videoPath: video.href,
+          fps: scale > 360 ? 10 : 20,
+          scale: scale,
+        };
+        opts.fps = 10;
 
-      const body = createReadableStream(stream, ffmpeg, (bytes) => store({
-        body:   bytes,
-        status: 200,
-        headers,
-      }), abort);
+        responseHeaders['X-Converted-To'] = `animated.gif`;
+        responseHeaders['X-Converted-Scale'] = `${scale}x${scale}`;
+        responseHeaders['X-Converted-FPS'] = `${opts.fps}fps`;
 
-      return new Response(body, {
-        status: 200,
-        headers,
-      });
+        console.log('The best is a video, converting to a gif...', opts);
+        const {stream, ffmpeg} = convertStream(opts);
+        const body = createReadableStream(stream, ffmpeg, (bytes) => store({
+          body: bytes,
+          status: 200,
+          headers: responseHeaders,
+        }), abort);
+
+        return new Response(body, {
+          status: 200,
+          headers: responseHeaders,
+        });
+      } else {
+        console.log('The best is a video, but its too long, skipping conversion', duration);
+        responseHeaders['X-Converted-Error'] = `Video is too long. Cannot convert above ${LongestVideoDuration} seconds.`
+      }
     }
 
     // Otherwise, use the best gif or whatever we have as a fallback
     const { href } = gif ?? media[0];
+    console.log("Fetching media from", href)
     const response = await fetch(href, {
       redirect: 'follow',
       headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
 
+    responseHeaders['Content-Type'] = response.headers.get('Content-Type') ?? 'image/gif';
+    responseHeaders['Content-Disposition'] = response.headers.get('Content-Disposition') ?? 'inline; filename="animated.gif"';
+
     const init = {
       status:  200,
-      headers: {
-        "Content-Type":  response.headers.get('Content-Type') ?? 'image/gif',
-        "Cache-Control": "public, max-age=3600",
-      }
+      headers: responseHeaders,
     }
 
     // It's unclear if we actually need to cache this or if we can just store zero bytes, forcing new requests.
