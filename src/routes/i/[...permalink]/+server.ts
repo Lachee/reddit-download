@@ -3,13 +3,11 @@ import { fetchPost } from "$lib/reddit/server/Post";
 import {
   getMediaCollection,
   type Media,
-  type QueryableMediaCollection,
-  queryMediaCollection,
-  sort, type Variant,
+  type Variant,
   VariantType
 } from "$lib/reddit/server/Media";
 import { normalizePermalink } from "$lib/reddit/Utilities";
-import { getCache, cacheSemaphore, keyName } from "$lib/cache/MemoryCache";
+import { cache } from "$lib/cache/";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
@@ -35,14 +33,14 @@ function findBestMedia(collection : Media[]) : Media {
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media');
-  const key = keyName('GET', url.pathname, mediaId ?? '');
-  const cached = await getCache<CachedResponse>(key);
+  const key = ['GET', url.pathname, mediaId ?? ''];
+  const cached = await cache().get<CachedResponse>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
   }
 
   // We do not have a cache, so lets stream a response and store the result at the end
-  return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
+  return await cache().lock<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
     const collection = getMediaCollection(post).filter(col => 'variants' in col);
 

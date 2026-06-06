@@ -11,7 +11,7 @@ import {
 } from "$lib/reddit/server/Media";
 import { combineStream } from "$lib/server/ffmpeg/Combine";
 import { normalizePermalink } from "$lib/reddit/Utilities";
-import { cacheSemaphore, getCache, keyName } from "$lib/cache/MemoryCache";
+import { cache } from "$lib/cache/";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
@@ -36,13 +36,13 @@ function findBestVariant(variants: Variant[]): Variant {
 
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
   const mediaId = url.searchParams.get('media');
-  const key = keyName('GET', url.pathname, mediaId ?? '');
-  const cached = await getCache<Response>(key);
+  const key = ['GET', url.pathname, mediaId ?? ''];
+  const cached = await cache().get<Response>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
   }
 
-  return cacheSemaphore<CachedResponse, Response>(key, async (store, abort) => {
+  return await cache().lock<CachedResponse, Response>(key, async (store, abort) => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
     const collection = await queryMediaCollection(fetch, getMediaCollection(post))
     const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
