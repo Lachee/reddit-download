@@ -6,7 +6,7 @@
         post,
         media
       }: {
-    post: Pick<Post, 'title' | 'permalink'>,
+    post: Post,
     media: Media
   } = $props();
 
@@ -17,16 +17,15 @@
   let mediaElement: HTMLImageElement | HTMLVideoElement | HTMLAudioElement | undefined = $state();
 
   /** The first variant with a defined dimension, used as baseline for sizing. */
-  const baselineDimensionalVariant = $derived(variant.dimension ? variant : media.variants.find(m => m.dimension?.width));
+  const baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.width - a.dimension!.width)[0]);
 
   let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
   let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
 
   const isGifVideo = $derived(
-    false
-    // post.secure_media?.reddit_video?.is_gif ||
-    // post.preview?.reddit_video_preview?.is_gif ||
-    // post.url?.endsWith('.gifv')
+    post.secure_media?.reddit_video?.is_gif ||
+    post.preview?.reddit_video_preview?.is_gif ||
+    post.url?.endsWith('.gifv')
   );
 
   function onLoaded() {
@@ -43,7 +42,7 @@
     // Fallback timer to hide loading if it gets stuck
     const timer = setTimeout(() => {
       loading = false;
-    }, 2000);
+    }, 5000);
 
     Promise.resolve().then(() => {
       if (mediaElement) {
@@ -132,7 +131,7 @@
         {#if type === VariantType.GIF}
             <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}?media={media.id}"
                  alt="Cannot Load: {media.id}" onload={onLoaded}/>
-        {:else if type ===  VariantType.Video || type === VariantType.PartialVideo}
+        {:else if type ===  VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
             <video bind:this={mediaElement}
                    class="w-full h-full"
                    controls={!isGifVideo}
@@ -142,9 +141,6 @@
                    playsinline
                    src="/v/{post.permalink.substring(3)}?media={media.id}"
                    oncanplay={onLoaded}></video>
-        {:else if type === VariantType.PartialAudio}
-            <span>Audio is not fully supported</span>
-            <audio bind:this={mediaElement} src={variant.href} controls oncanplay={onLoaded} />
         {:else}
             <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}?media={media.id}"
                  alt="Cannot Load: {media.id}" onload={onLoaded}/>
