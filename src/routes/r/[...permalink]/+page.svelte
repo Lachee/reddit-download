@@ -11,7 +11,7 @@
   let { post, type, collection } = $derived(data);
 </script>
 
-<OpenGraph properties={getOpenGraphProperties(post)}/>
+<OpenGraph properties={getOpenGraphProperties(post, collection)}/>
 
 <main class="max-w-225 mx-auto sm:p-0 md:p-8">
     <div class="sm:mb-0 md:mb-8">
