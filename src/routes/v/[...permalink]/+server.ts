@@ -13,13 +13,14 @@ import { combineStream } from "$lib/server/ffmpeg/Combine";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { cache } from "$lib/cache/";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
+import type { Cacheable } from "$lib/server/cache/Cache";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
-type CachedResponse = {
-  body: BodyInit,
+interface CachedResponse extends Cacheable {
+  body: Uint8Array<ArrayBuffer>,
   status: number,
-  headers: HeadersInit,
+  headers: Record<string, string>,
 }
 
 function findBestVariant(variants: Variant[]): Variant {
@@ -37,7 +38,7 @@ function findBestVariant(variants: Variant[]): Variant {
 export const GET: RequestHandler = async ({ url, params, fetch }) => {
   const mediaId = url.searchParams.get('media');
   const key = ['GET', url.pathname, mediaId ?? ''];
-  const cached = await cache().get<Response>(key);
+  const cached = await cache().get<CachedResponse>(key);
   if (cached) {
     return new Response(cached.body, { status: cached.status, headers: cached.headers });
   }
