@@ -5,7 +5,7 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 RUN corepack prepare pnpm@11.5.2 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm ci
 COPY . .
 ENV SVELTE_ADAPTER=node
 RUN pnpm build && pnpm prune --prod
