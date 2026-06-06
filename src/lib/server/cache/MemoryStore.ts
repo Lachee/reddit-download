@@ -1,4 +1,4 @@
-import { expired, type Store } from 'src/lib/server/cache/Cache';
+import { expired, type Store } from './Cache';
 
 type StoreEntry = {
   value: any;

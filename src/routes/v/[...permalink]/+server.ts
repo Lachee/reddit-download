@@ -1,17 +1,14 @@
-import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchPost } from "$lib/reddit/server/Post";
 import {
   queryMediaCollection,
   type Variant,
-  sort,
   VariantType,
   getMediaCollection,
-  type Media
 } from "$lib/reddit/server/Media";
 import { combineStream } from "$lib/server/ffmpeg/Combine";
 import { normalizePermalink } from "$lib/reddit/Utilities";
-import { cache } from "$lib/cache/";
+import { cache } from "$lib/server/cache/";
 import { createReadableStream } from "$lib/server/ffmpeg/ReadableStreamWithStore";
 import type { Cacheable } from "$lib/server/cache/Cache";
 
@@ -63,9 +60,10 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
           audioPath: audio.href,
         });
 
+        const filename = `${video.id}.mp4`
         const headers = {
-          "Content-Type":        "video.mp4",
-          "Content-Disposition": `inline; filename="video.mp4"`,
+          "Content-Type":        "video/mp4",
+          "Content-Disposition": `inline; filename="${filename}.mp4"`,
           "Cache-Control":       "public, max-age=3600",
         };
 

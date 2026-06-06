@@ -1,61 +1,100 @@
 <script lang="ts">
-  import type { Post } from "$lib/reddit/schema/postSchema";
-  import { type Media, type Variant, VariantType, sort as sortVariants } from "$lib/reddit/server/Media";
+    import type {Post} from "$lib/reddit/schema/postSchema";
+    import {type Media, type Variant, VariantType, sort as sortVariants} from "$lib/reddit/server/Media";
+    import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
+    import GifIcon from "$lib/components/icons/GifIcon.svelte"
+    import IconButton from "$lib/components/IconButton.svelte";
 
-  let {
+    let {
         post,
         media
-      }: {
-    post: Post,
-    media: Media
-  } = $props();
+    }: {
+        post: Post,
+        media: Media
+    } = $props();
 
-  let loading = $state(true);
-  let variant = $derived(sortVariants(media.variants)[0]);
-  let type = $derived(variant.type);
+    let asGif = $state(false);
+    let loading = $state(true);
+    let variant = $derived(sortVariants(media.variants)[0]);
+    let type = $derived(variant.type);
 
-  let mediaElement: HTMLImageElement | HTMLVideoElement | HTMLAudioElement | undefined = $state();
+    let mediaElement: HTMLImageElement | HTMLVideoElement | HTMLAudioElement | undefined = $state();
 
-  /** The first variant with a defined dimension, used as baseline for sizing. */
-  const baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.width - a.dimension!.width)[0]);
+    /** The first variant with a defined dimension, used as baseline for sizing. */
+    const baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.height - a.dimension!.height)[0]);
 
-  let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
-  let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
+    let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
+    let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
 
-  const isGifVideo = $derived(
-    post.secure_media?.reddit_video?.is_gif ||
-    post.preview?.reddit_video_preview?.is_gif ||
-    post.url?.endsWith('.gifv')
-  );
+    const isGifVideo = $derived(
+        post.secure_media?.reddit_video?.is_gif ||
+        post.preview?.reddit_video_preview?.is_gif ||
+        post.url?.endsWith('.gifv')
+    );
 
-  function onLoaded() {
-    loading = false;
-  }
+    function onLoaded() {
+        loading = false;
+    }
 
-  $effect(() => {
-    // Reset loading state when post changes
-    void media;
-    void post;
-    loading = true;
+    function validateLoadingState() {
+        Promise.resolve().then(() => {
+            if (mediaElement) {
+                if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
+                    onLoaded();
+                } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
+                    onLoaded();
+                }
+            }
+        });
+    }
 
-    // We will check if the image is loaded already.
-    // Fallback timer to hide loading if it gets stuck
-    const timer = setTimeout(() => {
-      loading = false;
-    }, 5000);
+    $effect(() => {
+        // Reset loading state when post changes
+        void media;
+        void post;
 
-    Promise.resolve().then(() => {
-      if (mediaElement) {
-        if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
-          onLoaded();
-        } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
-          onLoaded();
-        }
-      }
+        asGif = false;
+        loading = true;
+
+        // We will check if the image is loaded already.
+        // Fallback timer to hide loading if it gets stuck
+        const timer = setTimeout(() => {
+            loading = false;
+        }, 5000);
+
+        validateLoadingState();
+
+        return () => clearTimeout(timer);
     });
 
-    return () => clearTimeout(timer);
-  });
+    function download(url: string) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = media.id
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
+
+    function onDownloadClick() {
+        const url = type === VariantType.GIF || asGif
+            ? `/g/${post.permalink.substring(3)}?media=${media.id}`
+            : (
+                type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio
+                    ? `/v/${post.permalink.substring(3)}?media=${media.id}`
+                    : `/i/${post.permalink.substring(3)}?media=${media.id}`
+            )
+        download(url);
+    }
+
+    function onGifClick() {
+        // const url = `/g/${post.permalink.substring(3)}?media=${media.id}`;
+        // download(url);
+        asGif = !asGif;
+        loading = true;
+        setTimeout(() => validateLoadingState(), 100);
+    }
+
 </script>
 
 <style>
@@ -128,10 +167,10 @@
     <div class="bubble-gradient" class:loaded={!loading}></div>
 
     <div class="w-full h-full">
-        {#if type === VariantType.GIF}
+        {#if type === VariantType.GIF || asGif }
             <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}?media={media.id}"
                  alt="Cannot Load: {media.id}" onload={onLoaded}/>
-        {:else if type ===  VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
+        {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
             <video bind:this={mediaElement}
                    class="w-full h-full"
                    controls={!isGifVideo}
@@ -145,5 +184,16 @@
             <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}?media={media.id}"
                  alt="Cannot Load: {media.id}" onload={onLoaded}/>
         {/if}
+
+        <div class="absolute top-1 right-1 flex items-center justify-center gap-1 ">
+            <IconButton alt="Download" onclick={onDownloadClick}>
+                <DownloadIcon/>
+            </IconButton>
+            {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
+                <IconButton variant="white" alt="Gif" onclick={onGifClick}>
+                    <GifIcon/>
+                </IconButton>
+            {/if}
+        </div>
     </div>
 </div>

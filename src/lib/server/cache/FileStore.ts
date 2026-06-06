@@ -1,4 +1,4 @@
-import { expired, type Store } from 'src/lib/server/cache/Cache';
+import { expired, type Store } from './Cache';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {  createHash } from 'node:crypto';
