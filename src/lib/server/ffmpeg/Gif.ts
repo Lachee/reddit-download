@@ -2,21 +2,29 @@ import type { Readable } from "node:stream";
 import { type ChildProcessByStdio, spawn } from "node:child_process";
 import {readStream} from "./Utilities.ts";
 
-type ScalerFilters = 'auto'
+type ScalerFlags = 'fast_bilinear'
                     | 'bilinear'
                     | 'bicubic'
-                    | 'point'
+                    | 'experimental'
+                    | 'neighbor'
                     | 'area'
-                    | 'gaussian'
+                    | 'bicublin'
+                    | 'gauss'
                     | 'sinc'
                     | 'lanczos'
                     | 'spline'
+                    | 'print_info'
+                    | 'accurate_rnd'
+                    | 'full_chroma_int'
+                    | 'full_chroma_inp'
+                    | 'bitexact'
+                    | 'unstable'
 
 export type ConvertOptions = {
   videoPath: string;
   fps?: number;
   scale?: number;
-  filtering?: ScalerFilters;
+  filtering?: ScalerFlags;
   maxColors?: number;
   dithering?: 'sierra2'|'bayer'|'floyd_stainberg'|`bayer:bayer_scale=${number}`
   threads?: number;
@@ -59,6 +67,7 @@ export function convertStream({
     "-i", videoPath,
     "-filter_complex", filter,
     "-loop", "0",
+    "-threads", threads,
     "-f", "gif",
     "pipe:1",
   ];

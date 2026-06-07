@@ -47,9 +47,6 @@ export const GET: RequestHandler = async ({url, params, fetch, request}) => {
         const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
         let convertError = null;
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-
         if (shouldConvert && video) {
             // Ensure the video is not too long, otherwise we will not be able to convert it.
             // We will report back any discrepancies in the headers.
@@ -62,9 +59,9 @@ export const GET: RequestHandler = async ({url, params, fetch, request}) => {
                     fps: scale > 360 ? 10 : 24,
                     scale: scale,
 
-                    filtering: 'bicubic',
+                    filtering: scale > 480 ? 'neighbor' : 'bicubic',
                     dithering: 'bayer:bayer_scale=5',
-                    maxColors: 128
+                    maxColors: 128,
                 };
 
                 console.log('The best is a video, converting to a gif...', opts);
