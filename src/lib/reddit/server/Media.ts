@@ -4,7 +4,7 @@ import { XMLParser } from 'fast-xml-parser';
 import MpdDocumentSchema, { type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
 import type { Video } from "$lib/reddit/schema/videoSchema";
 import type { PreviewImage, PreviewImageVariant } from "$lib/reddit/schema/previewImageSchema";
-import { fetchOembedVariants } from "$lib/reddit/server/third-party/";
+import { fetchOembedVariants } from "$lib/reddit/server/third-party/index";
 
 type Fetch = typeof window.fetch;
 
@@ -228,6 +228,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
  * Any DASH manifests are downloaded and parsed.
  */
 export async function queryMediaCollection(fetch: Fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
+  console.log('querying media collection', collection);
   const queryable: Promise<Media>[] = collection.filter(c => 'query' in c)
     .map(c => Promise.resolve().then(
         async () => ({

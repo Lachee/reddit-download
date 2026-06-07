@@ -32,7 +32,7 @@
     })
 
     $effect(() => {
-      console.log('[media] post:', { post, variant, type, width, height });
+      console.log('[media] post:', { post, media, variant, type, width, height });
     })
 
     const isGifVideo = $derived(
@@ -88,7 +88,8 @@
                    loop={isGifVideo}
                    playsinline
                    src="/v/{post.permalink.substring(3)}?media={media.id}"
-                   ></video>
+                   >
+            </video>
         {:else}
             <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}?media={media.id}"
                  alt="Cannot Load: {media.id}" />
