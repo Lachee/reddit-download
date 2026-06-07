@@ -35,8 +35,8 @@
     </main>
 
     <footer class="p-12 border-t border-cliff-100 bg-white dark:bg-cliff-700 dark:border-cliff-700">
-        <div class="max-w-7xl mx-auto text-center text-stone-50 text-sm">
-            <p>Not affiliated with Reddit. <a href="https://github.com/Lachee/reddit-download/" target="_blank">Self Host</a> today!</p>
+        <div class="max-w-7xl mx-auto text-center dark:text-stone-50 text-sm">
+            <p>Not affiliated with Reddit. <a class="hover:underline" href="https://github.com/Lachee/reddit-download/" target="_blank">Self Host</a> today!</p>
         </div>
     </footer>
 </div>
