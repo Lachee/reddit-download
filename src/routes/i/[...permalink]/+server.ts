@@ -9,39 +9,34 @@ import {
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
+import {range} from "$lib/server/Range";
 
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
 interface CachedResponse extends Cacheable {
-  body: Uint8Array<ArrayBuffer>,
+  content: Uint8Array<ArrayBuffer>,
+  mime: string,
+  filename: string,
   status: number,
-  headers: Record<string, string>,
 }
 
 function findBestMedia(collection : Media[]) : Media {
-  let bestMedia : Media = collection[0];
-  let bestVariant : Variant = bestMedia.variants[0];
+  let bestMedia : Media | undefined = undefined;
+  let bestVariant : Variant | undefined = undefined;
   for (const media of collection) {
     const variant = media.variants.find(v => v.type === VariantType.Image);
-    if (variant && variant.dimension && bestVariant.dimension && variant.dimension.width > bestVariant.dimension.width) {
+    if (!bestMedia || !bestVariant || (variant && variant.dimension && bestVariant.dimension && variant.dimension.width > bestVariant.dimension.width)) {
       bestMedia = media;
       bestVariant = variant;
     }
   }
-  return bestMedia;
+  return bestMedia ?? collection[0];
 }
 
-export const GET: RequestHandler = async ({ url, params, fetch }) => {
+export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media');
-  const key = ['GET', url.pathname, mediaId ?? ''];
-  const cached = await cache().get<CachedResponse>(key);
-  if (cached) {
-    return new Response(cached.body, { status: cached.status, headers: cached.headers });
-  }
-
-  // We do not have a cache, so lets stream a response and store the result at the end
-  return await cache().lock<CachedResponse, Response>(key, async (store, abort) => {
+  const cached = await cache().getSet<CachedResponse>(['GET', url.pathname, mediaId ?? ''], async () => {
     const post = await fetchPost(fetch, normalizePermalink(params.permalink));
     const collection = getMediaCollection(post).filter(col => 'variants' in col);
 
@@ -61,21 +56,37 @@ export const GET: RequestHandler = async ({ url, params, fetch }) => {
       headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
 
-    const init = {
-      status:  200,
-      headers: {
-        "Content-Type":  response.headers.get('Content-Type') ?? 'image/jpeg',
-        "Cache-Control": "public, max-age=3600",
-      }
-    }
-
-    // It's unclear if we actually need to cache this or if we can just store zero bytes, forcing new requests.
+    console.log("Fetching media from", response.headers);
+    const mime = response.headers.get('Content-Type') ?? 'image/jpg';
+    const poorlyExtrapolatedFileExtension = mime.split('/')[1];
     const bytes = new Uint8Array(await response.arrayBuffer());
-    store({
-      body: bytes,
-      ...init
-    });
-
-    return new Response(bytes, init);
+    return {
+      content: bytes,
+      mime: response.headers.get('Content-Type') ?? 'image/jpg',
+      filename: `${post.id}-${(best ?? media.variants[0]).id}.${poorlyExtrapolatedFileExtension}`,
+      status: response.status,
+    } satisfies CachedResponse;
   });
+
+
+  // Prepare the content and try to do a range for iOS playback
+  let content = cached.content;
+  let status = cached.status;
+  let headers: Record<string,string> = {
+    "Content-Type": cached.mime,
+    "Content-Disposition": `inline; filename="${cached.filename}"`,
+    "Cache-Control": "public, max-age=3600",
+  }
+
+  const slice = range(request, cached.content);
+  if (slice) {
+    content = slice.slice;
+    status = slice.status;
+    headers = {
+      ...headers,
+      ...slice.headers,
+    }
+  }
+
+  return new Response(content, {status, headers});
 }

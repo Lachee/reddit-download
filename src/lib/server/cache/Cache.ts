@@ -64,6 +64,23 @@ export class Cache {
     await this.store.set(keyStr, value, ttl);
   }
 
+  async getSet<T extends Cacheable>(key : CacheKey, valueFn : () => T | Promise<T>, ttl: number = 0): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached !== undefined)
+      return cached;
+
+    return await this.lock(key, async (store, abort) => {
+     try {
+       const value = await valueFn();
+       store(value);
+       return value;
+     } catch (e) {
+       abort(e);
+       throw e;
+     }
+    }, ttl);
+  }
+
   async delete(key: CacheKey): Promise<void> {
     let keyStr = keyName(key)
     this.semaphores.delete(keyStr);

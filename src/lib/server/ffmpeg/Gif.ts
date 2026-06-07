@@ -1,5 +1,6 @@
 import type { Readable } from "node:stream";
 import { type ChildProcessByStdio, spawn } from "node:child_process";
+import {readStream} from "./Utilities.ts";
 
 export type ConvertOptions = {
   videoPath: string;
@@ -12,6 +13,15 @@ export type ConvertStreamResult = {
   ffmpeg: ChildProcessByStdio<null, Readable, Readable>;
 };
 
+/**
+ * Converts the video to a GIF and returns the result as a Buffer.
+ */
+export function convert(options: ConvertOptions): Promise<Buffer<ArrayBuffer>> {
+  const { stream, ffmpeg } = convertStream(options);
+  return readStream(stream, ffmpeg);
+}
+
+/** Converts the video to a GIF and returns the result as a ReadableStream. */
 export function convertStream({
                                 videoPath,
                                 fps = 15,

@@ -15,6 +15,8 @@ const previewImageSchema = variantSchema.safeExtend({
   variants: z.looseObject({
     gif: variantSchema.optional(),
     mp4: variantSchema.optional(),
+    nsfw: variantSchema.optional(),
+    obfuscated: variantSchema.optional(),
   }),
   id:  z.string(),
 })
