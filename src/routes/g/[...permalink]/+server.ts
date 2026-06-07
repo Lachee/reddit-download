@@ -47,6 +47,9 @@ export const GET: RequestHandler = async ({url, params, fetch, request}) => {
         const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
         let convertError = null;
 
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+
         if (shouldConvert && video) {
             // Ensure the video is not too long, otherwise we will not be able to convert it.
             // We will report back any discrepancies in the headers.

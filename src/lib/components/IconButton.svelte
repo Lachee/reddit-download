@@ -17,7 +17,7 @@
 
     const variants: Record<Variant, string> = {
         orange: 'bg-orange-600 hover:bg-orange-700 text-white',
-        white: 'bg-white hover:bg-gray-100 text-orange-600 shadow',
+        white: 'bg-white hover:bg-gray-300 text-orange-600 shadow',
     };
 </script>
 
