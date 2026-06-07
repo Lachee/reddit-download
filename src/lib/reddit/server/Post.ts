@@ -13,15 +13,15 @@ const thingSchema = z.object({
 const listingSchema = z.object({
   kind: z.literal('Listing'),
   data: z.object({
-    after: z.string().nullable().optional(),
-    before: z.string().nullable().optional(),
+    after:    z.string().nullable().optional(),
+    before:   z.string().nullable().optional(),
     children: z.array(thingSchema),
   }).loose(),
 }).loose();
 
 export const postResponseSchema = z.array(listingSchema)
 
-export async function fetchPost(fetch: typeof window.fetch, path: string) : Promise<Post> {
+export async function fetchPost(fetch: typeof window.fetch, path: string): Promise<Post> {
   const { access_token } = await authenticate(fetch);
   const { pathname } = await follow(fetch, path);
   const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
@@ -50,10 +50,17 @@ export async function fetchPost(fetch: typeof window.fetch, path: string) : Prom
 
   // Find the first listing child that is a post
   let post: Post | undefined;
-  for(const listing of validation.data) {
+  for (const listing of validation.data) {
     for (const child of listing.data.children) {
       if (child.kind === 't3') {
-        post = child.data as Post;
+        if (
+          typeof child.data === 'object' && child.data
+          && 'crosspost_parent_list' in child.data && child.data.crosspost_parent_list !== null
+          && Array.isArray(child.data.crosspost_parent_list) && child.data.crosspost_parent_list.length > 0) {
+          post = postSchema.parse(child.data.crosspost_parent_list[0]);
+        } else {
+          post = postSchema.parse(child.data);
+        }
         break;
       }
     }
