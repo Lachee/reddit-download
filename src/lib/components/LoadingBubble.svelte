@@ -122,5 +122,5 @@
 
 <div class="bubble-gradient" class:loaded={!loading}>Loading</div>
 {#if loading}
-    <div style="width: {width}px; height: {height}px"></div>
+    <div style="max-width: 100%; width: {width}px; height: {height}px"></div>
 {/if}

@@ -71,7 +71,7 @@
 
 
 <div
-        class="rounded-lg overflow-hidden relative h-full m-auto"
+        class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
         style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
 >
     <LoadingBubble mediaElement={mediaElement} width={width} height={height} />
