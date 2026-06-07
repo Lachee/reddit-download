@@ -1,3 +1,4 @@
-# allow crawling everything by default
-User-agent: *
-Disallow:
+# disallow crawling everything by default
+user-agent: *
+Allow: /$
+Disallow: /
