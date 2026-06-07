@@ -2,10 +2,24 @@ import type { Readable } from "node:stream";
 import { type ChildProcessByStdio, spawn } from "node:child_process";
 import {readStream} from "./Utilities.ts";
 
+type ScalerFilters = 'auto'
+                    | 'bilinear'
+                    | 'bicubic'
+                    | 'point'
+                    | 'area'
+                    | 'gaussian'
+                    | 'sinc'
+                    | 'lanczos'
+                    | 'spline'
+
 export type ConvertOptions = {
   videoPath: string;
   fps?: number;
   scale?: number;
+  filtering?: ScalerFilters;
+  maxColors?: number;
+  dithering?: 'sierra2'|'bayer'|'floyd_stainberg'|`bayer:bayer_scale=${number}`
+  threads?: number;
 };
 
 export type ConvertStreamResult = {
@@ -26,13 +40,17 @@ export function convertStream({
                                 videoPath,
                                 fps = 15,
                                 scale = 480,
+    filtering = 'lanczos',
+    maxColors = 256,
+    dithering = 'floyd_stainberg',
+    threads = 0,
                               }: ConvertOptions): ConvertStreamResult {
   const filter = [
     `fps=${fps}`,
-    `scale=${scale}:-1:flags=lanczos`,
+    `scale=${scale}:-1:flags=${filtering}`,
     `split[s0][s1]`,
-    `[s0]palettegen[p]`,
-    `[s1][p]paletteuse`,
+    `[s0]palettegen=max_colors=${maxColors}[p]`,
+    `[s1][p]paletteuse=dither=${dithering}`,
   ].join(",");
 
   const args = [
@@ -47,6 +65,7 @@ export function convertStream({
 
   console.log("Running ffmpeg with args:", "ffmpeg", args.join(" "));
 
+  const startAt = Date.now();
   const ffmpeg = spawn("ffmpeg", args, {
     stdio: [
       "ignore", // stdin
@@ -66,6 +85,8 @@ export function convertStream({
   });
 
   ffmpeg.on("close", code => {
+    const endAt = Date.now();
+    console.log(`ffmpeg took ${endAt - startAt}ms to convert ${videoPath}`);
     if (code !== 0) {
       ffmpeg.stdout.destroy(
         new Error(`ffmpeg exited with code ${code}\n${stderr}`),

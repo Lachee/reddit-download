@@ -61,6 +61,10 @@ export const GET: RequestHandler = async ({url, params, fetch, request}) => {
                     videoPath: video.href,
                     fps: scale > 360 ? 10 : 24,
                     scale: scale,
+
+                    filtering: 'bicubic',
+                    dithering: 'bayer:bayer_scale=5',
+                    maxColors: 128
                 };
 
                 console.log('The best is a video, converting to a gif...', opts);
