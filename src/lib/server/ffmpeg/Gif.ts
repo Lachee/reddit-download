@@ -67,7 +67,7 @@ export function convertStream({
     "-i", videoPath,
     "-filter_complex", filter,
     "-loop", "0",
-    "-threads", threads,
+    "-threads", `${threads}`,
     "-f", "gif",
     "pipe:1",
   ];
