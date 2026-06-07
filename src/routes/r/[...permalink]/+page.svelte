@@ -28,12 +28,12 @@
                 <span>•</span>
                 <span>
                         <a
-                                href={post.permalink}
+                                href={`https://www.reddit.com/${post.permalink}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 class="hover:underline "
                         >
-                            Open on Reddit
+                            view in reddit
                         </a>
                     </span>
             </div>

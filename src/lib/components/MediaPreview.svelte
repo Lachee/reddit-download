@@ -31,6 +31,10 @@
       asGif = false;
     })
 
+    $effect(() => {
+      console.log('[media] post:', { post, variant, type, width, height });
+    })
+
     const isGifVideo = $derived(
         post.secure_media?.reddit_video?.is_gif ||
         post.preview?.reddit_video_preview?.is_gif ||
@@ -78,7 +82,7 @@
         {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
             <video bind:this={mediaElement}
                    class="w-full h-full"
-                   controls={!isGifVideo}
+                   controls={true}
                    autoplay={isGifVideo}
                    muted={isGifVideo}
                    loop={isGifVideo}

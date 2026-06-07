@@ -1,9 +1,10 @@
 import { type Post } from "$lib/reddit/schema/postSchema";
 import { type MediaMetadataItem } from "$lib/reddit/schema/mediaMetadataItemSchema";
 import { XMLParser } from 'fast-xml-parser';
-import MpdDocumentSchema, { type MpdDocument, type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
+import MpdDocumentSchema, { type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
 import type { Video } from "$lib/reddit/schema/videoSchema";
 import type { PreviewImage, PreviewImageVariant } from "$lib/reddit/schema/previewImageSchema";
+import { fetchOembedVariants } from "$lib/reddit/server/third-party/";
 
 type Fetch = typeof window.fetch;
 
@@ -96,28 +97,52 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
   }
 
   // Secure Media
-  if (post.secure_media && post.secure_media.reddit_video) {
-    const secureMedia: QueryableMedia = {
-      id:       post.id,
-      type:     MediaType.SecureVideo,
-      variants: [],
-      query:    (fetch) => fetchDashMediaFromRedditVideo(fetch, post.secure_media!.reddit_video!)
-    };
+  if (post.secure_media) {
+    if (post.secure_media.reddit_video) {
+      const secureMedia: QueryableMedia = {
+        id:       post.id,
+        type:     MediaType.SecureVideo,
+        variants: [],
+        query:    (fetch) => fetchDashMediaFromRedditVideo(fetch, post.secure_media!.reddit_video!)
+      };
 
-    if (post.secure_media.reddit_video.fallback_url) {
-      secureMedia.variants.push({
-        id:        post.secure_media.reddit_video.fallback_url,
-        mime:      'video/mp4',
-        type:      VariantType.Video,
-        href:      post.secure_media.reddit_video.fallback_url,
-        dimension: post.secure_media.reddit_video.width || post.secure_media.reddit_video.height ? {
-          width:  post.secure_media.reddit_video.width ?? 0,
-          height: post.secure_media.reddit_video.height ?? 0
-        } : undefined
-      });
+      if (post.secure_media.reddit_video.fallback_url) {
+        secureMedia.variants.push({
+          id:        post.secure_media.reddit_video.fallback_url,
+          mime:      'video/mp4',
+          type:      VariantType.Video,
+          href:      post.secure_media.reddit_video.fallback_url,
+          dimension: post.secure_media.reddit_video.width || post.secure_media.reddit_video.height ? {
+            width:  post.secure_media.reddit_video.width ?? 0,
+            height: post.secure_media.reddit_video.height ?? 0
+          } : undefined
+        });
+      }
+
+      media.push(secureMedia);
+    } else if (post.secure_media.oembed) {
+      const oembedMedia : QueryableMedia = {
+        id: post.id,
+        type: MediaType.SecureVideo,
+        variants: [],
+        query: (fetch) => fetchOembedVariants(fetch, post.secure_media!.oembed!)
+      }
+
+      if (post.secure_media.oembed.thumbnail_url) {
+        oembedMedia.variants.push({
+          id: post.id,
+          mime: 'image/jpeg',
+          type: VariantType.Image,
+          href: post.secure_media.oembed.thumbnail_url,
+          dimension: post.secure_media.oembed.width || post.secure_media.oembed.height ? {
+            width: post.secure_media.oembed.width ?? 0,
+            height: post.secure_media.oembed.height ?? 0
+          } : undefined
+        });
+      }
+
+      media.push(oembedMedia);
     }
-
-    media.push(secureMedia);
   }
 
   // Preview Media
@@ -432,6 +457,7 @@ function parseMediaFromDash(mpdContent: string, baseUrl: string): Variant[] {
 
   return media;
 }
+
 
 /**
  * Gets the extension of the given file

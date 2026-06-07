@@ -18,18 +18,19 @@
   let loading = $derived(!completed || mediaElement === undefined)
 
   function onLoaded() {
-    console.log('loaded')
+    console.log('[bubble] loaded')
     completed = true;
   }
 
   function onError() {
-    console.log('loaded (error)')
+    console.log('[bubble] loaded (error)')
     completed = true;
   }
 
   $effect(() => {
     void mediaElement;
-    console.log('unloaded (element changed)', mediaElement);
+
+    console.log('[bubble] unloaded (element changed)');
     completed = false;
 
     if (mediaElement) {
