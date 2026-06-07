@@ -34,7 +34,7 @@ export function getOpenGraphProperties(post: Post, collection : MediaCollection)
 
     // Video Object
     const m = collection.find(c => c.type === MediaType.SecureVideo || c.type === MediaType.PreviewVideo)!.variants[0];
-    properties.push({ name: 'og:video:type', content: m.mime });
+    properties.push({ name: 'og:video:type', content: 'video/mp4' });
     if (m.dimension) {
       properties.push({ name: 'og:video:width', content: m.dimension.width.toString() });
       properties.push({ name: 'twitter:player:width', content: m.dimension.width.toString() });
