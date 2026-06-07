@@ -92,7 +92,6 @@
         // download(url);
         asGif = !asGif;
         loading = true;
-        setTimeout(() => validateLoadingState(), 100);
     }
 
 </script>
@@ -190,7 +189,7 @@
                 <DownloadIcon/>
             </IconButton>
             {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
-                <IconButton variant="white" alt="Gif" onclick={onGifClick}>
+                <IconButton variant={asGif ? 'orange' : 'white'} alt="Gif" onclick={onGifClick}>
                     <GifIcon/>
                 </IconButton>
             {/if}
