@@ -227,7 +227,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
  * fetches all the metadata of a post's media.
  * Any DASH manifests are downloaded and parsed.
  */
-export async function queryMediaCollection(fetch: Fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
+export async function queryMediaCollection(svelteFetch: Fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
   console.log('querying media collection', collection);
   const queryable: Promise<Media>[] = collection.filter(c => 'query' in c)
     .map(c => Promise.resolve().then(
