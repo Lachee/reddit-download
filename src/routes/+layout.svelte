@@ -1,5 +1,7 @@
 <script lang="ts">
+    //@ts-ignore. We expect the virtual module to fail here
     import { pwaInfo } from "virtual:pwa-info";
+
     import "./layout.css";
     import LoadingBar from "$lib/components/LoadingBar.svelte";
     let { children } = $props();
@@ -15,25 +17,25 @@
 
 <LoadingBar />
 
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen bg-stone-50 dark:bg-cliff-700 flex flex-col">
     <header class="p-6">
         <nav class="max-w-7xl mx-auto flex justify-between items-center">
-            <a href="/" class="text-2xl font-black text-gray-900 flex items-center gap-2" data-sveltekit-reload>
-                <span class="bg-orange-600 text-white p-1 rounded">dl</span>
+            <a href="/" class="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2" data-sveltekit-reload>
+                <span class="bg-orange-600 text-white p-1 rounded">DL</span>
                 <span>Reddit</span>
             </a>
-            <div class="flex gap-6 text-sm font-medium text-gray-500">
+            <div class="flex gap-6 text-sm font-medium dark:text-stone-50">
                 <a href="https://github.com/Lachee/reddit-download/" target="_blank" class="hover:text-orange-600">GitHub</a>
             </div>
         </nav>
     </header>
 
-    <main class="flex-grow">
+    <main class="grow">
         {@render children()}
     </main>
 
-    <footer class="p-12 border-t border-gray-100 bg-white">
-        <div class="max-w-7xl mx-auto text-center text-gray-400 text-sm">
+    <footer class="p-12 border-t border-cliff-100 bg-white dark:bg-cliff-700 dark:border-cliff-700">
+        <div class="max-w-7xl mx-auto text-center text-stone-50 text-sm">
             <p>Not affiliated with Reddit. <a href="https://github.com/Lachee/reddit-download/" target="_blank">Self Host</a> today!</p>
         </div>
     </footer>

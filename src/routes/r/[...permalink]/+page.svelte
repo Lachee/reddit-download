@@ -18,7 +18,7 @@
         <SearchBar value={post.permalink} forceRounded={false}/>
     </div>
     <article
-            class="md:border-2 border-b-2 border-gray-200 md:rounded-2xl p-8 bg-white"
+            class="md:border-2 border-b-2 border-gray-200 md:rounded-2xl p-8 bg-white dark:bg-cliff-800 dark:border-cliff-950 dark:text-gray-300"
     >
         <header>
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">

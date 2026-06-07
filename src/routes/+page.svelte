@@ -8,12 +8,9 @@
 
 <div class="min-h-[80vh] flex flex-col items-center justify-center px-4">
     <div class="max-w-4xl w-full text-center space-y-8">
-        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900">
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 ">
             Download <span class="text-orange-600">Reddit</span> Videos
         </h1>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-            Just download, no-faf, no sign up, no ads.
-        </p>
 
         <SearchBar />
 
