@@ -12,14 +12,14 @@ const OembedProviders = {
   'RedGIFs': RedGif,
 } satisfies Record<string, OembedProvider>;
 
-const ALLOWED_PROVIDERS = (env.ALLOWED_OEMBED ?? '').split(',').map(provider => provider.trim()).filter(Boolean);
+const ALLOWED_PROVIDERS = (env.ALLOW_OEMBED ?? '').split(',').map(provider => provider.trim()).filter(Boolean);
 
 export async function fetchOembedVariants(fetch : Fetch, oembed: OEmbed): Promise<Variant[]> {
   if (!oembed.provider_name || !(oembed.provider_name in OembedProviders))
     return [];
 
   if (!ALLOWED_PROVIDERS.includes(oembed.provider_name)) {
-    console.warn(`Oembed provider "${oembed.provider_name}" is not allowed`);
+    console.warn(`Oembed provider "${oembed.provider_name}" is not allowed. Must be: ${ALLOWED_PROVIDERS.join(', ')}`);
     return [];
   }
 
