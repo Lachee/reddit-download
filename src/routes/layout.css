@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+
+@theme {
+    --color-cliff-50: #c5aea7;
+    --color-cliff-100: #e3d3cc;
+    --color-cliff-400: #292523;
+    --color-cliff-500: #131211;
+    --color-cliff-700: #131212;
+    --color-cliff-800: #090807;
+    --color-cliff-900: #0b0a09;
+    --color-cliff-950: #000;
+}

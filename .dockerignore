@@ -1,0 +1,16 @@
+node_modules
+.pnpm-store
+.svelte-kit
+build
+.git
+.gitignore
+.vscode
+.cache
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.*
+!sample.env
