@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { type Variant, VariantType } from "$lib/reddit/Media";
+import { findBiggestVariant, type Variant, VariantType } from "$lib/reddit/Media";
 import { convert, type ConvertOptions } from "$lib/server/ffmpeg/Gif";
 import { cache } from "$lib/server/cache/";
 import { probeDuration } from "$lib/server/ffmpeg/Probe";
@@ -20,18 +20,6 @@ type CachedResponse = ({
   error: string | null,
 } | { redirect: string });
 
-function findBestVariant(variants: Variant[]): Variant {
-  let bestVariant: Variant = variants[0];
-  for (const variant of variants) {
-    if (variant.type === VariantType.PartialVideo && bestVariant.type != VariantType.PartialVideo)
-      bestVariant = variant;
-
-    if (variant.dimension && (!bestVariant.dimension || bestVariant.dimension.width < variant.dimension.width))
-      bestVariant = variant;
-  }
-  return bestVariant;
-}
-
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media');
@@ -41,8 +29,8 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     // Find the best available gif and video
     // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
     const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
-    const gif = findBestVariant(variants.filter(m => m.type === VariantType.GIF));
-    const video = findBestVariant(variants.filter(m => m.type === VariantType.Video || m.type === VariantType.PartialVideo));
+    const gif = findBiggestVariant(variants.filter(m => m.type === VariantType.GIF));
+    const video = findBiggestVariant(variants.filter(m => m.type === VariantType.Video || m.type === VariantType.PartialVideo));
     const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
     let convertError = null;
 

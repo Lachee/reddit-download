@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { type Media, type Variant, VariantType } from "$lib/reddit/Media";
+import { findBiggestVariant, type Media, type Variant, VariantType } from "$lib/reddit/Media";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
 import { range } from "$lib/server/Range";
@@ -16,37 +16,18 @@ interface CachedResponse extends Cacheable {
   status: number,
 }
 
-function findBestMedia(collection: Media[]): Media {
-  let bestMedia: Media | undefined = undefined;
-  let bestVariant: Variant | undefined = undefined;
-  for (const media of collection) {
-    const variant = media.variants.find(v => v.type === VariantType.Image);
-    if (!bestMedia || !bestVariant || (variant && variant.dimension && bestVariant.dimension && variant.dimension.width > bestVariant.dimension.width)) {
-      bestMedia = media;
-      bestVariant = variant;
-    }
-  }
-  return bestMedia ?? collection[0];
-}
-
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media');
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
   const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {
-    const filteredCollection = collection.filter(col => 'variants' in col);
-    const media = mediaId
-                  ? collection.find(col => col.id === mediaId)
-                  : findBestMedia(filteredCollection);
-
-    if (media === undefined)
-      throw new Error('No media found');
+    const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
 
     // Find the best available image and video
     // We will determine if we should convert the video to a image by checking if the video is wider than the image.
-    const best = media.variants.find(m => m.type === VariantType.Image);
-    const { href } = best ?? media.variants[0];
+    const best = findBiggestVariant(variants.filter(m => m.type === VariantType.Image || m.type === VariantType.GIF));
+    const { href } = best ?? variants[0];
     const response = await fetch(href, {
       redirect: 'follow',
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
@@ -59,7 +40,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     return {
       content:  bytes,
       mime:     response.headers.get('Content-Type') ?? 'image/jpg',
-      filename: `${post.id}-${(best ?? media.variants[0]).id}.${poorlyExtrapolatedFileExtension}`,
+      filename: `${post.id}-${(best ?? variants[0]).id}.${poorlyExtrapolatedFileExtension}`,
       status:   response.status,
     } satisfies CachedResponse;
   }, CONTENT_TTL);

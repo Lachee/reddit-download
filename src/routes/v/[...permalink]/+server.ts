@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { type Variant, VariantType, } from "$lib/reddit/Media";
+import { findBiggestVariant, type Variant, VariantType, } from "$lib/reddit/Media";
 import { combine } from "$lib/server/ffmpeg/Combine";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
@@ -17,23 +17,6 @@ interface CachedResponse extends Cacheable {
   status: number
 }
 
-function findBestVariant(variants: Variant[]): Variant {
-  let best: Variant = variants[0];
-
-  for (const variant of variants) {
-    const sumDimension = (dimension: {
-      width: number,
-      height: number
-    } | undefined) => (dimension?.width ?? 1) * (dimension?.height ?? 1);
-
-    if (sumDimension(variant.dimension) > sumDimension(best.dimension)) {
-      best = variant;
-    }
-  }
-
-  return best;
-}
-
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   const mediaId = url.searchParams.get('media');
   const { post, collection } = await query({ permalink: params.permalink, fetch });
@@ -47,9 +30,9 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
           || v.type === VariantType.PartialAudio
       );
 
-    const best = findBestVariant(variants);
-    if (best.type === VariantType.PartialVideo) {
-      const video = best;
+    const biggestVariant = findBiggestVariant(variants);
+    if (biggestVariant.type === VariantType.PartialVideo) {
+      const video = biggestVariant;
       const audio = variants.find(m => m.type === VariantType.PartialAudio);
       if (audio) {
         const buffer = await combine({
@@ -68,7 +51,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     }
 
     // Otherwise, use the best gif or whatever we have as a fallback
-    const { href } = best;
+    const { href } = biggestVariant;
     const response = await fetch(href, {
       redirect: 'follow',
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
@@ -79,7 +62,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     return {
       content:  bytes,
       mime:     response.headers.get('Content-Type') ?? 'video/mp4',
-      filename: `${post.id}-${best.id}.mp4`,
+      filename: `${post.id}-${biggestVariant.id}.mp4`,
       status:   response.status
     }
   }, CONTENT_TTL);

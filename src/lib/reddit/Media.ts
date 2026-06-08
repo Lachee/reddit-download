@@ -68,6 +68,22 @@ export type QueryableMedia = Media & {
 export type QueryableMediaCollection = (Media | QueryableMedia)[];
 export type MediaCollection = Media[];
 
+/**
+ * Finds amongst the given variants, the one with the biggest area.
+ * Missing dimensions are assumed to be 0px, favouring variants that actually report dimensions.
+ */
+export function findBiggestVariant(variant: Variant[]) : Variant | undefined {
+  if (variant.length === 0)
+    return undefined;
+
+  return variant.reduce((a, b) => {
+    const aArea = (a.dimension?.width ?? 0) * (a.dimension?.height ?? 0);
+    const bArea = (b.dimension?.width ?? 0) * (b.dimension?.height ?? 0);
+    return bArea - aArea > 0 ? b : a;
+  });
+}
+
+/** @deprecated use the "findBestXXX" instead */
 export function sort(variants: Variant[], order: VariantType[] = VariantOrder): Variant[] {
   const sorted = order ?? VariantOrder;
 
