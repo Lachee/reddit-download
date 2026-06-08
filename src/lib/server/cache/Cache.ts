@@ -1,6 +1,6 @@
-type Primitive = string | number | boolean | null | Uint8Array<ArrayBuffer>;
+type Primitive = string | number | boolean | null | undefined | Uint8Array<ArrayBuffer>;
+
 export interface Cacheable {
-  [k: string]: Primitive | Record<string, Primitive>
 }
 
 export interface Store {
@@ -27,9 +27,7 @@ export function expired(expiresAt: number): boolean {
 }
 
 
-function keyName(key: CacheKey): string {
-  return key.map(opt => typeof opt === "string" ? opt : opt.toString()).join(":");
-}
+const keyName = (key: CacheKey): string => key.map(opt => typeof opt === "string" ? opt : opt.toString()).join(":");
 
 export class Cache {
   private semaphores = new Map<string, CacheSemaphore<any>>();
@@ -64,20 +62,20 @@ export class Cache {
     await this.store.set(keyStr, value, ttl);
   }
 
-  async getSet<T extends Cacheable>(key : CacheKey, valueFn : () => T | Promise<T>, ttl: number = 0): Promise<T> {
+  async getSet<T extends Cacheable>(key: CacheKey, valueFn: () => T | Promise<T>, ttl: number = 0): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== undefined)
       return cached;
 
     return await this.lock(key, async (store, abort) => {
-     try {
-       const value = await valueFn();
-       store(value);
-       return value;
-     } catch (e) {
-       abort(e);
-       throw e;
-     }
+      try {
+        const value = await valueFn();
+        store(value);
+        return value;
+      } catch (e) {
+        abort(e);
+        throw e;
+      }
     }, ttl);
   }
 
@@ -117,7 +115,7 @@ export class Cache {
     // Store the pending semaphore and run the fn
     this.semaphores.set(keyStr, {
       promise:   semaphore,
-      expiresAt: ttl > 0 ? Date.now() + ttl : 0,
+      expiresAt: ttl > 0 ? Date.now() + (ttl * 1000) : 0,
       completed: false,
     });
 

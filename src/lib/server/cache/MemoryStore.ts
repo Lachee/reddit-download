@@ -5,7 +5,7 @@ type StoreEntry = {
   expiresAt: number;
 }
 
-export function createStore(): Store {
+export default function createStore(): Store {
   const map = new Map<string, StoreEntry>();
   return {
     get<T>(key: string): Promise<T | undefined> {
@@ -21,7 +21,7 @@ export function createStore(): Store {
       console.log('[mem-cache] setting ', key, value);
       map.set(key, {
         value,
-        expiresAt: ttl > 0 ? Date.now() + ttl : 0
+        expiresAt: ttl > 0 ? Date.now() + (ttl * 1000) : 0
       });
       return Promise.resolve();
     },

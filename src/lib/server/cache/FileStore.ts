@@ -1,9 +1,10 @@
 import { expired, type Store } from './Cache';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {  createHash } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { pack, unpack } from 'msgpackr'
 
+const MAX_PAYLOAD_SIZE = 1024 * 1024 * 100; // 100 MB
 const MAGIC = Buffer.from('CH67');
 const HEADER_SIZE = 16;
 
@@ -16,9 +17,9 @@ type FileStoreOptions = {
   directory: string;
 }
 
-export function createStore({
-                              directory = './cache'
-                            }: FileStoreOptions): Store {
+export default function createStore({
+                                      directory = './cache'
+                                    }: FileStoreOptions): Store {
 
   const getFilePath = (key: string): string => {
     const hash = createHash('sha256').update(key).digest('hex');
@@ -43,9 +44,23 @@ export function createStore({
         }
 
         // Extract the payload from the file.
+        if (header.payloadLength <= 0 || header.payloadLength > MAX_PAYLOAD_SIZE) {
+          console.error('[fs-cache] cache-read-error (header payload length exceeded max) ', key);
+          await handle.close();
+          handle = undefined;
+          await this.delete(key);
+          return undefined;
+        }
+
         console.log('[fs-cache] cache-hit ', key);
-        const payload = Buffer.allocUnsafe(header.payloadLength);
-        await handle.read(payload, 0, header.payloadLength, HEADER_SIZE);
+        const payload = Buffer.alloc(header.payloadLength);
+        const result = await handle.read(payload, 0, header.payloadLength, HEADER_SIZE);
+        if (result.bytesRead !== header.payloadLength) {
+          console.error('[fs-cache] cache-read-error (read bytes do not match header) ', key);
+          await this.delete(key);
+          return undefined;
+        }
+
         return unpack(payload) as T;
       } catch (error: any) {
         if (error?.code !== 'ENOENT') {
@@ -66,10 +81,13 @@ export function createStore({
 
       console.log('[fs-cache] writting cache', key, filePath);
       const payload = pack(value);
-      const expiresAt = ttl > 0 ? Date.now() + ttl : 0;
+      const expiresAt = ttl > 0 ? Date.now() + (ttl * 1000) : 0;
       const header = writeHeader({ expiresAt, payloadLength: payload.length });
 
-      const handle = await fs.open(filePath, 'w');
+      // Atomically write the header and payload to a temporary file.
+      // If the write fails, then the cache is not corrupted.
+      const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+      const handle = await fs.open(tempPath, 'wx');
       try {
         await handle.write(header, 0, header.byteLength, 0);
         await handle.write(payload, 0, payload.byteLength, HEADER_SIZE);
@@ -77,6 +95,8 @@ export function createStore({
       } finally {
         await handle.close();
       }
+
+      await fs.rename(tempPath, filePath);
     },
     async delete(key: string): Promise<void> {
       console.log('[fs-cache] deleting ', key);

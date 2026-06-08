@@ -1,6 +1,6 @@
 import { type Store } from './Cache';
 
-export function createStore(): Store {
+export default function createStore(): Store {
     return {
         get<T>(key: string): Promise<T | undefined> {
             return Promise.resolve(undefined);

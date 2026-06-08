@@ -1,12 +1,13 @@
 import type { RequestHandler } from './$types';
-import { fetchPost } from "$lib/reddit/server/Post";
-import { getMediaCollection, queryMediaCollection, type Variant, VariantType, } from "$lib/reddit/server/Media";
+import { type Variant, VariantType, } from "$lib/reddit/server/Media";
 import { combine } from "$lib/server/ffmpeg/Combine";
-import { normalizePermalink } from "$lib/reddit/Utilities";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
 import { range } from "$lib/server/Range";
+import { query } from "$lib/reddit/server";
+import { env } from "$env/dynamic/private";
 
+const CONTENT_TTL = +(env.CACHE_VIDEO_TTL ?? 3600);
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
 interface CachedResponse extends Cacheable {
@@ -35,9 +36,9 @@ function findBestVariant(variants: Variant[]): Variant {
 
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   const mediaId = url.searchParams.get('media');
+  const { post, collection } = await query({ permalink: params.permalink, fetch });
+
   const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {
-    const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const collection = await queryMediaCollection(fetch, getMediaCollection(post))
     console.log({ collection, filtered: collection.filter(m => !mediaId || m.id === mediaId) })
     const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
       .filter(
@@ -81,7 +82,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
       filename: `${post.id}-${best.id}.mp4`,
       status:   response.status
     }
-  });
+  }, CONTENT_TTL);
 
   // Prepare the content and try to do a range for iOS playback
   let content = cached.content;

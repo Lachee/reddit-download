@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/reddit-download.iml" filepath="$PROJECT_DIR$/.idea/reddit-download.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../reddit-download-v1/.idea/reddit-download-v1.iml" filepath="$PROJECT_DIR$/../reddit-download-v1/.idea/reddit-download-v1.iml" />
     </modules>
   </component>
 </project>

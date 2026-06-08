@@ -1,16 +1,12 @@
 import type { RequestHandler } from './$types';
-import { fetchPost } from "$lib/reddit/server/Post";
-import {
-  getMediaCollection,
-  type Media,
-  type Variant,
-  VariantType
-} from "$lib/reddit/server/Media";
-import { normalizePermalink } from "$lib/reddit/Utilities";
+import { type Media, type Variant, VariantType } from "$lib/reddit/server/Media";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
-import {range} from "$lib/server/Range";
+import { range } from "$lib/server/Range";
+import { query } from "$lib/reddit/server";
+import { env } from "$env/dynamic/private";
 
+const CONTENT_TTL = +(env.CACHE_IMAGE_TTL ?? 3600);
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
 interface CachedResponse extends Cacheable {
@@ -20,9 +16,9 @@ interface CachedResponse extends Cacheable {
   status: number,
 }
 
-function findBestMedia(collection : Media[]) : Media {
-  let bestMedia : Media | undefined = undefined;
-  let bestVariant : Variant | undefined = undefined;
+function findBestMedia(collection: Media[]): Media {
+  let bestMedia: Media | undefined = undefined;
+  let bestVariant: Variant | undefined = undefined;
   for (const media of collection) {
     const variant = media.variants.find(v => v.type === VariantType.Image);
     if (!bestMedia || !bestVariant || (variant && variant.dimension && bestVariant.dimension && variant.dimension.width > bestVariant.dimension.width)) {
@@ -36,13 +32,13 @@ function findBestMedia(collection : Media[]) : Media {
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media');
-  const cached = await cache().getSet<CachedResponse>(['GET', url.pathname, mediaId ?? ''], async () => {
-    const post = await fetchPost(fetch, normalizePermalink(params.permalink));
-    const collection = getMediaCollection(post).filter(col => 'variants' in col);
+  const { post, collection } = await query({ permalink: params.permalink, fetch });
 
+  const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {
+    const filteredCollection = collection.filter(col => 'variants' in col);
     const media = mediaId
-                 ? collection.find(col => col.id === mediaId)
-                 : findBestMedia(collection);
+                  ? collection.find(col => col.id === mediaId)
+                  : findBestMedia(filteredCollection);
 
     if (media === undefined)
       throw new Error('No media found');
@@ -53,7 +49,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     const { href } = best ?? media.variants[0];
     const response = await fetch(href, {
       redirect: 'follow',
-      headers: { 'origin': 'reddit.com', 'User-Agent': UserAgent }
+      headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
 
     console.log("Fetching media from", response.headers);
@@ -61,21 +57,21 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     const poorlyExtrapolatedFileExtension = mime.split('/')[1];
     const bytes = new Uint8Array(await response.arrayBuffer());
     return {
-      content: bytes,
-      mime: response.headers.get('Content-Type') ?? 'image/jpg',
+      content:  bytes,
+      mime:     response.headers.get('Content-Type') ?? 'image/jpg',
       filename: `${post.id}-${(best ?? media.variants[0]).id}.${poorlyExtrapolatedFileExtension}`,
-      status: response.status,
+      status:   response.status,
     } satisfies CachedResponse;
-  });
+  }, CONTENT_TTL);
 
 
   // Prepare the content and try to do a range for iOS playback
   let content = cached.content;
   let status = cached.status;
-  let headers: Record<string,string> = {
-    "Content-Type": cached.mime,
+  let headers: Record<string, string> = {
+    "Content-Type":        cached.mime,
     "Content-Disposition": `inline; filename="${cached.filename}"`,
-    "Cache-Control": "public, max-age=3600",
+    "Cache-Control":       "public, max-age=3600",
   }
 
   const slice = range(request, cached.content);
@@ -88,5 +84,5 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     }
   }
 
-  return new Response(content, {status, headers});
+  return new Response(content, { status, headers });
 }
