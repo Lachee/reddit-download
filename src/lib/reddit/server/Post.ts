@@ -2,8 +2,17 @@ import { z } from 'zod';
 import { authenticate } from "$lib/reddit/server/Authentication";
 import postSchema, { type Post } from "$lib/reddit/schema/postSchema";
 import { follow } from "$lib/reddit/server/Links";
+import { error } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
+
+const ALLOW_NSFW = (env.ALLOW_NSFW ?? '').toLowerCase() === 'true';
+const DENY_SUBREDDITS = (env.DENY_SUBREDDITS ?? '').split(',').map(s => s.trim());
+
+const matchSubreddit = (pattern: string, subreddit: string) => {
+  return pattern.toLowerCase() === subreddit.toLowerCase();
+}
 
 const thingSchema = z.object({
   kind: z.string(),
@@ -36,17 +45,18 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
     }
   })
 
+  if (response.status === 404)
+    throw error(404, 'NOT_FOUND: The post could not be found.');
+
   if (response.status !== 200)
-    throw new Error('Failed to fetch post: ' + response.status + " " + response.statusText)
+    throw error(response.status, "BAD_RESPONSE: Reddit responded with a bad status code. " + response.statusText);
 
   // Reddit for some reason breaks the node Response.json().
   const text = await response.text();
   const json = JSON.parse(text);
   const validation = postResponseSchema.safeParse(json);
-  if (!validation.success) {
-    console.error('Failed to parse post response:', validation.error.message, json);
-    throw new Error('Failed to parse post response: ' + validation.error.message);
-  }
+  if (!validation.success)
+    throw error(500, 'BAD_RESPONSE: Reddit responded with an invalid response.');
 
   // Find the first listing child that is a post
   let post: Post | undefined;
@@ -67,9 +77,16 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
   }
 
 
-  if (post === undefined)
-    throw new Error('Failed to find post in response');
+  if (post === undefined || post === null)
+    throw error(404, 'NOT_FOUND: The post could not be found.');
 
-  postSchema.parse(post);
+  // Ensure the post is not NSFW if we do not allow it
+  if (!ALLOW_NSFW && post.over_18)
+    throw error(403, 'DENY_NSFW: The post is NSFW and NSFW posts are not allowed.');
+
+  // Ensure the post is not in the deny listed subreddit
+  if (DENY_SUBREDDITS.some(pattern => matchSubreddit(pattern, post.subreddit)))
+    throw error(403, 'DENY_SUBREDDIT: The post is in a subreddit that is not allowed.')
+
   return post;
 }

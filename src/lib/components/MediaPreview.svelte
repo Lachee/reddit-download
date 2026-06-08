@@ -1,6 +1,6 @@
 <script lang="ts">
     import type {Post} from "$lib/reddit/schema/postSchema";
-    import {type Media, type Variant, VariantType, sort as sortVariants} from "$lib/reddit/server/Media";
+    import {type Media, VariantType, sort} from "$lib/reddit/Media";
     import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
     import GifIcon from "$lib/components/icons/GifIcon.svelte"
     import IconButton from "$lib/components/IconButton.svelte";
@@ -15,7 +15,7 @@
     } = $props();
 
     let asGif = $state(false);
-    let variant = $derived(sortVariants(media.variants)[0]);
+    let variant = $derived(sort(media.variants)[0]);
     let type = $derived(variant.type);
 
     let mediaElement: HTMLImageElement | HTMLVideoElement  | undefined = $state();

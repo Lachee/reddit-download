@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { type Media, type Variant, VariantType } from "$lib/reddit/server/Media";
+import { type Media, type Variant, VariantType } from "$lib/reddit/Media";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
 import { range } from "$lib/server/Range";

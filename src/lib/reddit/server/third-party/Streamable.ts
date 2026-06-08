@@ -1,5 +1,5 @@
 import type { OembedProvider } from "$lib/reddit/server/third-party/index";
-import { type Variant, VariantType } from "$lib/reddit/server/Media";
+import { type Variant, VariantType } from "$lib/reddit/Media";
 
 const streamable: OembedProvider = async (fetch, oembed): Promise<Variant[]> => {
   const iframe = oembed.html;

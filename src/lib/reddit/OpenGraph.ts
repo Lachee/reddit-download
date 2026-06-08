@@ -1,21 +1,14 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
 import type { OGPProperty } from "$lib/components/OpenGraph.svelte";
-import {
-  getMediaCollection,
-  type Variant,
-  sort,
-  VariantType,
-  VariantOrder,
-  type MediaCollection, MediaType, type Media
-} from "$lib/reddit/server/Media";
+import { type Media, type MediaCollection, MediaType, VariantType } from "$lib/reddit/Media";
 import { page } from '$app/state';
 import { normalizePermalink } from "$lib/reddit/Utilities";
 
 
-export function getOpenGraphProperties(post: Post, collection : MediaCollection): OGPProperty[] {
+export function getOpenGraphProperties(post: Post, collection: MediaCollection): OGPProperty[] {
   const permalink = normalizePermalink(post.permalink);
   const properties: OGPProperty[] = [
-    { name: 'og:site_name', content: post.url ?? post.title},
+    { name: 'og:site_name', content: post.url ?? post.title },
     { name: 'og:title', content: post.title },
     { name: 'og:url', content: new URL(`/${permalink}`, page.url.origin).toString() },
     { name: 'twitter:site', content: '@reddit' },
@@ -46,7 +39,7 @@ export function getOpenGraphProperties(post: Post, collection : MediaCollection)
   } else if (collection.some(c => c.type === MediaType.Gallery)) {
     // Gallery Post
     const gallery = collection.filter(c => c.type === MediaType.Gallery);
-    for(const media of gallery) {
+    for (const media of gallery) {
       pushImage(properties, media, permalink);
     }
   } else {
@@ -59,7 +52,7 @@ export function getOpenGraphProperties(post: Post, collection : MediaCollection)
 }
 
 
-function pushImage(properties: OGPProperty[], media : Media, permalink : string) {
+function pushImage(properties: OGPProperty[], media: Media, permalink: string) {
   const gifLink = new URL(`/g${permalink.substring(1)}`, page.url.origin).toString();
   const imageLink = new URL(`/i${permalink.substring(1)}`, page.url.origin).toString();
 

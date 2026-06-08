@@ -5,7 +5,7 @@
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import Badge from "$lib/components/Badge.svelte";
   import MediaPreview from "$lib/components/MediaPreview.svelte";
-  import { MediaType } from "$lib/reddit/server/Media";
+  import { MediaType } from "$lib/reddit/Media";
 
   let { data }: { data: PageData } = $props();
   let { post, type, collection } = $derived(data);

@@ -6,71 +6,16 @@ import type { Video } from "$lib/reddit/schema/videoSchema";
 import type { PreviewImage, PreviewImageVariant } from "$lib/reddit/schema/previewImageSchema";
 import { fetchOembedVariants } from "$lib/reddit/server/third-party/index";
 
-type Fetch = typeof window.fetch;
+import {
+  type Media,
+  type MediaCollection,
+  MediaType, type Mime,
+  type QueryableMedia,
+  type QueryableMediaCollection,
+  type Variant, VariantOrder,
+  VariantType
+} from "$lib/reddit/Media";
 
-export type Mime =
-  'image/png' | 'image/jpeg' | 'image/gif' | 'video/mp4' | 'audio/mp4';
-
-export enum VariantType {
-  /** Presentable actual image */
-  Image        = 'image',
-  /** Blured preview image */
-  Blur         = 'blur',
-  /** Animated image (GIF) */
-  GIF          = 'gif',
-  /** Presentable Video */
-  Video        = 'video',
-  /** Video Clip that requires combining with PartialAudio */
-  PartialVideo = 'video_only',
-  /** Partial audio channel that needs combing with a VideoClip */
-  PartialAudio = 'audio_only',
-}
-
-export const VariantOrder = [
-  VariantType.GIF,
-  VariantType.PartialVideo,
-  VariantType.Video,
-  VariantType.Image,
-  VariantType.PartialAudio,
-  VariantType.Blur,
-];
-
-export type Variant = {
-  id: string
-  mime: Mime
-  type: VariantType
-  href: string
-  dimension?: { width: number, height: number }
-}
-
-export enum MediaType {
-  SecureVideo  = 'secure_video',
-  PreviewVideo = 'preview_video',
-  PreviewImage = 'preview_image',
-  Gallery      = 'gallery',
-  Overridden   = 'overridden',
-  Thumbnail    = 'thumbnail',
-}
-
-/** All variants of a single piece of media */
-export type Media = {
-  /** The ID of the media. This is used to group media together. */
-  id: string,
-  /** Type of the collection. Gallery image, Secure Media, etc */
-  type: MediaType,
-  /** The optional sorting. If multiple items are present this can be used to show in the correct order. */
-  sort?: number,
-  /** All the variants of the media */
-  variants: Variant[]
-}
-
-/** All variants of a single piece of media that isn't yet resolved */
-export type QueryableMedia = Media & {
-  query: (fetch: Fetch) => Promise<Variant[]>
-}
-
-export type QueryableMediaCollection = (Media | QueryableMedia)[];
-export type MediaCollection = Media[];
 
 export function getMediaCollection(post: Post): QueryableMediaCollection {
   if (post === undefined)
@@ -227,7 +172,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
  * fetches all the metadata of a post's media.
  * Any DASH manifests are downloaded and parsed.
  */
-export async function queryMediaCollection(svelteFetch: Fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
+export async function queryMediaCollection(svelteFetch: typeof window.fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
   console.log('querying media collection', collection);
   const queryable: Promise<Media>[] = collection.filter(c => 'query' in c)
     .map(c => Promise.resolve().then(
@@ -245,20 +190,6 @@ export async function queryMediaCollection(svelteFetch: Fetch, collection: Query
   const media = await Promise.all(queryable);
   media.push(...collection.filter(c => !('query' in c)));
   return media;
-}
-
-export function sort(variants: Variant[], order: VariantType[] = VariantOrder): Variant[] {
-  const sorted = order ?? VariantOrder;
-
-  return [ ...variants ].sort((a: Variant, b: Variant) => {
-    const variantDiff = sorted.indexOf(a.type) - sorted.indexOf(b.type);
-    if (variantDiff !== 0)
-      return variantDiff;
-
-    const aArea = (a.dimension?.width ?? 0) * (a.dimension?.height ?? 0);
-    const bArea = (b.dimension?.width ?? 0) * (b.dimension?.height ?? 0);
-    return bArea - aArea;
-  });
 }
 
 /**
@@ -391,7 +322,7 @@ function getMediaCollectionFromPreview(images: PreviewImage[]): MediaCollection 
 }
 
 /** Downloads and parses the DASH manifest from the secure_media.reddit_video.dash_url. */
-async function fetchDashMediaFromRedditVideo(fetch: Fetch, redditVideo: Video): Promise<Variant[]> {
+async function fetchDashMediaFromRedditVideo(fetch: typeof window.fetch, redditVideo: Video): Promise<Variant[]> {
 
   if (!redditVideo.dash_url)
     throw new Error('SecureMedia does not contain a dash_url');

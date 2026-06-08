@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { type Variant, VariantType } from "$lib/reddit/server/Media";
+import { type Variant, VariantType } from "$lib/reddit/Media";
 import { convert, type ConvertOptions } from "$lib/server/ffmpeg/Gif";
 import { cache } from "$lib/server/cache/";
 import { probeDuration } from "$lib/server/ffmpeg/Probe";

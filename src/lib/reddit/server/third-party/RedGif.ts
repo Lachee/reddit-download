@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { OembedProvider } from "$lib/reddit/server/third-party/index";
-import { type Variant, VariantType } from "$lib/reddit/server/Media";
+import { type Variant, VariantType } from "$lib/reddit/Media";
 
 const USER_AGENT: string = "redgifs (https://github.com/lachee/reddit-downloader 1.0.0) TypeScript/2.4.1"
 let authToken: string | undefined;

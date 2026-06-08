@@ -1,9 +1,4 @@
 <script lang="ts">
-
-
-  import type { Post } from "$lib/reddit/schema/postSchema";
-  import type { Media } from "$lib/reddit/server/Media";
-
   let {
         mediaElement,
         width,

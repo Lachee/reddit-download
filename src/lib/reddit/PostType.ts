@@ -1,16 +1,16 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
-import { type Media, type QueryableMedia, VariantType } from "$lib/reddit/server/Media";
+import { type Media, type QueryableMedia, VariantType } from "$lib/reddit/Media";
 
 export enum PostType {
-  Video = 'video',
-  GIF = 'gif',
-  Image = 'image',
+  Video   = 'video',
+  GIF     = 'gif',
+  Image   = 'image',
   Gallery = 'gallery',
-  Text = 'text',
+  Text    = 'text',
 }
 
 
-export function getPostType(post : Post, collections : (Media | QueryableMedia)[]) : PostType {
+export function getPostType(post: Post, collections: (Media | QueryableMedia)[]): PostType {
   let type = PostType.Text;
   if (collections.some(c => c.type === 'secure_video' || c.type === 'preview_video')
     || collections.some(c => 'variants' in c && c.variants.some(m => m.type === VariantType.Video))) {
