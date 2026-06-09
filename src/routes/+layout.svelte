@@ -4,6 +4,7 @@
 
     import "./layout.css";
     import LoadingBar from "$lib/components/LoadingBar.svelte";
+    import ThemeToggle from "$lib/components/ThemeToggle.svelte";
     let { children } = $props();
 
     let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
@@ -24,7 +25,8 @@
                 <span class="bg-orange-600 text-white p-1 rounded">DL</span>
                 <span>Reddit</span>
             </a>
-            <div class="flex gap-6 text-sm font-medium dark:text-stone-50">
+            <div class="flex gap-6 text-sm font-medium dark:text-stone-50 items-center">
+                <ThemeToggle />
                 <a href="https://github.com/Lachee/reddit-download/" target="_blank" class="hover:text-orange-600">GitHub</a>
             </div>
         </nav>

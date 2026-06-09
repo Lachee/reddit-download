@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
-
 @theme {
     --color-cliff-50: #c5aea7;
     --color-cliff-100: #e3d3cc;
@@ -11,4 +10,16 @@
     --color-cliff-800: #090807;
     --color-cliff-900: #0b0a09;
     --color-cliff-950: #000;
+}
+
+@custom-variant dark {
+    &:where([data-theme="dark"], [data-theme="dark"] *) {
+        @slot;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        &:where([data-theme="auto"], [data-theme="auto"] *) {
+            @slot;
+        }
+    }
 }
