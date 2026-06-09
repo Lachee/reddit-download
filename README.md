@@ -1,6 +1,8 @@
 # Reddit Download
 Download reddit media without the faff. 
 
+[dl-reddit.com](https://dl-reddit.com/)
+
 This tool will allow you to download any video, image, or gif from Reddit without the hassle of the app or following links.
 It will remerge secure video, generate gifs, handle third-party oembeds, and more:
 
@@ -18,10 +20,21 @@ It will remerge secure video, generate gifs, handle third-party oembeds, and mor
 - Complete OpenGraph for Discord
 
 ## Live Site
-The live site is available at [dl-reddit.com](dl-reddit.com), running everything here on this repo. 
+The live site is available at [dl-reddit.com](https://dl-reddit.com), running everything here on this repo. 
 You can download any posts by going to `dl-reddit.com/r/subreddit/post`.
 
 > Just add `dl-` to the front of any reddit link!
+
+Some examples can be found in `TEST-POSTS.md`:
+
+| Reddit URL | DL URL |
+| --- | --- |
+| [r/nba/comments/1ty68vr/karlanthony_towns_if_you_lose_a_parentyou_just/](https://www.reddit.com/r/nba/comments/1ty68vr/karlanthony_towns_if_you_lose_a_parentyou_just/) | [dl-reddit.com/r/nba/comments/1ty68vr/karlanthony_towns_if_you_lose_a_parentyou_just/](https://dl-reddit.com/r/nba/comments/1ty68vr/karlanthony_towns_if_you_lose_a_parentyou_just/) |
+| [r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/](https://www.reddit.com/r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/) | [dl-reddit.com/r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/](https://dl-reddit.com/r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/) |
+| [r/ffxiv/comments/124meh9/microwaved_lalashark/](https://www.reddit.com/r/ffxiv/comments/124meh9/microwaved_lalashark/) | [dl-reddit.com/r/ffxiv/comments/124meh9/microwaved_lalashark/](https://dl-reddit.com/r/ffxiv/comments/124meh9/microwaved_lalashark/) |
+| [r/rupaulsdragrace/comments/1ty81bn/i_need_old_untucked_back - ](https://www.reddit.com/r/rupaulsdragrace/comments/1ty81bn/) | [dl-reddit.com/r/rupaulsdragrace/comments/1ty81bn/i_need_old_untucked_back - ](https://dl-reddit.com/r/rupaulsdragrace/comments/1ty81bn/i_need_old_untucked_back) |
+
+<img width="1371" height="1273" alt="firefox_rKeSdBXPap" src="https://github.com/user-attachments/assets/375eb28b-6db0-4ab9-a645-d6287de4cd6f" />
 
 ## Self Hosting
 There is a docker container available for self hosting. I encourage self-hosted versions for speed, privacy, and control.
