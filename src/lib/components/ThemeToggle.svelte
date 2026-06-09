@@ -37,7 +37,7 @@
     }
 </script>
 
-<button type="button" onclick={onClick} class="relative grid size-10 place-items-center cursor-pointer">
+<button type="button" onclick={onClick} class="relative grid size-10 place-items-center cursor-pointer hover:text-orange-600 transition-colors">
     {#key mode}
         <span
                 class="absolute inset-0 grid place-items-center"
