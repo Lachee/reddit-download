@@ -26,6 +26,7 @@ It will remerge secure video, generate gifs, handle third-party oembeds, and mor
 The live site is available at [dl-reddit.com](https://dl-reddit.com), running everything here on this repo. 
 You can download any posts by going to `dl-reddit.com/r/subreddit/post`.
 
+> [!TIP]  
 > Just add `dl-` to the front of any reddit link!
 
 Some examples can be found in `TEST-POSTS.md`:
@@ -60,8 +61,9 @@ Firstly there are the reddit related configuration:
 | `REDDIT_CLIENT_SECRET` | Your Reddit client secret | -                      | 
 | `REDDIT_USERNAME` | Your Reddit username | -                      |
 | `REDDIT_PASSWORD` | Your Reddit password | -                      |
-| `ALLOW_NSFW` | if `true`, then NSFW posts can be downloaded | `'true'` or `'false'`  |
-| `ALLOW_EOMBED` | A comma-separated list of allowed oembed providers | `'Streamable,RedGIFs'` |
+| `ALLOW_NSFW` | Allows NSFW posts from being looked up.  | `'true'` or `'false'`  |
+| `ALLOW_EOMBED` | A comma-separated list of allowed oembed providers. They will be excluded from media variants. | `'Streamable,RedGIFs'` |
+| `DENY_SUBREDDITS` | A comma-seperated list of banned subreddits. Lookup of posts on these subreddits will be blocked | `'aiArt,generativeAI'` |
 
 > [!IMPORTANT]  
 > **Why do i need to give my password?!**
@@ -81,8 +83,12 @@ As for the cache, there are numerous options available:
 | `CACHE_VIDEO_TTL` | Duration of the video cache in seconds             | `604800`                            |
 | `CACHE_GIF_TTL` | Duration of the gif cache in seconds               | `604800`                             |
 | `CACHE_IMAGE_TTL` | Duration of the image cache in seconds             | `604800`        |
-| `REDIS_URL` | A comma-separated list of allowed oembed providers | `'Streamable,RedGIFs'`        |
-| `FILE_CACHE_DIR` | A comma-separated list of allowed oembed providers | `'Streamable,RedGIFs'`        |
+| `REDIS_URL` | If using the `redis` cache, the URL for the server | `redis://localhost:6379/0`        |
+| `FILE_CACHE_DIR` | If using the `file` cache, directory to store the cached data. | `/cache`        |
+
+> [!NOTE]  
+> The docker container does **not** include a Redis server. You must provide your own.
+
 
 ## Making a "Application": How to get a CLIENT_ID 
 Reddit has made things more difficult, as always. They have hidden the old way of making apps and now expect developers to make a "game" or some other wacky contraption for reddit. 
