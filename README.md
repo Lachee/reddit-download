@@ -19,6 +19,9 @@ It will remerge secure video, generate gifs, handle third-party oembeds, and mor
 - Self Hosted
 - Complete OpenGraph for Discord
 
+<img width="800" height="388" alt="firefox_gcomfdh9sN-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/c22c90bf-4981-4322-822f-6b0ca2dc2156" />
+
+
 ## Live Site
 The live site is available at [dl-reddit.com](https://dl-reddit.com), running everything here on this repo. 
 You can download any posts by going to `dl-reddit.com/r/subreddit/post`.
