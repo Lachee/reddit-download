@@ -4,6 +4,7 @@ import postSchema, { type Post } from "$lib/reddit/schema/postSchema";
 import { follow } from "$lib/reddit/server/Links";
 import { error } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
+import { DENY_NSFW, DENY_SUBREDDIT, DENY_YOUTUBE, NOT_FOUND } from "$lib/Errors";
 
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
@@ -78,15 +79,19 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
 
 
   if (post === undefined || post === null)
-    throw error(404, 'NOT_FOUND: The post could not be found.');
+    throw error(404, NOT_FOUND + ': The post could not be found.');
+
+  // Don't allow youtube videos. This isn't a YouTube downloader.
+  if (post.secure_media?.oembed?.provider_url === 'https://www.youtube.com/')
+    throw error(400, DENY_YOUTUBE + ': The post contains a youtube video.')
 
   // Ensure the post is not NSFW if we do not allow it
   if (!ALLOW_NSFW && post.over_18)
-    throw error(403, 'DENY_NSFW: The post is NSFW and NSFW posts are not allowed.');
+    throw error(451, DENY_NSFW + ': The post is NSFW and NSFW posts are not allowed.');
 
   // Ensure the post is not in the deny listed subreddit
   if (DENY_SUBREDDITS.some(pattern => matchSubreddit(pattern, post.subreddit)))
-    throw error(403, 'DENY_SUBREDDIT: The post is in a subreddit that is not allowed.')
+    throw error(451, DENY_SUBREDDIT + ': The post is in a subreddit that is not allowed.')
 
   return post;
 }

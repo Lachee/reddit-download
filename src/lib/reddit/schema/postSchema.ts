@@ -51,7 +51,7 @@ const postSchema =  z.object({
     enabled: z.boolean().optional(),
   }).loose().optional(),
 
-  media: z.unknown().nullable().optional(),
+  media: secureMediaSchema.nullable().optional(),
   secure_media: secureMediaSchema.nullable().optional(),
   media_metadata: z.record(z.string(), mediaMetadataItemSchema).optional(),
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import SearchBar from "$lib/components/SearchBar.svelte";
+  import { ErrorMessages, StatusMessages } from "$lib/Errors";
 
   let message = $state('');
   let title = $state('');
@@ -8,39 +9,16 @@
 
   $effect(() => {
     if (page.error) {
-      switch (page.status) {
-        case 404:
-          message = 'The post could not be found.';
-          title = '404 | Not Found';
-          break;
-        case 403:
-          message = 'This post is inaccessible to you at the moment. ';
-          title = '403 | Forbidden';
-          break;
-        default:
-          message = 'An unknown error has occured. ' + page.error.message;
-          title = page.status + ' | Unknown Error'
-          break;
-      }
+      const err = StatusMessages[page.status] ?? { title: 'Unknown Error', message: page.error.message };
+      message = err.message;
+      title = err.title;
 
       const parts = page.error.message.split(':', 2);
-      if (parts.length > 1) {
-        switch (parts[0].trim()) {
-          default:
-            break;
-          case 'NOT_FOUND':
-            message = 'The post could not be found.';
-            title = '404 | Not Found';
-            break;
-          case 'DENY_NSFW':
-            message = 'The post is NSFW and NSFW posts are not allowed.';
-            title = '403 | Banned: NSFW';
-            break;
-          case 'DENY_SUBREDDIT':
-            message = 'The post is in a subreddit that is not allowed.'
-            title = '403 | Banned: Bad Subreddit';
-            break;
-        }
+      const key = parts[0].trim();
+      const errMsg = ErrorMessages[key];
+      if (errMsg) {
+        message = `${errMsg.message}`;
+        title = errMsg.title;
       }
     }
   })
@@ -55,7 +33,7 @@
         <article class=" dark:text-gray-300">
             <div class="flex min-h-40 flex-col rounded-2xl border border-stone-300 bg-stone-100/89 hover:bg-stone-200 dark:border-cliff-700 dark:bg-cliff-900/80 p-6 transition dark:hover:bg-cliff-800">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-cliff-100">
-                    {title}
+                    {page.status} | {title}
                 </h3>
 
                 <p class="mt-3 flex-1 text-sm text-cliff-300">
