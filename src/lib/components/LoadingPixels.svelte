@@ -5,15 +5,12 @@
         width,
         height,
         pixelSize = 2,
-        gap = 4,
+        gap = 5,
         fit = 'cover',
-        sparkle = 0.18,
+        speed = 35,
         blur = 28,
-        backgroundOpacity = 0.55,
-        rippleAmplitude = 1.6,
-        rippleSpeed = 0.0025,
-        rippleFrequency = 0.05,
-        waveBrightness = 0.32,
+        backgroundOpacity = 0.5,
+        sparkleBrightness = 0.18,
       }: {
     mediaElement: HTMLImageElement | HTMLVideoElement | undefined;
     thumbnail: string | undefined;
@@ -22,13 +19,10 @@
     pixelSize?: number;
     gap?: number;
     fit?: 'cover' | 'contain';
-    sparkle?: number;
+    speed?: number;
     blur?: number;
     backgroundOpacity?: number;
-    rippleAmplitude?: number;
-    rippleSpeed?: number;
-    rippleFrequency?: number;
-    waveBrightness?: number;
+    sparkleBrightness?: number;
   } = $props();
 
   let completed = $state(false);
@@ -39,29 +33,37 @@
 
   let animationFrame: number | undefined;
   let resizeObserver: ResizeObserver | undefined;
+  let timePrevious = performance.now();
+  const timeInterval = 1000 / 60;
 
   type Pixel = {
     x: number;
     y: number;
-    radius: number;
-    color: string;
+
     r: number;
     g: number;
     b: number;
+    color: string;
     alpha: number;
+
+    size: number;
+    sizeStep: number;
+    minSize: number;
+    maxSize: number;
+    maxSizeInteger: number;
+
     delay: number;
-    distanceFromCenter: number;
-    directionX: number;
-    directionY: number;
-    shimmerOffset: number;
-    shimmerSpeed: number;
-    twinkleOffset: number;
-    twinkleSpeed: number;
-    twinkleStrength: number;
+    counter: number;
+    counterStep: number;
+
+    speed: number;
+
+    isIdle: boolean;
+    isReverse: boolean;
+    isShimmer: boolean;
   };
 
   let pixels: Pixel[] = [];
-  let startedAt = 0;
 
   function onLoaded() {
     console.log('[bubble] loaded');
@@ -84,20 +86,12 @@
     return Math.max(min, Math.min(max, value));
   }
 
-  function brightenChannel(value: number, amount: number) {
-    return Math.round(value + (255 - value) * amount);
+  function random(min: number, max: number) {
+    return Math.random() * (max - min) + min;
   }
 
-  function getWaveColor(pixel: Pixel, amount: number) {
-    if (amount <= 0.01) return pixel.color;
-
-    return `rgb(${
-      brightenChannel(pixel.r, amount)
-    } ${
-      brightenChannel(pixel.g, amount)
-    } ${
-      brightenChannel(pixel.b, amount)
-    })`;
+  function brightenChannel(value: number, amount: number) {
+    return Math.round(value + (255 - value) * amount);
   }
 
   function getCanvasSize() {
@@ -109,6 +103,37 @@
       width: Math.max(1, Math.floor(rect.width)),
       height: Math.max(1, Math.floor(rect.height)),
     };
+  }
+
+  function getDistanceToCanvasCenter(x: number, y: number, canvasWidth: number, canvasHeight: number) {
+    const dx = x - canvasWidth / 2;
+    const dy = y - canvasHeight / 2;
+
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getPixelColor(pixel: Pixel) {
+    const brightness = clamp(sparkleBrightness, 0, 0.6);
+
+    if (!pixel.isShimmer || brightness <= 0) {
+      return pixel.color;
+    }
+
+    const shimmerProgress = clamp(
+      (pixel.size - pixel.minSize) / Math.max(0.001, pixel.maxSize - pixel.minSize),
+      0,
+      1,
+    );
+
+    const amount = brightness * shimmerProgress;
+
+    return `rgb(${
+      brightenChannel(pixel.r, amount)
+    } ${
+      brightenChannel(pixel.g, amount)
+    } ${
+      brightenChannel(pixel.b, amount)
+    })`;
   }
 
   function drawImageToSampleCanvas(
@@ -173,8 +198,9 @@
     const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
     if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
-    const radius = Math.max(0.5, pixelSize);
-    const step = Math.max(1, radius * 2 + gap);
+    const baseSize = Math.max(1, pixelSize);
+    const maxSizeInteger = Math.max(2, Math.ceil(baseSize * 1.8));
+    const step = Math.max(4, gap);
 
     const cols = Math.ceil(canvasWidth / step);
     const rows = Math.ceil(canvasHeight / step);
@@ -202,9 +228,8 @@
       return;
     }
 
+    const particleSpeed = clamp(speed, 0, 100) * 0.001;
     const nextPixels: Pixel[] = [];
-    const centerX = canvasWidth / 2;
-    const centerY = canvasHeight / 2;
 
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
@@ -217,43 +242,45 @@
 
         if (a <= 8) continue;
 
-        const x = col * step + radius;
-        const y = row * step + radius;
+        const x = col * step;
+        const y = row * step;
 
-        const offsetX = x - centerX;
-        const offsetY = y - centerY;
-        const distanceFromCenter = Math.hypot(offsetX, offsetY);
-        const safeDistance = Math.max(1, distanceFromCenter);
-
-        const brightness = (r + g + b) / 765;
+        const minSize = random(0.45, Math.max(0.55, baseSize * 0.45));
+        const maxSize = random(minSize, Math.max(minSize + 0.1, baseSize * 1.45));
 
         nextPixels.push({
           x,
           y,
-          radius,
-          color: `rgb(${r} ${g} ${b})`,
+
           r,
           g,
           b,
+          color: `rgb(${r} ${g} ${b})`,
           alpha: a / 255,
-          delay: distanceFromCenter * 0.9,
-          distanceFromCenter,
-          directionX: offsetX / safeDistance,
-          directionY: offsetY / safeDistance,
-          shimmerOffset: Math.random() * Math.PI * 2,
-          shimmerSpeed: 0.0012 + Math.random() * 0.0018,
-          twinkleOffset: Math.random() * Math.PI * 2,
-          twinkleSpeed: 0.0025 + Math.random() * 0.004,
-          twinkleStrength: clamp((0.16 + brightness * 0.32) * sparkle, 0, 0.4),
+
+          size: 0,
+          sizeStep: Math.random() * 0.35 + 0.05,
+          minSize,
+          maxSize,
+          maxSizeInteger,
+
+          delay: getDistanceToCanvasCenter(x, y, canvasWidth, canvasHeight),
+          counter: 0,
+          counterStep: Math.random() * 4 + (canvasWidth + canvasHeight) * 0.01,
+
+          speed: random(0.1, 0.9) * particleSpeed,
+
+          isIdle: false,
+          isReverse: false,
+          isShimmer: false,
         });
       }
     }
 
     pixels = nextPixels;
-    startedAt = performance.now();
 
     stopAnimation();
-    animate();
+    handleAnimation('appear');
   }
 
   function resizeCanvas() {
@@ -297,84 +324,110 @@
     context.fillRect(0, 0, canvasWidth, canvasHeight);
   }
 
-  function drawCircle(
-    context: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    radius: number,
-    color: string,
-    alpha: number,
-  ) {
-    context.globalAlpha = alpha;
-    context.fillStyle = color;
+  function drawPixel(context: CanvasRenderingContext2D, pixel: Pixel) {
+    const centerOffset = pixel.maxSizeInteger * 0.5 - pixel.size * 0.5;
 
-    context.beginPath();
-    context.arc(x, y, radius, 0, Math.PI * 2);
-    context.fill();
+    context.globalAlpha = pixel.alpha;
+    context.fillStyle = getPixelColor(pixel);
+
+    context.fillRect(
+      pixel.x + centerOffset,
+      pixel.y + centerOffset,
+      pixel.size,
+      pixel.size,
+    );
 
     context.globalAlpha = 1;
   }
 
-  function animate() {
+  function appear(pixel: Pixel, context: CanvasRenderingContext2D) {
+    pixel.isIdle = false;
+
+    if (pixel.counter <= pixel.delay) {
+      pixel.counter += pixel.counterStep;
+      return;
+    }
+
+    if (pixel.size >= pixel.maxSize) {
+      pixel.isShimmer = true;
+    }
+
+    if (pixel.isShimmer) {
+      shimmer(pixel);
+    } else {
+      pixel.size += pixel.sizeStep;
+    }
+
+    drawPixel(context, pixel);
+  }
+
+  function disappear(pixel: Pixel, context: CanvasRenderingContext2D) {
+    pixel.isShimmer = false;
+    pixel.counter = 0;
+
+    if (pixel.size <= 0) {
+      pixel.isIdle = true;
+      return;
+    }
+
+    pixel.size -= 0.1;
+    drawPixel(context, pixel);
+  }
+
+  function shimmer(pixel: Pixel) {
+    if (pixel.size >= pixel.maxSize) {
+      pixel.isReverse = true;
+    } else if (pixel.size <= pixel.minSize) {
+      pixel.isReverse = false;
+    }
+
+    if (pixel.isReverse) {
+      pixel.size -= pixel.speed;
+    } else {
+      pixel.size += pixel.speed;
+    }
+  }
+
+  function handleAnimation(name: 'appear' | 'disappear') {
+    stopAnimation();
+    animationFrame = requestAnimationFrame(() => animate(name));
+  }
+
+  function animate(name: 'appear' | 'disappear') {
     if (!canvasElement) return;
 
     const context = canvasElement.getContext('2d');
     if (!context) return;
 
+    animationFrame = requestAnimationFrame(() => animate(name));
+
+    const timeNow = performance.now();
+    const timePassed = timeNow - timePrevious;
+
+    if (timePassed < timeInterval) return;
+
+    timePrevious = timeNow - (timePassed % timeInterval);
+
     const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
-    const now = performance.now();
-    const elapsed = now - startedAt;
 
     context.clearRect(0, 0, canvasWidth, canvasHeight);
 
     if (pixels.length === 0) {
       drawFallback();
-      animationFrame = requestAnimationFrame(animate);
       return;
     }
 
-    const amplitude = Math.max(0, rippleAmplitude);
-    const speed = Math.max(0, rippleSpeed);
-    const frequency = Math.max(0.001, rippleFrequency);
-    const brightnessAmount = clamp(waveBrightness, 0, 0.75);
-
     for (const pixel of pixels) {
-      const appearProgress = Math.min(1, Math.max(0, (elapsed - pixel.delay) / 240));
-      const easedProgress = 1 - Math.pow(1 - appearProgress, 3);
-
-      const shimmer = Math.sin(now * pixel.shimmerSpeed + pixel.shimmerOffset) * 0.025;
-      const rawTwinkle = Math.sin(now * pixel.twinkleSpeed + pixel.twinkleOffset);
-
-      const twinkle = 1 - Math.pow(Math.max(0, rawTwinkle), 6) * pixel.twinkleStrength;
-
-      const ripplePhase = pixel.distanceFromCenter * frequency - now * speed;
-      const rippleEnvelope = 0.55 + Math.sin(pixel.distanceFromCenter * 0.012 - now * speed * 0.35) * 0.15;
-
-      const rippleSine = Math.sin(ripplePhase);
-      const ripple = rippleSine * amplitude * rippleEnvelope * easedProgress;
-
-      const waveCrest = Math.pow(Math.max(0, rippleSine), 2);
-      const waveLight = waveCrest * brightnessAmount * easedProgress;
-
-      const x = pixel.x + pixel.directionX * ripple;
-      const y = pixel.y + pixel.directionY * ripple;
-
-      const scalePulse = waveCrest * 0.08;
-      const scale = easedProgress * clamp(twinkle + shimmer + scalePulse, 0.58, 1.08);
-
-      const alpha = pixel.alpha * easedProgress * clamp(twinkle + waveCrest * 0.22, 0.5, 1);
-
-      drawCircle(
-        context,
-        x,
-        y,
-        pixel.radius * scale,
-        getWaveColor(pixel, waveLight),
-        alpha,
-      );
+      if (name === 'appear') {
+        appear(pixel, context);
+      } else {
+        disappear(pixel, context);
+      }
     }
 
-    animationFrame = requestAnimationFrame(animate);
+    if (name === 'disappear' && pixels.every((pixel) => pixel.isIdle)) {
+      stopAnimation();
+    }
   }
 
   $effect(() => {
@@ -461,14 +514,19 @@
     void fit;
     void width;
     void height;
-    void sparkle;
-    void rippleAmplitude;
-    void rippleSpeed;
-    void rippleFrequency;
-    void waveBrightness;
+    void speed;
+    void sparkleBrightness;
 
     if (imageElement?.complete) {
       createPixels();
+    }
+  });
+
+  $effect(() => {
+    if (loading) {
+      handleAnimation('appear');
+    } else {
+      handleAnimation('disappear');
     }
   });
 </script>
@@ -515,6 +573,7 @@
         z-index: 1;
         width: 100%;
         height: 100%;
+        image-rendering: pixelated;
     }
 
     .bubble::after {
@@ -523,11 +582,11 @@
         inset: 0;
         z-index: 2;
         pointer-events: none;
-        opacity: 0.5;
+        opacity: 0.42;
 
         background:
-                radial-gradient(circle at 50% 50%, transparent 0%, transparent 48%, rgba(0, 0, 0, 0.28) 100%),
-                linear-gradient(135deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.18));
+                radial-gradient(circle at 50% 50%, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.32) 100%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.16));
 
         animation: bubble-highlight 3s ease-in-out infinite alternate;
     }
@@ -550,12 +609,12 @@
 
     @keyframes bubble-highlight {
         0% {
-            opacity: 0.38;
+            opacity: 0.34;
             transform: scale(1);
         }
 
         100% {
-            opacity: 0.54;
+            opacity: 0.5;
             transform: scale(1.018);
         }
     }
