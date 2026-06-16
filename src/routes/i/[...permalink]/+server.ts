@@ -1,10 +1,12 @@
 import type { RequestHandler } from './$types';
-import { findBiggestVariant, type Media, type Variant, VariantType } from "$lib/reddit/Media";
+import { findBiggestVariant, findSmallestVariant, MediaType, VariantType } from "$lib/reddit/Media";
 import { cache } from "$lib/server/cache/";
 import type { Cacheable } from "$lib/server/cache/Cache";
 import { range } from "$lib/server/Range";
 import { query } from "$lib/reddit/server";
 import { env } from "$env/dynamic/private";
+
+export const trailingSlash = 'always';
 
 const CONTENT_TTL = +(env.CACHE_IMAGE_TTL ?? 3600);
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
@@ -22,18 +24,23 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
   const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {
-    const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
+    const variants = mediaId === 'thumbnail'
+                     ? collection.flatMap(m => m.variants)
+                     : collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
 
     // Find the best available image and video
     // We will determine if we should convert the video to a image by checking if the video is wider than the image.
-    const best = findBiggestVariant(variants.filter(m => m.type === VariantType.Image || m.type === VariantType.GIF));
+    const best = mediaId === 'thumbnail'
+                                  ? findSmallestVariant(variants)
+                                  : findBiggestVariant(variants.filter(m => m.type === VariantType.Image || m.type === VariantType.GIF))
+
     const { href } = best ?? variants[0];
     const response = await fetch(href, {
       redirect: 'follow',
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
 
-    console.log("Fetching media from", response.headers);
+    console.log("Fetching media", response.headers.get('Content-Type'));
     const mime = response.headers.get('Content-Type') ?? 'image/jpg';
     const poorlyExtrapolatedFileExtension = mime.split('/')[1];
     const bytes = new Uint8Array(await response.arrayBuffer());

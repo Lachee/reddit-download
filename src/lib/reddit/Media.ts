@@ -83,6 +83,22 @@ export function findBiggestVariant(variant: Variant[]) : Variant | undefined {
   });
 }
 
+/**
+ * Finds amongst the given variants, the one with the smallest area.
+ * Missing dimensions are assumed to be 999999px, favouring variants that actually report dimensions.
+ */
+export function findSmallestVariant(variant: Variant[]) : Variant | undefined {
+  const INVALID = 999_999
+  if (variant.length === 0)
+    return undefined;
+
+  return variant.reduce((a, b) => {
+    const aArea = (a.dimension?.width ?? INVALID) * (a.dimension?.height ?? INVALID);
+    const bArea = (b.dimension?.width ?? INVALID) * (b.dimension?.height ?? INVALID);
+    return aArea - bArea > 0 ? b : a;
+  });
+}
+
 /** @deprecated use the "findBestXXX" instead */
 export function sort(variants: Variant[], order: VariantType[] = VariantOrder): Variant[] {
   const sorted = order ?? VariantOrder;
