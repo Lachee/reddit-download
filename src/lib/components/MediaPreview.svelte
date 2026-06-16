@@ -1,12 +1,12 @@
 <script lang="ts">
-    import type {Post} from "$lib/reddit/schema/postSchema";
-    import {type Media, VariantType, sort} from "$lib/reddit/Media";
-    import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
-    import GifIcon from "$lib/components/icons/GifIcon.svelte"
-    import IconButton from "$lib/components/IconButton.svelte";
-    import LoadingBubble from "$lib/components/LoadingBubble.svelte";
+  import type { Post } from "$lib/reddit/schema/postSchema";
+  import { type Media, sort, VariantType } from "$lib/reddit/Media";
+  import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
+  import GifIcon from "$lib/components/icons/GifIcon.svelte"
+  import IconButton from "$lib/components/IconButton.svelte";
+  import LoadingPixels from "$lib/components/LoadingPixels.svelte";
 
-    let {
+  let {
         post,
         media
     }: {
@@ -41,6 +41,7 @@
         post.url?.endsWith('.gifv')
     );
 
+
     function download(url: string) {
         const a = document.createElement('a')
         a.href = url
@@ -69,12 +70,11 @@
 
 </script>
 
-
 <div
         class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
         style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
 >
-    <LoadingBubble mediaElement={mediaElement} width={width} height={height} />
+    <LoadingPixels mediaElement={mediaElement} width={width} height={height} thumbnail="/i/{post.permalink.substring(3)}?media=thumbnail"/>
     <div class="w-full h-full">
         {#if type === VariantType.GIF || asGif }
             <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}?media={media.id}"
