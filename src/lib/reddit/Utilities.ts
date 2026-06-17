@@ -7,7 +7,12 @@ export function normalizePermalink(input: string): string {
     return match?.[1] ?? url;
   }
 
-  return url
+  let permalink = url
     .replace(/^\/+/, '')
     .replace(/^(?!r\/)/, 'r/');
+
+  if (!permalink.endsWith('/'))
+    permalink += '/';
+
+  return permalink;
 }
