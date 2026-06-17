@@ -16,7 +16,7 @@ export default function createStore({
       return _lazyRedisClient;
 
     _lazyRedisClient = createClient({
-      url:            url,
+      url:             url,
       RESP:            3,
       clientSideCache: {
         ttl:         0,                 // Time-to-live (0 = no expiration)
@@ -33,6 +33,11 @@ export default function createStore({
     await _lazyRedisClient.connect();
     return _lazyRedisClient;
   }
+
+  console.log('[cache][redis] Preparing the redis cache at address ', url)
+  prepareClient()
+    .then(_ => console.log('[cache][redis] Redis connected successfully'))
+    .catch(e => console.error('[cache][redis] Failed to connect to redis', e));
 
   return {
     async get<T>(key: string): Promise<T | undefined> {

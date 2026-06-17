@@ -36,7 +36,7 @@ export const cache = () => {
     instance = new Cache(createStore());
 
     // Once an hour, tell the cache to clean itself up.
-    setInterval(() => instance?.clean(), 1000 * 60 * 60);
+    setInterval(() => instance?.clean(), +(env.CACHE_GC_RATE ?? 3600) * 1000);
   }
 
   return instance;

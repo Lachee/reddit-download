@@ -5,80 +5,96 @@
   import GifIcon from "$lib/components/icons/GifIcon.svelte"
   import IconButton from "$lib/components/IconButton.svelte";
   import LoadingPixels from "$lib/components/LoadingPixels.svelte";
+  import { normalizePermalink } from "$lib/reddit/Utilities.ts";
 
   let {
         post,
         media
-    }: {
-        post: Post,
-        media: Media
-    } = $props();
+      }: {
+    post: Post,
+    media: Media
+  } = $props();
 
-    let asGif = $state(false);
-    let variant = $derived(sort(media.variants)[0]);
-    let type = $derived(variant.type);
+  let asGif = $state(false);
+  let variant = $derived(sort(media.variants)[0]);
+  let type = $derived(variant.type);
 
-    let mediaElement: HTMLImageElement | HTMLVideoElement  | undefined = $state();
+  let mediaElement: HTMLImageElement | HTMLVideoElement | undefined = $state();
 
-    /** The first variant with a defined dimension, used as baseline for sizing. */
-    const baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.height - a.dimension!.height)[0]);
+  /** The first variant with a defined dimension, used as baseline for sizing. */
+  let baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.height - a.dimension!.height)[0]);
+  let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
+  let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
+  let permalink = $derived(normalizePermalink(post.permalink).substring(2));
 
-    let width = $derived(baselineDimensionalVariant?.dimension?.width ?? 480);
-    let height = $derived(baselineDimensionalVariant?.dimension?.height ?? width / (16 / 9));
+  $effect(() => {
+    void post;
+    asGif = false;
+  })
 
-    $effect(() => {
-      void post;
-      asGif = false;
-    })
+  $effect(() => {
+    console.log('[media] post:', { post, media, variant, type, width, height });
+  })
 
-    $effect(() => {
-      console.log('[media] post:', { post, media, variant, type, width, height });
-    })
-
-    const isGifVideo = $derived(
-        post.secure_media?.reddit_video?.is_gif ||
-        post.preview?.reddit_video_preview?.is_gif ||
-        post.url?.endsWith('.gifv')
-    );
+  const isGifVideo = $derived(
+    post.secure_media?.reddit_video?.is_gif ||
+    post.preview?.reddit_video_preview?.is_gif ||
+    post.url?.endsWith('.gifv')
+  );
 
 
-    function download(url: string) {
-        const a = document.createElement('a')
-        a.href = url
-        a.download = media.id
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-    }
+  function download(url: string) {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = media.id
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
 
-    function onDownloadClick() {
-        const url = type === VariantType.GIF || asGif
-            ? `/g/${post.permalink.substring(3)}?media=${media.id}`
-            : (
-                type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio
-                    ? `/v/${post.permalink.substring(3)}?media=${media.id}`
-                    : `/i/${post.permalink.substring(3)}?media=${media.id}`
-            )
-        download(url);
-    }
+  function onDownloadClick() {
+    const url = type === VariantType.GIF || asGif
+                ? `/g/${permalink}?media=${media.id}`
+                : (
+                  type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio
+                  ? `/v/${permalink}?media=${media.id}`
+                  : `/i/${permalink}?media=${media.id}`
+                )
+    download(url);
+  }
 
-    function onGifClick() {
-        // const url = `/g/${post.permalink.substring(3)}?media=${media.id}`;
-        // download(url);
-        asGif = !asGif;
-    }
+  function onGifClick() {
+    // const url = `/g/${permalink}?media=${media.id}`;
+    // download(url);
+    asGif = !asGif;
+  }
 
 </script>
+
+<svelte:head>
+    <link rel="preload" href="/i/{permalink}?media={media.id}&size=thumbnail" as="image" />
+</svelte:head>
 
 <div
         class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
         style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
 >
-    <LoadingPixels mediaElement={mediaElement} width={width} height={height} thumbnail="/i/{post.permalink.substring(3)}?media=thumbnail"/>
+    <LoadingPixels
+            height={height}
+            mediaElement={mediaElement}
+            thumbnail="/i/{permalink}?media={media.id}&size=thumbnail"
+            width={width}
+    />
+
     <div class="w-full h-full">
         {#if type === VariantType.GIF || asGif }
-            <img bind:this={mediaElement} class="w-full h-auto" src="/g/{post.permalink.substring(3)}?media={media.id}"
-                 alt="Cannot Load: {media.id}" />
+            <img
+                    bind:this={mediaElement}
+                    class="w-full h-auto"
+                    src="/g/{permalink}?media={media.id}&size=best"
+                    alt="Cannot Load: {media.id}"
+                    decoding="async"
+            />
         {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
             <video bind:this={mediaElement}
                    class="w-full h-full"
@@ -87,12 +103,17 @@
                    muted={isGifVideo}
                    loop={isGifVideo}
                    playsinline
-                   src="/v/{post.permalink.substring(3)}?media={media.id}"
-                   >
+                   src="/v/{permalink}?media={media.id}&size=best"
+            >
             </video>
         {:else}
-            <img bind:this={mediaElement} class="w-full h-auto" src="/i/{post.permalink.substring(3)}?media={media.id}"
-                 alt="Cannot Load: {media.id}" />
+            <img
+                    bind:this={mediaElement}
+                    class="w-full h-auto"
+                    src="/i/{permalink}?media={media.id}&size=best"
+                    alt="Cannot Load: {media.id}"
+                    decoding="async"
+            />
         {/if}
 
         <div class="absolute top-1 right-1 flex items-center justify-center gap-1 z-20">

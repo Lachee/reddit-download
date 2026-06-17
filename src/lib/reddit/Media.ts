@@ -99,6 +99,23 @@ export function findSmallestVariant(variant: Variant[]) : Variant | undefined {
   });
 }
 
+/**
+ * Find the variant that is closest to the given size.
+ * @param variant
+ * @param size
+ */
+export function findClosestToSize(variant : Variant[], size: number) : Variant | undefined {
+  if (variant.length === 0)
+    return undefined;
+
+  const INVALID = Number.MAX_VALUE;
+  return variant.reduce((a, b) => {
+    const aArea = (a.dimension?.width ?? INVALID) * (a.dimension?.height ?? INVALID);
+    const bArea = (b.dimension?.width ?? INVALID) * (b.dimension?.height ?? INVALID);
+    return Math.abs(size - aArea) < Math.abs(size - bArea) ? a : b;
+  });
+}
+
 /** @deprecated use the "findBestXXX" instead */
 export function sort(variants: Variant[], order: VariantType[] = VariantOrder): Variant[] {
   const sorted = order ?? VariantOrder;

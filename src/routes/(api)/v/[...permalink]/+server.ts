@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 import { findBiggestVariant, VariantType, } from "$lib/reddit/Media";
 import { combine } from "$lib/server/ffmpeg/Combine";
-import { cache } from "$lib/server/cache/";
+import { cache } from "$lib/server/cache";
 import { range } from "$lib/server/Range";
 import { query } from "$lib/reddit/server";
 import { env } from "$env/dynamic/private";
@@ -28,6 +28,8 @@ type ErrorCachedResponse = {
 }
 
 type CachedResponse = OkCachedResponse | RedirectCachedResponse | ErrorCachedResponse;
+
+export const trailingSlash = 'always';
 
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   const mediaId = url.searchParams.get('media');

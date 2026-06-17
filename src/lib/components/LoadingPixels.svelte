@@ -29,7 +29,7 @@
   let canvasElement = $state<HTMLCanvasElement>();
   let imageElement = $state<HTMLImageElement>();
 
-  let loading = true; // $derived(!completed || mediaElement === undefined);
+  let loading = $derived(!completed || mediaElement === undefined);
 
   let animationFrame: number | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -334,7 +334,7 @@
     context.arc(
       pixel.x + centerOffset,
       pixel.y + centerOffset,
-      pixel.size,
+      Math.max(1, Math.abs(pixel.size)),
       0,
       Math.PI * 2,
     );

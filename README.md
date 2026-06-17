@@ -76,15 +76,16 @@ Firstly there are the reddit related configuration:
 As for the cache, there are numerous options available:
 
 
-| Environment Variable | Description                                        | Example                       |
-| --- |----------------------------------------------------|-------------------------------|
+| Environment Variable | Description                                        | Example                      |
+| --- |----------------------------------------------------|------------------------------|
 | `CACHE_STORE` | The type of cache to be used                       | `none`, `memory`, `file`, `redis` |
-| `CACHE_POST_TTL` | Duration of the post cache in seconds              | `604800`                              | 
-| `CACHE_VIDEO_TTL` | Duration of the video cache in seconds             | `604800`                            |
-| `CACHE_GIF_TTL` | Duration of the gif cache in seconds               | `604800`                             |
-| `CACHE_IMAGE_TTL` | Duration of the image cache in seconds             | `604800`        |
-| `REDIS_URL` | If using the `redis` cache, the URL for the server | `redis://localhost:6379/0`        |
-| `FILE_CACHE_DIR` | If using the `file` cache, directory to store the cached data. | `/cache`        |
+| `CACHE_POST_TTL` | Duration of the post cache in seconds              | `604800`                             | 
+| `CACHE_VIDEO_TTL` | Duration of the video cache in seconds             | `604800`                           |
+| `CACHE_GIF_TTL` | Duration of the gif cache in seconds               | `604800`                            |
+| `CACHE_IMAGE_TTL` | Duration of the image cache in seconds             | `604800`       |
+| `CACHE_GC_RATE`  | How often should the cache run its cleanup. Not applicable for Redis. |  `3600` | 
+| `REDIS_URL` | If using the `redis` cache, the URL for the server | `redis://localhost:6379/0`       |
+| `FILE_CACHE_DIR` | If using the `file` cache, directory to store the cached data. | `/cache`       |
 
 > [!NOTE]  
 > The docker container does **not** include a Redis server. You must provide your own.

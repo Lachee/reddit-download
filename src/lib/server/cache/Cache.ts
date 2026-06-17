@@ -27,7 +27,7 @@ export function expired(expiresAt: number): boolean {
 }
 
 
-const keyName = (key: CacheKey): string => key.map(opt => typeof opt === "string" ? opt : opt.toString()).join(":");
+const keyName = (key: CacheKey): string => key.map(opt => encodeURIComponent(typeof opt === "string" ? opt : opt.toString())).join(":");
 
 export class Cache {
   private semaphores = new Map<string, CacheSemaphore<any>>();
@@ -37,16 +37,23 @@ export class Cache {
     this.store = store;
   }
 
+  async wait(key: CacheKey): Promise<void> {
+    const semaphore = this.semaphores.get(keyName(key));
+    if (semaphore && !semaphore.completed) {
+      console.log('[cache] waiting for semaphore', keyName(key));
+      await semaphore.promise;
+    }
+  }
+
   async get<T extends Cacheable>(key: CacheKey): Promise<T | undefined> {
     let keyStr = keyName(key)
 
     // Ensure the value is currently not locked behind a semaphore.
     // If it is we dont want to read it, but rather wait for it to be completed.
-    const semaphore = this.semaphores.get(keyStr);
-    if (semaphore && !semaphore.completed)
-      return semaphore.promise;
+    await this.wait(key);
 
     // We are completed, so lokoup the value if possible.
+    console.log('[cache] fetching value', keyStr);
     const value = await this.store.get(keyStr);
     if (value === undefined) {
       await this.delete(key);
@@ -58,7 +65,6 @@ export class Cache {
 
   async set<T extends Cacheable>(key: CacheKey, value: T, ttl: number = 0): Promise<void> {
     let keyStr = keyName(key)
-    this.semaphores.delete(keyStr);
     await this.store.set(keyStr, value, ttl);
   }
 
@@ -81,12 +87,22 @@ export class Cache {
 
   async delete(key: CacheKey): Promise<void> {
     let keyStr = keyName(key)
-    this.semaphores.delete(keyStr);
     await this.store.delete(keyStr);
   }
 
   async clean(): Promise<void> {
+    // Clearup cache
+    console.log('[cache] cleaning cache');
     await this.store.clean();
+
+    // Clearup semaphores
+    const scan = [...this.semaphores.keys()];
+    for (const key of scan) {
+      const semaphore = this.semaphores.get(key);
+      if (semaphore && (expired(semaphore.expiresAt) || semaphore.completed)) {
+        this.semaphores.delete(key);
+      }
+    }
   }
 
   async lock<TCacheData extends Cacheable, TReturn>(
@@ -105,10 +121,12 @@ export class Cache {
     const keyStr = keyName(key)
     semaphore
       .then(value => {
+        this.unlock(key, value);
         this.set(key, value, ttl)
         return value;
       })
       .catch(() => {
+        this.unlock(key, undefined);
         this.delete(key);
       });
 
@@ -125,6 +143,20 @@ export class Cache {
         this.semaphores.delete(keyStr);
         throw e;
       })
+  }
+
+  private unlock<TCacheData extends Cacheable>(key: CacheKey, value : TCacheData | undefined ): boolean {
+    const keyStr = keyName(key)
+    const semaphore = this.semaphores.get(keyStr);
+    if (!semaphore)
+      return false;
+
+    // Unlock the semaphore before deleting. Any references waiting for it should be "completed"
+    console.log('[cache] unlocking semaphore', keyStr);
+    semaphore.completed = true;
+    semaphore.promise = Promise.resolve(value)
+    this.semaphores.delete(keyStr);
+    return true;
   }
 }
 

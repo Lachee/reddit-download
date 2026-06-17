@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 import { findBiggestVariant, type Variant, VariantType } from "$lib/reddit/Media";
 import { convert, type ConvertOptions } from "$lib/server/ffmpeg/Gif";
-import { cache } from "$lib/server/cache/";
+import { cache } from "$lib/server/cache";
 import { probeDuration } from "$lib/server/ffmpeg/Probe";
 import { range } from "$lib/server/Range";
 import { redirect } from "@sveltejs/kit";
@@ -19,6 +19,8 @@ type CachedResponse = ({
   status: number,
   error: string | null,
 } | { redirect: string });
+
+export const trailingSlash = 'always';
 
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
