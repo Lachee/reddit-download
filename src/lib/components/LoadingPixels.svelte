@@ -29,7 +29,7 @@
   let canvasElement = $state<HTMLCanvasElement>();
   let imageElement = $state<HTMLImageElement>();
 
-  let loading = $derived(!completed || mediaElement === undefined);
+  let loading = true; // $derived(!completed || mediaElement === undefined);
 
   let animationFrame: number | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -330,14 +330,18 @@
     context.globalAlpha = pixel.alpha;
     context.fillStyle = getPixelColor(pixel);
 
-    context.fillRect(
+    context.beginPath();
+    context.arc(
       pixel.x + centerOffset,
       pixel.y + centerOffset,
       pixel.size,
-      pixel.size,
+      0,
+      Math.PI * 2,
     );
+    context.fill();
 
-    context.globalAlpha = 1;
+
+      context.globalAlpha = 1;
   }
 
   function appear(pixel: Pixel, context: CanvasRenderingContext2D) {
