@@ -62,7 +62,7 @@ Firstly there are the reddit related configuration:
 | `REDDIT_USERNAME` | Your Reddit username | -                      |
 | `REDDIT_PASSWORD` | Your Reddit password | -                      |
 | `ALLOW_NSFW` | Allows NSFW posts from being looked up.  | `'true'` or `'false'`  |
-| `ALLOW_EOMBED` | A comma-separated list of allowed oembed providers. They will be excluded from media variants. | `'Streamable,RedGIFs'` |
+| `ALLOW_OEMBED` | A comma-separated list of allowed oembed providers. Any that are not lisited will be excluded from "valid variants" and not be downloadable. | `'Streamable,RedGIFs'` |
 | `DENY_SUBREDDITS` | A comma-seperated list of banned subreddits. Lookup of posts on these subreddits will be blocked | `'aiArt,generativeAI'` |
 
 > [!IMPORTANT]  
