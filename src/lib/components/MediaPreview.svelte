@@ -80,21 +80,21 @@
 
 {#if display.ready}
     {#if display.mode === 'list'}
-        <div class="rounded-lg overflow-hidden relative max-w-full border-2 dark:border-cliff-700 p-4 flex items-center">
+        <div class="rounded-lg overflow-hidden relative max-w-full border-2 border-gray-200 dark:border-cliff-400 p-4 flex  flex-wrap gap-2 items-center">
            <div><Badge>{media.type}</Badge></div>
             <div class="grow">{media.id}</div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 not-sm:grow">
                 {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
-                    <a href="/v/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                    <a href="/v/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1 not-sm:grow" download>
                         <DownloadIcon /> Video
                     </a>
                 {/if}
                 {#if type !== VariantType.Image }
-                    <a href="/g/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                    <a href="/g/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1 not-sm:grow " download>
                      <DownloadIcon /> GIF
                     </a>
                 {:else}
-                    <a href="/i/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                    <a href="/i/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1 not-sm:grow" download>
                      <DownloadIcon /> Image
                     </a>
                 {/if}
