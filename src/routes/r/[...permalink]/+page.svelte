@@ -4,7 +4,7 @@
   import SearchBar from "$lib/components/SearchBar.svelte";
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import Badge from "$lib/components/Badge.svelte";
-  import MediaPreview from "$lib/components/MediaPreview.svelte";
+  import Media from "$lib/components/media/Media.svelte";
   import { MediaType } from "$lib/reddit/Media";
 
   let { data }: { data: PageData } = $props();
@@ -51,15 +51,15 @@
             </div>
         </header>
 
-        <div class="mt-6 flex flex-col gap-4">
+        <div class="mt-6 flex flex-col flex-wrap justify-center gap-4">
             {#if collection.some(c => c.type === MediaType.SecureVideo)}
-                <MediaPreview {post} media={collection.find(c => c.type === MediaType.SecureVideo)!}/>
+                <Media {post} media={collection.find(c => c.type === MediaType.SecureVideo)!}/>
             {:else if collection.some(c => c.type === MediaType.PreviewVideo)}
-                <MediaPreview {post} media={collection.find(c => c.type === MediaType.PreviewVideo)!}/>
+                <Media {post} media={collection.find(c => c.type === MediaType.PreviewVideo)!}/>
             {:else}
                 {#each collection as media}
                     {#if media.type !== MediaType.Thumbnail && media.type !== MediaType.Overridden}
-                        <MediaPreview {post} {media}/>
+                        <Media {post} {media}/>
                     {/if}
                 {/each}
             {/if}
