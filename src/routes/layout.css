@@ -23,3 +23,9 @@
         }
     }
 }
+
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"],[data-theme="dark"] {
+        background-color: var(--color-cliff-950);
+    }
+}
