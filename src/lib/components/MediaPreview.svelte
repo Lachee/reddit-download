@@ -6,6 +6,8 @@
   import IconButton from "$lib/components/IconButton.svelte";
   import LoadingPixels from "$lib/components/LoadingPixels.svelte";
   import { normalizePermalink } from "$lib/reddit/Utilities.ts";
+  import { display } from '$lib/state/DisplayMode.svelte'
+  import Badge from "$lib/components/Badge.svelte";
 
   let {
         post,
@@ -75,56 +77,82 @@
     <link rel="preload" href="/i/{permalink}?media={media.id}&size=thumbnail" as="image" />
 </svelte:head>
 
-<div
-        class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
-        style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
->
-    <LoadingPixels
-            height={height}
-            mediaElement={mediaElement}
-            thumbnail="/i/{permalink}?media={media.id}&size=thumbnail"
-            width={width}
-    />
 
-    <div class="w-full h-full">
-        {#if type === VariantType.GIF || asGif }
-            <img
-                    bind:this={mediaElement}
-                    class="w-full h-auto"
-                    src="/g/{permalink}?media={media.id}&size=best"
-                    alt="Cannot Load: {media.id}"
-                    decoding="async"
-            />
-        {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
-            <video bind:this={mediaElement}
-                   class="w-full h-full"
-                   controls={true}
-                   autoplay={isGifVideo}
-                   muted={isGifVideo}
-                   loop={isGifVideo}
-                   playsinline
-                   src="/v/{permalink}?media={media.id}&size=best"
-            >
-            </video>
-        {:else}
-            <img
-                    bind:this={mediaElement}
-                    class="w-full h-auto"
-                    src="/i/{permalink}?media={media.id}&size=best"
-                    alt="Cannot Load: {media.id}"
-                    decoding="async"
-            />
-        {/if}
-
-        <div class="absolute top-1 right-1 flex items-center justify-center gap-1 z-20">
-            <IconButton alt="Download" onclick={onDownloadClick}>
-                <DownloadIcon/>
-            </IconButton>
-            {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
-                <IconButton variant={asGif ? 'orange' : 'white'} alt="Gif" onclick={onGifClick}>
-                    <GifIcon/>
-                </IconButton>
-            {/if}
+{#if display.ready}
+    {#if display.mode === 'list'}
+        <div class="rounded-lg overflow-hidden relative max-w-full border-2 dark:border-cliff-700 p-4 flex items-center">
+           <div><Badge>{media.type}</Badge></div>
+            <div class="grow">{media.id}</div>
+            <div class="flex gap-2">
+                {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
+                    <a href="/v/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                        <DownloadIcon /> Video
+                    </a>
+                {/if}
+                {#if type !== VariantType.Image }
+                    <a href="/g/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                     <DownloadIcon /> GIF
+                    </a>
+                {:else}
+                    <a href="/i/{permalink}?media={media.id}&size=best" class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1" download>
+                     <DownloadIcon /> Image
+                    </a>
+                {/if}
+            </div>
         </div>
-    </div>
-</div>
+    {:else}
+        <div
+                class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
+                style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
+        >
+            <LoadingPixels
+                    height={height}
+                    mediaElement={mediaElement}
+                    thumbnail="/i/{permalink}?media={media.id}&size=thumbnail"
+                    width={width}
+            />
+
+            <div class="w-full h-full">
+                {#if type === VariantType.GIF || asGif }
+                    <img
+                            bind:this={mediaElement}
+                            class="w-full h-auto"
+                            src="/g/{permalink}?media={media.id}&size=best"
+                            alt="Cannot Load: {media.id}"
+                            decoding="async"
+                    />
+                {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
+                    <video bind:this={mediaElement}
+                           class="w-full h-full"
+                           controls={true}
+                           autoplay={isGifVideo}
+                           muted={isGifVideo}
+                           loop={isGifVideo}
+                           playsinline
+                           src="/v/{permalink}?media={media.id}&size=best"
+                    >
+                    </video>
+                {:else}
+                    <img
+                            bind:this={mediaElement}
+                            class="w-full h-auto"
+                            src="/i/{permalink}?media={media.id}&size=best"
+                            alt="Cannot Load: {media.id}"
+                            decoding="async"
+                    />
+                {/if}
+
+                <div class="absolute top-1 right-1 flex items-center justify-center gap-1 z-20">
+                    <IconButton alt="Download" onclick={onDownloadClick}>
+                        <DownloadIcon/>
+                    </IconButton>
+                    {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
+                        <IconButton variant={asGif ? 'orange' : 'white'} alt="Gif" onclick={onGifClick}>
+                            <GifIcon/>
+                        </IconButton>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    {/if}
+{/if}

@@ -5,6 +5,7 @@
     import "./layout.css";
     import LoadingBar from "$lib/components/LoadingBar.svelte";
     import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+    import DisplayToggle from "$lib/components/DisplayToggle.svelte";
     let { children } = $props();
 
     let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
@@ -26,6 +27,7 @@
                 <span>Reddit</span>
             </a>
             <div class="flex gap-6 text-sm font-medium dark:text-stone-50 items-center">
+                <DisplayToggle />
                 <ThemeToggle />
                 <a href="https://github.com/Lachee/reddit-download/" target="_blank" class="hover:text-orange-600">GitHub</a>
             </div>

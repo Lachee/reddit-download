@@ -20,7 +20,7 @@
     <article
             class="md:border-2 border-b-2 border-gray-200 md:rounded-2xl p-8 bg-white dark:bg-cliff-800 dark:border-cliff-950 dark:text-gray-300"
     >
-        <header>
+        <header class="border-b-2 border-gray-200 pb-4 dark:border-cliff-400">
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.subredditName ?? `r/${post.subreddit}`}</span>
                 <span>•</span>
