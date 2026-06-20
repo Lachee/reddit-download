@@ -7,7 +7,7 @@ Here is a variety of posts to test with:
   - [streamable.com](https://streamable.com) iframe
 
 ### Reddit Video
-- https://www.reddit.com/r/gameofthrones/comments/1ty4uj0/the_cast_then_and_now/ - Has sound
+- https://www.reddit.com/r/gameofthrones/comments/1ty4uj0/the_cast_then_and_now/ - Has sound and no thumbnail
 - https://www.reddit.com/r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/
 
 ## Preview Image

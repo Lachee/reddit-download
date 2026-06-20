@@ -44,23 +44,23 @@ export default function createStore({
       const client = await prepareClient();
       const serialized = await client.get(key);
       if (serialized === null) {
-        console.log('[redis-cache] cache-miss:', key);
+        console.log('[cache][redis] cache-miss:', key);
         return undefined;
       }
 
-      console.log('[redis-cache] cache-hit:', key);
+      console.log('[cache][redis] cache-hit:', key);
       const raw = Buffer.from(serialized, 'base64');
       return unpack(raw) as T;
     },
     async set<T>(key: string, value: T, ttl: number): Promise<void> {
-      console.log('[redis-cache] setting:', key);
+      console.log('[cache][redis] setting:', key);
       const client = await prepareClient();
       const raw = pack(value);
       const serialized = raw.toString('base64');
       await client.set(key, serialized, { EX: ttl });
     },
     async delete(key: string): Promise<void> {
-      console.log('[redis-cache] deleting:', key);
+      console.log('[cache][redis] deleting:', key);
       const client = await prepareClient();
       await client.del(key);
     },

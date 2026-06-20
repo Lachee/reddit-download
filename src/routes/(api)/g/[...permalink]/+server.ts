@@ -70,8 +70,10 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     }
 
     // We did not convert a video, so we will use a fullback gif, otherwise let the image route handle it.
-    if (!gif)
-      return { redirect: `/i/${post.permalink.substring(3)}?media=${mediaId ?? ''}` } satisfies CachedResponse;
+    if (!gif) {
+      console.log('failed to generate a gif so redirecting to i')
+      return { redirect: `/i/${post.permalink.substring(3)}?media=${mediaId ?? ''}&size=best` } satisfies CachedResponse;
+    }
 
     const { href } = gif;
     console.log("Fetching media from", href)

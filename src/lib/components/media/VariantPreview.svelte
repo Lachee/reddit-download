@@ -4,7 +4,7 @@
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
   import GifIcon from "$lib/components/icons/GifIcon.svelte"
   import IconButton from "$lib/components/IconButton.svelte";
-  import LoadingPixels from "$lib/components/LoadingPixels.svelte";
+  import LoadingMediaElement from "$lib/components/loaders/LoadingMediaElement.svelte";
 
   let {
         post,
@@ -18,10 +18,9 @@
     permalink: string
   } = $props();
 
+  let loading = $state(false);
   let asGif = $state(false);
   let type = $derived(variant.type);
-
-  let mediaElement: HTMLImageElement | HTMLVideoElement | undefined = $state();
 
   /** The first variant with a defined dimension, used as baseline for sizing. */
   let baselineDimensionalVariant = $derived(media.variants.filter(m => m.dimension).sort((a, b) => b.dimension!.height - a.dimension!.height)[0]);
@@ -31,6 +30,12 @@
   $effect(() => {
     void post;
     asGif = false;
+  })
+
+  $effect(() => {
+    void post;
+    void asGif;
+    loading = true;
   })
 
   $effect(() => {
@@ -74,24 +79,26 @@
         class="rounded-lg overflow-hidden relative h-full m-auto max-w-full"
         style="max-height: {Math.min(height, 800)}px;  aspect-ratio: {width} / {height};"
 >
-    <LoadingPixels
+    <LoadingMediaElement
             height={height}
-            mediaElement={mediaElement}
+            loading={loading}
             thumbnail="/i/{permalink}?media={media.id}&size=thumbnail"
+            variant="pixels"
             width={width}
     />
 
     <div class="w-full h-full">
         {#if type === VariantType.GIF || asGif }
             <img
-                    bind:this={mediaElement}
                     class="w-full h-auto"
                     src="/g/{permalink}?media={media.id}&size=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
+                    onload={() => loading = false}
+                    onerror={() => loading = false}
             />
         {:else if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
-            <video bind:this={mediaElement}
+            <video
                    class="w-full h-full"
                    controls={true}
                    autoplay={isGifVideo}
@@ -99,15 +106,19 @@
                    loop={isGifVideo}
                    playsinline
                    src="/v/{permalink}?media={media.id}&size=best"
+                   oncanplay={() => loading = false}
+                   onloadeddata={() => loading = false}
+                   onerror={() => loading = false}
             >
             </video>
         {:else}
             <img
-                    bind:this={mediaElement}
                     class="w-full h-auto"
                     src="/i/{permalink}?media={media.id}&size=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
+                    onload={() => loading = false}
+                    onerror={() => loading = false}
             />
         {/if}
 

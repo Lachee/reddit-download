@@ -1,54 +1,16 @@
 <script lang="ts">
   let {
-        mediaElement,
+        active,
         width,
-        height
+        height,
+        thumbnail,
       }: {
-    mediaElement: HTMLImageElement | HTMLVideoElement | undefined,
+    active: boolean,
     width: number,
     height: number,
+    thumbnail: string,
   } = $props();
 
-  let completed = $state(false);
-  let loading = $derived(!completed || mediaElement === undefined)
-
-  function onLoaded() {
-    console.log('[bubble] loaded')
-    completed = true;
-  }
-
-  function onError() {
-    console.log('[bubble] loaded (error)')
-    completed = true;
-  }
-
-  $effect(() => {
-    void mediaElement;
-
-    console.log('[bubble] unloaded (element changed)');
-    completed = false;
-
-    if (mediaElement) {
-      mediaElement.addEventListener('error', onError);
-      mediaElement.addEventListener('canplay', onLoaded);
-      mediaElement.addEventListener('load', onLoaded);
-      mediaElement.addEventListener('loadeddata', onLoaded);
-
-
-      if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
-        onLoaded();
-      } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
-        onLoaded();
-      }
-    }
-
-    return () => {
-      mediaElement?.removeEventListener('error', onError);
-      mediaElement?.removeEventListener('canplay', onLoaded);
-      mediaElement?.removeEventListener('load', onLoaded);
-      mediaElement?.removeEventListener('loadeddata', onLoaded);
-    }
-  });
 </script>
 
 
@@ -115,7 +77,7 @@
     }
 </style>
 
-<div class="bubble-gradient" class:loaded={!loading}>Loading</div>
-{#if loading}
+<div class="bubble-gradient" class:loaded={!active}>Loading</div>
+{#if active}
     <div style="max-width: 100%; width: {width}px; height: {height}px"></div>
 {/if}

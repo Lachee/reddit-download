@@ -3,7 +3,7 @@
     import { pwaInfo } from "virtual:pwa-info";
 
     import "./layout.css";
-    import LoadingBar from "$lib/components/LoadingBar.svelte";
+    import LoadingBar from "$lib/components/loaders/LoadingBar.svelte";
     import ThemeToggle from "$lib/components/ThemeToggle.svelte";
     import DisplayToggle from "$lib/components/DisplayToggle.svelte";
     let { children } = $props();

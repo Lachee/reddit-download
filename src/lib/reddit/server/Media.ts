@@ -16,6 +16,7 @@ import {
   VariantType
 } from "$lib/reddit/Media";
 
+export const RootMediaId = '__ROOT_MEDIA';
 
 export function getMediaCollection(post: Post): QueryableMediaCollection {
   if (post === undefined)
@@ -45,7 +46,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
   if (post.secure_media) {
     if (post.secure_media.reddit_video) {
       const secureMedia: QueryableMedia = {
-        id:       post.id,
+        id:       RootMediaId,
         type:     MediaType.SecureVideo,
         variants: [],
         query:    (fetch) => fetchDashMediaFromRedditVideo(fetch, post.secure_media!.reddit_video!)
@@ -67,18 +68,18 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
       media.push(secureMedia);
     } else if (post.secure_media.oembed) {
       const oembedMedia : QueryableMedia = {
-        id: post.id,
-        type: MediaType.SecureVideo,
+        id:       RootMediaId,
+        type:     MediaType.SecureVideo,
         variants: [],
-        query: (fetch) => fetchOembedVariants(fetch, post.secure_media!.oembed!)
+        query:    (fetch) => fetchOembedVariants(fetch, post.secure_media!.oembed!)
       }
 
       if (post.secure_media.oembed.thumbnail_url) {
         oembedMedia.variants.push({
-          id: post.id,
-          mime: 'image/jpeg',
-          type: VariantType.Image,
-          href: post.secure_media.oembed.thumbnail_url,
+          id:        RootMediaId,
+          mime:      'image/jpeg',
+          type:      VariantType.Image,
+          href:      post.secure_media.oembed.thumbnail_url,
           dimension: post.secure_media.oembed.width || post.secure_media.oembed.height ? {
             width: post.secure_media.oembed.width ?? 0,
             height: post.secure_media.oembed.height ?? 0
@@ -94,7 +95,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
   if (post.preview) {
     if (post.preview.reddit_video_preview) {
       const previewMedia: QueryableMedia = {
-        id:       post.id,
+        id:       RootMediaId,
         type:     MediaType.PreviewVideo,
         variants: [],
         query:    (fetch) => fetchDashMediaFromRedditVideo(fetch, post.preview!.reddit_video_preview!)
@@ -121,12 +122,12 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
   }
 
   // Thumbnail
-  if (post.thumbnail) {
+  if (post.thumbnail && post.thumbnail.startsWith('http')) {
     media.push({
-      id:       post.id,
+      id:       RootMediaId,
       type:     MediaType.Thumbnail,
       variants: [ {
-        id:        post.id,
+        id:        RootMediaId,
         mime:      'image/jpeg',
         type:      VariantType.Image,
         href:      post.thumbnail,
@@ -144,7 +145,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
     if (overridden.includes('.', overridden.lastIndexOf('/'))) {
       const ext = extname(overridden);
       const overriddenMedia: Variant = {
-        id:   post.id,
+        id:   RootMediaId,
         mime: 'image/' + (ext == 'jpg' ? 'jpeg' : ext) as Mime,
         type: VariantType.Image,
         href: overridden
@@ -156,7 +157,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
         overriddenMedia.type = VariantType.Video;
       }
       media.push({
-        id:       post.id,
+        id:       RootMediaId,
         type:     MediaType.Overridden,
         variants: [ overriddenMedia ]
       });

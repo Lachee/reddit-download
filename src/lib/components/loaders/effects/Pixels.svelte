@@ -1,9 +1,10 @@
 <script lang="ts">
   let {
-        mediaElement,
+        active,
         thumbnail,
         width,
         height,
+
         pixelSize = 2,
         gap = 5,
         fit = 'cover',
@@ -12,7 +13,7 @@
         backgroundOpacity = 0.5,
         sparkleBrightness = 0.18,
       }: {
-    mediaElement: HTMLImageElement | HTMLVideoElement | undefined;
+    active: boolean;
     thumbnail: string | undefined;
     width: number;
     height: number;
@@ -25,11 +26,9 @@
     sparkleBrightness?: number;
   } = $props();
 
-  let completed = $state(false);
   let canvasElement = $state<HTMLCanvasElement>();
   let imageElement = $state<HTMLImageElement>();
 
-  let loading = $derived(!completed || mediaElement === undefined);
 
   let animationFrame: number | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -65,15 +64,6 @@
 
   let pixels: Pixel[] = [];
 
-  function onLoaded() {
-    console.log('[bubble] loaded');
-    completed = true;
-  }
-
-  function onError() {
-    console.log('[bubble] loaded (error)');
-    completed = true;
-  }
 
   function stopAnimation() {
     if (animationFrame !== undefined) {
@@ -435,33 +425,6 @@
   }
 
   $effect(() => {
-    void mediaElement;
-
-    console.log('[bubble] unloaded (element changed)');
-    completed = false;
-
-    if (mediaElement) {
-      mediaElement.addEventListener('error', onError);
-      mediaElement.addEventListener('canplay', onLoaded);
-      mediaElement.addEventListener('load', onLoaded);
-      mediaElement.addEventListener('loadeddata', onLoaded);
-
-      if (mediaElement instanceof HTMLImageElement && mediaElement.complete) {
-        onLoaded();
-      } else if (mediaElement instanceof HTMLVideoElement && mediaElement.readyState >= 3) {
-        onLoaded();
-      }
-    }
-
-    return () => {
-      mediaElement?.removeEventListener('error', onError);
-      mediaElement?.removeEventListener('canplay', onLoaded);
-      mediaElement?.removeEventListener('load', onLoaded);
-      mediaElement?.removeEventListener('loadeddata', onLoaded);
-    };
-  });
-
-  $effect(() => {
     if (!canvasElement) return;
 
     resizeObserver?.disconnect();
@@ -527,7 +490,7 @@
   });
 
   $effect(() => {
-    if (loading) {
+    if (active) {
       handleAnimation('appear');
     } else {
       handleAnimation('disappear');
@@ -632,8 +595,8 @@
 
 <div
         class="bubble"
-        class:loaded={!loading}
-        aria-hidden={!loading}
+        class:loaded={!active}
+        aria-hidden={!active}
         style:--background-blur={`${blur}px`}
         style:--background-opacity={backgroundOpacity}
 >
@@ -655,6 +618,6 @@
     {/if}
 </div>
 
-{#if loading}
+{#if active}
     <div class="spacer" style="width: {width}px; height: {height}px"></div>
 {/if}
