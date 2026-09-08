@@ -5,10 +5,64 @@
   import OpenGraph from "$lib/components/OpenGraph.svelte";
   import Badge from "$lib/components/Badge.svelte";
   import Media from "$lib/components/media/Media.svelte";
-  import { MediaType } from "$lib/reddit/Media";
+  import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte";
+  import { type Media as MediaItem, MediaType, sort, VariantType } from "$lib/reddit/Media";
+  import { normalizePermalink } from "$lib/reddit/Utilities";
 
   let { data }: { data: PageData } = $props();
   let { post, type, collection } = $derived(data);
+
+  let permalink = $derived(normalizePermalink(post.permalink).substring(2));
+
+  /** The media actually presented on the page. Videos take over the entire post. */
+  let presented = $derived.by(() => {
+    const video = collection.find(c => c.type === MediaType.SecureVideo)
+                  ?? collection.find(c => c.type === MediaType.PreviewVideo);
+    if (video)
+      return [ video ];
+
+    return collection.filter(c => c.type !== MediaType.Thumbnail && c.type !== MediaType.Overridden);
+  });
+
+  let supportsFileSystem = $state(false);
+  let saving = $state(false);
+
+  $effect(() => {
+    supportsFileSystem = 'showDirectoryPicker' in window;
+  });
+
+  function getDownloadLink(media: MediaItem) {
+    const variant = sort(media.variants)[0];
+    if (variant.type === VariantType.GIF)
+      return `/g/${permalink}?media=${media.id}&size=best`;
+    if (variant.type === VariantType.Video || variant.type === VariantType.PartialVideo || variant.type === VariantType.PartialAudio)
+      return `/v/${permalink}?media=${media.id}&size=best`;
+    return `/i/${permalink}?media=${media.id}&size=best`;
+  }
+
+  async function onSaveAllClick() {
+    //@ts-expect-error The showDirectoryPicker is an experimental API
+    const directory = await window.showDirectoryPicker({ mode: 'readwrite' }).catch(() => null);
+    if (!directory)
+      return;
+
+    saving = true;
+    try {
+      for (const media of presented) {
+        const response = await fetch(getDownloadLink(media));
+        if (!response.ok || !response.body)
+          continue;
+
+        const disposition = response.headers.get('Content-Disposition') ?? '';
+        const filename = disposition.match(/filename="(.+?)"/)?.[1] ?? `${post.id}-${media.id}`;
+
+        const file = await directory.getFileHandle(filename, { create: true });
+        await response.body.pipeTo(await file.createWritable());
+      }
+    } finally {
+      saving = false;
+    }
+  }
 </script>
 
 <OpenGraph properties={getOpenGraphProperties(post, collection)}/>
@@ -40,29 +94,35 @@
 
             <h1 class="text-2xl font-bold my-3 leading-tight">{post.title}</h1>
 
-            <div class="flex flex-wrap my-3 gap-2 text-gray-500 text-sm">
-                <Badge theme="orange">{type}</Badge>
-                {#if post.over_18}
-                    <Badge theme="purple">NSFW</Badge>
-                {/if}
-                {#if post.spoiler}
-                    <Badge theme="gray">Spoiler</Badge>
+            <div class="flex flex-wrap my-3 gap-2 items-center">
+                <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
+                    <Badge theme="orange">{type}</Badge>
+                    {#if post.over_18}
+                        <Badge theme="purple">NSFW</Badge>
+                    {/if}
+                    {#if post.spoiler}
+                        <Badge theme="gray">Spoiler</Badge>
+                    {/if}
+                </div>
+
+                {#if presented.length > 1}
+                    <button
+                    class="font-bold py-2 px-4 rounded-lg cursor-pointer bg-orange-600 hover:bg-orange-700 text-white flex gap-1 ml-auto not-sm:grow
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!supportsFileSystem || saving}
+                    onclick={onSaveAllClick}
+                    >
+                        <DownloadIcon/>
+                        {saving ? 'Saving' : 'Save All'}
+                    </button>
                 {/if}
             </div>
         </header>
 
         <div class="mt-6 flex flex-col flex-wrap justify-center gap-4">
-            {#if collection.some(c => c.type === MediaType.SecureVideo)}
-                <Media {post} media={collection.find(c => c.type === MediaType.SecureVideo)!}/>
-            {:else if collection.some(c => c.type === MediaType.PreviewVideo)}
-                <Media {post} media={collection.find(c => c.type === MediaType.PreviewVideo)!}/>
-            {:else}
-                {#each collection as media}
-                    {#if media.type !== MediaType.Thumbnail && media.type !== MediaType.Overridden}
-                        <Media {post} {media}/>
-                    {/if}
-                {/each}
-            {/if}
+            {#each presented as media}
+                <Media {post} {media}/>
+            {/each}
         </div>
     </article>
 </main>

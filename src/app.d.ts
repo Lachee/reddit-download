@@ -14,6 +14,10 @@ declare global {
 		// interface PageData {}
 		// interface PageState {}
 	}
+
+	interface Window {
+		showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>;
+	}
 }
 
 export {};
