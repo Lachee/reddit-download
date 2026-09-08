@@ -8,7 +8,7 @@
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte";
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte";
   import { MediaType } from "$lib/reddit/Media";
-  import { getDownloadLink, getFilename } from "$lib/reddit/Download";
+  import { getDownloadLink, getExtension } from "$lib/reddit/Download";
   import { normalizePermalink } from "$lib/reddit/Utilities";
 
   let { data }: { data: PageData } = $props();
@@ -40,12 +40,14 @@
 
     saving = true;
     try {
-      for (const media of presented) {
+      const padding = String(presented.length).length;
+      for (const [ index, media ] of presented.entries()) {
         const response = await fetch(getDownloadLink(permalink, media));
         if (!response.ok || !response.body)
           continue;
 
-        const filename = getFilename(response, `${post.id}-${media.id}`);
+        const prefix = String(index + 1).padStart(padding, '0');
+        const filename = `${post.id}-${prefix}-${media.id}.${getExtension(response)}`;
         const file = await directory.getFileHandle(filename, { create: true });
         await response.body.pipeTo(await file.createWritable());
       }

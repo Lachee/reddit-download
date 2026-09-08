@@ -16,6 +16,12 @@ export function getFilename(response: Response, fallback: string): string {
   return disposition.match(/filename="(.+?)"/)?.[1] ?? fallback;
 }
 
+/** Gets the extension the media is served as. */
+export function getExtension(response: Response): string {
+  const mime = response.headers.get('Content-Type') ?? '';
+  return mime.split('/')[1] ?? '';
+}
+
 /** Fetches the media then prompts the browser to save it. */
 export async function download(href: string, fallback: string) {
   const response = await fetch(href);
