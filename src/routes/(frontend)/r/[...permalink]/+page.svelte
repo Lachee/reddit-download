@@ -6,7 +6,9 @@
   import Badge from "$lib/components/Badge.svelte";
   import Media from "$lib/components/media/Media.svelte";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte";
-  import { type Media as MediaItem, MediaType, sort, VariantType } from "$lib/reddit/Media";
+  import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte";
+  import { MediaType } from "$lib/reddit/Media";
+  import { getDownloadLink, getFilename } from "$lib/reddit/Download";
   import { normalizePermalink } from "$lib/reddit/Utilities";
 
   let { data }: { data: PageData } = $props();
@@ -31,17 +33,7 @@
     supportsFileSystem = 'showDirectoryPicker' in window;
   });
 
-  function getDownloadLink(media: MediaItem) {
-    const variant = sort(media.variants)[0];
-    if (variant.type === VariantType.GIF)
-      return `/g/${permalink}?media=${media.id}&size=best`;
-    if (variant.type === VariantType.Video || variant.type === VariantType.PartialVideo || variant.type === VariantType.PartialAudio)
-      return `/v/${permalink}?media=${media.id}&size=best`;
-    return `/i/${permalink}?media=${media.id}&size=best`;
-  }
-
   async function onSaveAllClick() {
-    //@ts-expect-error The showDirectoryPicker is an experimental API
     const directory = await window.showDirectoryPicker({ mode: 'readwrite' }).catch(() => null);
     if (!directory)
       return;
@@ -49,13 +41,11 @@
     saving = true;
     try {
       for (const media of presented) {
-        const response = await fetch(getDownloadLink(media));
+        const response = await fetch(getDownloadLink(permalink, media));
         if (!response.ok || !response.body)
           continue;
 
-        const disposition = response.headers.get('Content-Disposition') ?? '';
-        const filename = disposition.match(/filename="(.+?)"/)?.[1] ?? `${post.id}-${media.id}`;
-
+        const filename = getFilename(response, `${post.id}-${media.id}`);
         const file = await directory.getFileHandle(filename, { create: true });
         await response.body.pipeTo(await file.createWritable());
       }
@@ -112,7 +102,11 @@
                     disabled={!supportsFileSystem || saving}
                     onclick={onSaveAllClick}
                     >
-                        <DownloadIcon/>
+                        {#if saving}
+                            <SpinnerIcon/>
+                        {:else}
+                            <DownloadIcon/>
+                        {/if}
                         {saving ? 'Saving' : 'Save All'}
                     </button>
                 {/if}

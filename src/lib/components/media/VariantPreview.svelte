@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { Post } from "$lib/reddit/schema/postSchema";
   import { type Media, type Variant, VariantType } from "$lib/reddit/Media";
+  import { download, getDownloadLink } from "$lib/reddit/Download";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
   import GifIcon from "$lib/components/icons/GifIcon.svelte"
+  import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte"
   import IconButton from "$lib/components/IconButton.svelte";
   import LoadingMediaElement from "$lib/components/loaders/LoadingMediaElement.svelte";
 
@@ -19,6 +21,7 @@
   } = $props();
 
   let loading = $state(false);
+  let downloading = $state(false);
   let asGif = $state(false);
   let type = $derived(variant.type);
 
@@ -49,24 +52,13 @@
   );
 
 
-  function download(url: string) {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = media.id
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-  }
-
-  function onDownloadClick() {
-    const url = type === VariantType.GIF || asGif
-                ? `/g/${permalink}?media=${media.id}`
-                : (
-                  type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio
-                  ? `/v/${permalink}?media=${media.id}`
-                  : `/i/${permalink}?media=${media.id}`
-                )
-    download(url);
+  async function onDownloadClick() {
+    downloading = true;
+    try {
+      await download(getDownloadLink(permalink, media, asGif), media.id);
+    } finally {
+      downloading = false;
+    }
   }
 
   function onGifClick() {
@@ -123,8 +115,12 @@
         {/if}
 
         <div class="absolute top-1 right-1 flex items-center justify-center gap-1 z-20">
-            <IconButton alt="Download" onclick={onDownloadClick}>
-                <DownloadIcon/>
+            <IconButton alt="Download" disabled={downloading} onclick={onDownloadClick}>
+                {#if downloading}
+                    <SpinnerIcon/>
+                {:else}
+                    <DownloadIcon/>
+                {/if}
             </IconButton>
             {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
                 <IconButton variant={asGif ? 'orange' : 'white'} alt="Gif" onclick={onGifClick}>
