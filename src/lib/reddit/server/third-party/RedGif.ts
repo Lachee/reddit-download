@@ -12,7 +12,7 @@ const gifSchema = z.looseObject({
     html:      z.string(),
     thumbnail: z.string(),
     poster:    z.string(),
-    silent:    z.string(),
+    silent:    z.string().optional(),
   }),
   width:    z.number(),
   height:   z.number(),
@@ -106,7 +106,7 @@ async function request<T>(fetch: typeof window.fetch, endpoint: string): Promise
     await login(fetch);
 
   // Make the request
-  console.log('[redgif] making request to', endpoint);
+  console.log('[redgif] making request to', `https://api.redgifs.com${endpoint}`);
   const response = await fetch(`https://api.redgifs.com${endpoint}`, {
     headers: {
       'authorization': `Bearer ${authToken}`,
