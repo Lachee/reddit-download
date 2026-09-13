@@ -50,6 +50,9 @@
         const filename = `${post.id}-${prefix}-${media.id}.${getExtension(response)}`;
         const file = await directory.getFileHandle(filename, { create: true });
         await response.body.pipeTo(await file.createWritable());
+
+        // Try to enforce date ordering for sites like discord
+        await new Promise(resolve => setTimeout(resolve, 250));
       }
     } finally {
       saving = false;
