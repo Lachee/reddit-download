@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     if (candidate) {
         const permalink = normalizePermalink(candidate);
-        return redirect(302, `/share/${permalink}`);
+        return redirect(302, `/${permalink}`);
     }
 
     // Eh, giveup. Go home.
