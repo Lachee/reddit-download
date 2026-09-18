@@ -12,7 +12,7 @@ export async function follow(fetch : typeof window.fetch, href: string): Promise
   if (url === null)
     throw new Error('cannot follow an invalid URL');
 
-  const shareLinkRegex = /reddit.com\/r\/\w*\/s\//
+  const shareLinkRegex = /reddit\.com\/(?:r|user|u)\/[^/]+\/s\//i
   if (shareLinkRegex.test(url.toString())) {
     console.log(`Following shorthand: ${url.toString()}`);
     const response = await fetch(`${url.origin}${url.pathname}`, {

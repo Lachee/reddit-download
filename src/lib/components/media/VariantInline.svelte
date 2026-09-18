@@ -9,21 +9,21 @@
         post,
         media,
         variant,
-        permalink
+        medialink
       }: {
     post: Post
     media: Media
     variant: Variant
-    permalink: string
+    medialink: string
   } = $props();
 
   let type = $derived(variant.type);
   let hover = $state(false);
   let downloading = $state('');
 
-  let videoHref = $derived(`/v/${permalink}?media=${media.id}&size=best`);
-  let gifHref = $derived(`/g/${permalink}?media=${media.id}&size=best`);
-  let imageHref = $derived(`/i/${permalink}?media=${media.id}&size=best`);
+  let videoHref = $derived(`/v/${medialink}?media=${media.id}&size=best`);
+  let gifHref = $derived(`/g/${medialink}?media=${media.id}&size=best`);
+  let imageHref = $derived(`/i/${medialink}?media=${media.id}&size=best`);
 
   async function onDownloadClick(event: MouseEvent, href: string) {
     event.preventDefault();
@@ -52,7 +52,7 @@
 
     <img alt="Preview thumbnail"
          class="rounded-xl border-4 border-gray-200 dark:border-black h-40 object-cover"
-         src="/i/{permalink}?media={media.id}&size=thumbnail"/>
+         src="/i/{medialink}?media={media.id}&size=thumbnail"/>
 
     <div class="flex gap-2 not-xs:grow">
         {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}

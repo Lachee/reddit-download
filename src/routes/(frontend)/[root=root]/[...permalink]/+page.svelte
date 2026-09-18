@@ -9,12 +9,12 @@
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte";
   import { MediaType } from "$lib/reddit/Media";
   import { getDownloadLink, getExtension } from "$lib/reddit/Download";
-  import { normalizePermalink } from "$lib/reddit/Utilities";
+  import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
 
   let { data }: { data: PageData } = $props();
   let { post, type, collection } = $derived(data);
 
-  let permalink = $derived(normalizePermalink(post.permalink).substring(2));
+  let medialink = $derived(normalizeMedialink(post.permalink));
 
   /** The media actually presented on the page. Videos take over the entire post. */
   let presented = $derived.by(() => {
@@ -42,7 +42,7 @@
     try {
       const padding = String(presented.length).length;
       for (const [ index, media ] of presented.entries()) {
-        const response = await fetch(getDownloadLink(permalink, media));
+        const response = await fetch(getDownloadLink(medialink, media));
         if (!response.ok || !response.body)
           continue;
 
@@ -71,13 +71,13 @@
     >
         <header class="border-b-2 border-gray-200 pb-4 dark:border-cliff-400">
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
-                <span>{post.subredditName ?? `r/${post.subreddit}`}</span>
+                <span>{post.subreddit_name_prefixed ?? `r/${post.subreddit}`}</span>
                 <span>•</span>
                 <span>u/{post.author}</span>
                 <span>•</span>
                 <span>
                         <a
-                                href={`https://www.reddit.com/${post.permalink}`}
+                                href={`https://www.reddit.com/${normalizePermalink(post.permalink)}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 class="hover:underline "

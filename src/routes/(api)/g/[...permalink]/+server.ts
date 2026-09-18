@@ -6,6 +6,7 @@ import { probeDuration } from "$lib/server/ffmpeg/Probe";
 import { range } from "$lib/server/Range";
 import { redirect } from "@sveltejs/kit";
 import { query } from "$lib/reddit/server";
+import { normalizeMedialink } from "$lib/reddit/Utilities";
 import { env } from "$env/dynamic/private";
 
 const CONTENT_TTL = +(env.CACHE_GIF_TTL ?? 3600);
@@ -72,7 +73,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     // We did not convert a video, so we will use a fullback gif, otherwise let the image route handle it.
     if (!gif) {
       console.log('failed to generate a gif so redirecting to i')
-      return { redirect: `/i/${post.permalink.substring(3)}?media=${mediaId ?? ''}&size=best` } satisfies CachedResponse;
+      return { redirect: `/i/${normalizeMedialink(post.permalink)}?media=${mediaId ?? ''}&size=best` } satisfies CachedResponse;
     }
 
     const { href } = gif;

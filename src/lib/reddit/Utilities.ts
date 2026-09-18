@@ -1,18 +1,36 @@
+export const PERMALINK_ROOTS = [ 'r', 'user', 'u' ] as const;
+const PERMALINK_PATH = new RegExp(`/((?:${PERMALINK_ROOTS.join('|')})/.+)$`, 'i');
+const USER_PERMALINK = /^(?:user|u)\/([^/]+)(\/.*)?$/i;
 
-export function normalizePermalink(input: string): string {
-  const url = input.trim();
+/** Normalizes the permalink into a r/ form, stripping unnessary information. */
+export function normalizePermalink(rawPermalink: string): string {
+  let permalink = rawPermalink.trim();
 
-  if (url.startsWith('http')) {
-    const match = url.match(/\/?(r\/.+)$/);
-    return match?.[1] ?? url;
+  // - strip the origin
+  if (permalink.startsWith('http')) {
+    const match = permalink.match(PERMALINK_PATH);
+    if (match === null)
+      return permalink;
+    permalink = match[1];
   }
 
-  let permalink = url
-    .replace(/^\/+/, '')
-    .replace(/^(?!r\/)/, 'r/');
+  // - strip leading slashes
+  permalink = permalink.replace(/^\/+/, '');
 
+  // - canonicalise users
+  const user = permalink.match(USER_PERMALINK);
+  if (user !== null)
+    permalink = `r/u_${user[1]}${user[2] ?? ''}`;
+
+  // - prefix and suffix
+  permalink = permalink.replace(/^(?!r\/)/, 'r/');
   if (!permalink.endsWith('/'))
     permalink += '/';
 
   return permalink;
+}
+
+/** Normalizes the reddit permalink into a form the media access */
+export function normalizeMedialink(rawPermalink: string): string {
+  return normalizePermalink(rawPermalink).substring(2);
 }

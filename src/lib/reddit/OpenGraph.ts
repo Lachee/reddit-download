@@ -2,11 +2,12 @@ import type { Post } from "$lib/reddit/schema/postSchema";
 import type { OGPProperty } from "$lib/components/OpenGraph.svelte";
 import { type Media, type MediaCollection, MediaType, VariantType } from "$lib/reddit/Media";
 import { page } from '$app/state';
-import { normalizePermalink } from "$lib/reddit/Utilities";
+import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
 
 
 export function getOpenGraphProperties(post: Post, collection: MediaCollection): OGPProperty[] {
   const permalink = normalizePermalink(post.permalink);
+  const medialink = normalizeMedialink(post.permalink);
   const properties: OGPProperty[] = [
     { name: 'og:site_name', content: post.url ?? post.title },
     { name: 'og:title', content: post.title },
@@ -15,7 +16,7 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
     { name: 'twitter:title', content: post.title },
   ];
 
-  const videoLink = new URL(`/v${permalink.substring(1)}`, page.url.origin).toString();
+  const videoLink = new URL(`/v/${medialink}`, page.url.origin).toString();
 
   if (collection.some(c => c.type === MediaType.SecureVideo || c.type === MediaType.PreviewVideo)) {
     // Video Post
@@ -40,21 +41,21 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
     // Gallery Post
     const gallery = collection.filter(c => c.type === MediaType.Gallery);
     for (const media of gallery) {
-      pushImage(properties, media, permalink);
+      pushImage(properties, media, medialink);
     }
   } else {
     // Single Image post
     const media = collection.find(c => c.type === MediaType.PreviewImage) || collection.find(c => c.type === MediaType.Thumbnail || c.type === MediaType.Overridden)!;
-    pushImage(properties, media, permalink);
+    pushImage(properties, media, medialink);
   }
 
   return properties;
 }
 
 
-function pushImage(properties: OGPProperty[], media: Media, permalink: string) {
-  const gifLink = new URL(`/g${permalink.substring(1)}`, page.url.origin).toString();
-  const imageLink = new URL(`/i${permalink.substring(1)}`, page.url.origin).toString();
+function pushImage(properties: OGPProperty[], media: Media, mediaPath: string) {
+  const gifLink = new URL(`/g/${mediaPath}`, page.url.origin).toString();
+  const imageLink = new URL(`/i/${mediaPath}`, page.url.origin).toString();
 
   properties.push({ name: 'og:type', content: 'website' });
   properties.push({ name: 'og:image', content: gifLink });

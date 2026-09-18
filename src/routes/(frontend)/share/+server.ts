@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { normalizePermalink } from '$lib/reddit/Utilities';
 
 function extractRedditUrl(text: string): string {
-    const match = text.match(/https?:\/\/(?:www\.)?reddit\.com\/r\/[^\s]+/);
+    const match = text.match(/https?:\/\/(?:www\.)?reddit\.com\/(?:r|user|u)\/[^\s]+/i);
     return match?.[0] ?? '';
 }
 

@@ -12,12 +12,12 @@
         post,
         media,
         variant,
-        permalink
+        medialink
       }: {
     post: Post
     media: Media
     variant: Variant
-    permalink: string
+    medialink: string
   } = $props();
 
   let loading = $state(false);
@@ -55,7 +55,7 @@
   async function onDownloadClick() {
     downloading = true;
     try {
-      await download(getDownloadLink(permalink, media, asGif), media.id);
+      await download(getDownloadLink(medialink, media, asGif), media.id);
     } finally {
       downloading = false;
     }
@@ -74,7 +74,7 @@
     <LoadingMediaElement
             height={height}
             loading={loading}
-            thumbnail="/i/{permalink}?media={media.id}&size=thumbnail"
+            thumbnail="/i/{medialink}?media={media.id}&size=thumbnail"
             variant="pixels"
             width={width}
     />
@@ -83,7 +83,7 @@
         {#if type === VariantType.GIF || asGif }
             <img
                     class="w-full h-auto"
-                    src="/g/{permalink}?media={media.id}&size=best"
+                    src="/g/{medialink}?media={media.id}&size=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
                     onload={() => loading = false}
@@ -97,7 +97,7 @@
                    muted={isGifVideo}
                    loop={isGifVideo}
                    playsinline
-                   src="/v/{permalink}?media={media.id}&size=best"
+                   src="/v/{medialink}?media={media.id}&size=best"
                    oncanplay={() => loading = false}
                    onloadeddata={() => loading = false}
                    onerror={() => loading = false}
@@ -106,7 +106,7 @@
         {:else}
             <img
                     class="w-full h-auto"
-                    src="/i/{permalink}?media={media.id}&size=best"
+                    src="/i/{medialink}?media={media.id}&size=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
                     onload={() => loading = false}
