@@ -3,3 +3,8 @@ allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true
   msgpackr-extract: true
+minimumReleaseAgeExclude:
+  - cookie@0.7.0
+  - esbuild@0.28.1
+  - fast-uri@3.1.6
+  - devalue@5.9.1
