@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ setHeaders, params, fetch }) => {
   const type = getPostType(post, collection);
 
   // const links = [
-  //   ...collection.map(m =>  link(`/i/${toMediaPath(post.permalink)}?media=${m.id}&size=thumbnail`, 'preload', 'image', 'high')),
+  //   ...collection.map(m =>  link(`/i/${toMediaPath(post.permalink)}?m=${m.id}&s=thumbnail`, 'preload', 'image', 'high')),
   // ];
   //
   // setHeaders({

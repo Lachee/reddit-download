@@ -19,7 +19,7 @@
 </script>
 
 <svelte:head>
-    <link as="image" href="/i/{medialink}?media={media.id}&size=thumbnail" rel="preload"/>
+    <link as="image" href="/i/{medialink}?m={media.id}&s=thumbnail" rel="preload"/>
 </svelte:head>
 
 {#if display.ready}

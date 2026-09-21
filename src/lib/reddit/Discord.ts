@@ -78,6 +78,5 @@ function mediaUrl(media: Media, mediaPath: string): string {
 function galleryItem(url: string, description: string): MediaGalleryItem {
   return {
     media: { url },
-    description: description.slice(0, MAX_DESCRIPTION),
   };
 }

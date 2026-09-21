@@ -4,10 +4,10 @@ import { type Media, sort, VariantType } from "$lib/reddit/Media";
 export function getDownloadLink(permalink: string, media: Media, asGif = false): string {
   const variant = sort(media.variants)[0];
   if (asGif || variant.type === VariantType.GIF)
-    return `/g/${permalink}?media=${media.id}&size=best`;
+    return `/g/${permalink}?m=${media.id}&s=best`;
   if (variant.type === VariantType.Video || variant.type === VariantType.PartialVideo || variant.type === VariantType.PartialAudio)
-    return `/v/${permalink}?media=${media.id}&size=best`;
-  return `/i/${permalink}?media=${media.id}&size=best`;
+    return `/v/${permalink}?m=${media.id}&s=best`;
+  return `/i/${permalink}?m=${media.id}&s=best`;
 }
 
 /** Gets the name the server wants the media saved as. */

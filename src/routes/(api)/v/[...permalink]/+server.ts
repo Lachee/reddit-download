@@ -32,7 +32,7 @@ type CachedResponse = OkCachedResponse | RedirectCachedResponse | ErrorCachedRes
 export const trailingSlash = 'always';
 
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
-  const mediaId = url.searchParams.get('media');
+  const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
   const response = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {

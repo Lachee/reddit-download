@@ -25,7 +25,7 @@ export const trailingSlash = 'always';
 
 export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   // Return the cached response if it exists / is currently being processed
-  const mediaId = url.searchParams.get('media');
+  const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
   const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async (): Promise<CachedResponse> => {
@@ -73,7 +73,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
     // We did not convert a video, so we will use a fullback gif, otherwise let the image route handle it.
     if (!gif) {
       console.log('failed to generate a gif so redirecting to i')
-      return { redirect: `/i/${normalizeMedialink(post.permalink)}?media=${mediaId ?? ''}&size=best` } satisfies CachedResponse;
+      return { redirect: `/i/${normalizeMedialink(post.permalink)}?m=${mediaId ?? ''}&s=best` } satisfies CachedResponse;
     }
 
     const { href } = gif;

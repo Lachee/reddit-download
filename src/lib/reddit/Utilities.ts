@@ -17,6 +17,9 @@ export function normalizePermalink(rawPermalink: string): string {
   // - strip leading slashes
   permalink = permalink.replace(/^\/+/, '');
 
+  // - strip leading title  // - strip leading title
+  permalink = permalink.replace(/(\/comments\/[a-z0-9]+)(?:\/.*)?$/i, '$1/');
+
   // - canonicalise users
   const user = permalink.match(USER_PERMALINK);
   if (user !== null)

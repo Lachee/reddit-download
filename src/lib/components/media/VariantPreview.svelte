@@ -74,7 +74,7 @@
     <LoadingMediaElement
             height={height}
             loading={loading}
-            thumbnail="/i/{medialink}?media={media.id}&size=thumbnail"
+            thumbnail="/i/{medialink}?m={media.id}&s=thumbnail"
             variant="pixels"
             width={width}
     />
@@ -83,7 +83,7 @@
         {#if type === VariantType.GIF || asGif }
             <img
                     class="w-full h-auto"
-                    src="/g/{medialink}?media={media.id}&size=best"
+                    src="/g/{medialink}?m={media.id}&s=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
                     onload={() => loading = false}
@@ -97,7 +97,7 @@
                    muted={isGifVideo}
                    loop={isGifVideo}
                    playsinline
-                   src="/v/{medialink}?media={media.id}&size=best"
+                   src="/v/{medialink}?m={media.id}&s=best"
                    oncanplay={() => loading = false}
                    onloadeddata={() => loading = false}
                    onerror={() => loading = false}
@@ -106,7 +106,7 @@
         {:else}
             <img
                     class="w-full h-auto"
-                    src="/i/{medialink}?media={media.id}&size=best"
+                    src="/i/{medialink}?m={media.id}&s=best"
                     alt="Cannot Load: {media.id}"
                     decoding="async"
                     onload={() => loading = false}

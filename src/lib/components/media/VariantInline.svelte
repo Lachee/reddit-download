@@ -21,9 +21,9 @@
   let hover = $state(false);
   let downloading = $state('');
 
-  let videoHref = $derived(`/v/${medialink}?media=${media.id}&size=best`);
-  let gifHref = $derived(`/g/${medialink}?media=${media.id}&size=best`);
-  let imageHref = $derived(`/i/${medialink}?media=${media.id}&size=best`);
+  let videoHref = $derived(`/v/${medialink}?m=${media.id}&s=best`);
+  let gifHref = $derived(`/g/${medialink}?m=${media.id}&s=best`);
+  let imageHref = $derived(`/i/${medialink}?m=${media.id}&s=best`);
 
   async function onDownloadClick(event: MouseEvent, href: string) {
     event.preventDefault();
@@ -52,7 +52,7 @@
 
     <img alt="Preview thumbnail"
          class="rounded-xl border-4 border-gray-200 dark:border-black h-40 object-cover"
-         src="/i/{medialink}?media={media.id}&size=thumbnail"/>
+         src="/i/{medialink}?m={media.id}&s=thumbnail"/>
 
     <div class="flex gap-2 not-xs:grow">
         {#if type === VariantType.Video || type === VariantType.PartialVideo || type === VariantType.PartialAudio}
