@@ -9,7 +9,7 @@
   import Media from "$lib/components/media/Media.svelte";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte";
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte";
-  import { MediaType } from "$lib/reddit/Media";
+  import { findPresentedMedia } from "$lib/reddit/Media";
   import { getDownloadLink, getExtension } from "$lib/reddit/Download";
   import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
 
@@ -18,15 +18,7 @@
 
   let medialink = $derived(normalizeMedialink(post.permalink));
 
-  /** The media actually presented on the page. Videos take over the entire post. */
-  let presented = $derived.by(() => {
-    const video = collection.find(c => c.type === MediaType.SecureVideo)
-                  ?? collection.find(c => c.type === MediaType.PreviewVideo);
-    if (video)
-      return [ video ];
-
-    return collection.filter(c => c.type !== MediaType.Thumbnail && c.type !== MediaType.Overridden);
-  });
+  let presented = $derived(findPresentedMedia(collection));
 
   let supportsFileSystem = $state(false);
   let saving = $state(false);

@@ -1,7 +1,8 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
-import { type Media, type MediaCollection, MediaType, VariantType } from "$lib/reddit/Media";
+import { findEmbeddedMedia, type Media, type MediaCollection } from "$lib/reddit/Media";
 import { page } from '$app/state';
 import { normalizeMedialink } from "$lib/reddit/Utilities";
+import { getDownloadLink } from "$lib/reddit/Download";
 
 export type ComponentType = 12 | 17;
 
@@ -49,38 +50,29 @@ export interface ComponentEmbed {
 
 export function getDiscordComponent(post: Post, collection: MediaCollection): ComponentEmbed {
   const medialink = normalizeMedialink(post.permalink);
-  const items: MediaGalleryItem[] = [];
+  const items: MediaGalleryItem[] = findEmbeddedMedia(collection)
+    .map(media => galleryItem(mediaUrl(media, medialink), post.title));
 
-  const video = collection.find(c => c.type === MediaType.SecureVideo || c.type === MediaType.PreviewVideo);
-
-  if (video) {
-    items.push(galleryItem(new URL(`/v/${medialink}`, page.url.origin).toString(), post.title));
-  } else {
-    const gallery = collection.filter(c => c.type === MediaType.Gallery);
-    const sources: Media[] = gallery.length > 0
-      ? gallery
-      : [collection.find(c => c.type === MediaType.PreviewImage)
-        ?? collection.find(c => c.type === MediaType.Thumbnail || c.type === MediaType.Overridden)]
-        .filter((m): m is Media => m !== undefined);
-
-    for (const media of sources.slice(0, MAX_GALLERY_ITEMS)) {
-      items.push(galleryItem(imageUrl(media, medialink), post.title));
-    }
+  // Split the items into multiples of 10 media galleries.
+  const galleries : MediaGalleryComponent[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const gindex = Math.floor(i / MAX_GALLERY_ITEMS);
+    if (gindex >= galleries.length) 
+      galleries[gindex] = { type: 12, items: [] };
+    galleries[gindex].items.push(items[i]);
   }
 
   return {
     component: {
       type: 17,
       accent_color: ACCENT_COLOR,
-      components: [{ type: 12, items }],
+      components: galleries,
     },
   };
 }
 
-function imageUrl(media: Media, mediaPath: string): string {
-  const variant = media.variants[0];
-  const prefix = variant.type === VariantType.Image ? 'i' : 'g';
-  return new URL(`/${prefix}/${mediaPath}`, page.url.origin).toString();
+function mediaUrl(media: Media, mediaPath: string): string {
+  return new URL(getDownloadLink(mediaPath, media), page.url.origin).toString();
 }
 
 function galleryItem(url: string, description: string): MediaGalleryItem {

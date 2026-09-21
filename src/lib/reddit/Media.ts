@@ -68,6 +68,26 @@ export type QueryableMedia = Media & {
 export type QueryableMediaCollection = (Media | QueryableMedia)[];
 export type MediaCollection = Media[];
 
+/** The media actually presented on the page. Videos take over the entire post. */
+export function findPresentedMedia(collection: MediaCollection): MediaCollection {
+  const video = collection.find(c => c.type === MediaType.SecureVideo)
+                ?? collection.find(c => c.type === MediaType.PreviewVideo);
+  if (video)
+    return [ video ];
+
+  return collection.filter(c => c.type !== MediaType.Thumbnail && c.type !== MediaType.Overridden);
+}
+
+/** The media an embed should show. Falls back to the thumbnails when the page has nothing to present. */
+export function findEmbeddedMedia(collection: MediaCollection): MediaCollection {
+  const presented = findPresentedMedia(collection);
+  if (presented.length > 0)
+    return presented;
+
+  const fallback = collection.find(c => c.type === MediaType.Thumbnail || c.type === MediaType.Overridden);
+  return fallback !== undefined ? [ fallback ] : [];
+}
+
 /**
  * Finds amongst the given variants, the one with the biggest area.
  * Missing dimensions are assumed to be 0px, favouring variants that actually report dimensions.

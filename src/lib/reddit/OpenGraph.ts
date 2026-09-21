@@ -1,13 +1,15 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
 import type { OGPProperty } from "$lib/components/OpenGraph.svelte";
-import { type Media, type MediaCollection, MediaType, VariantType } from "$lib/reddit/Media";
+import { findEmbeddedMedia, type Media, type MediaCollection, sort, type Variant, VariantType } from "$lib/reddit/Media";
 import { page } from '$app/state';
 import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
+import { getDownloadLink } from "$lib/reddit/Download";
 
 
 export function getOpenGraphProperties(post: Post, collection: MediaCollection): OGPProperty[] {
   const permalink = normalizePermalink(post.permalink);
   const medialink = normalizeMedialink(post.permalink);
+  const embedded = findEmbeddedMedia(collection);
   const properties: OGPProperty[] = [
     { name: 'og:site_name', content: post.url ?? post.title },
     { name: 'og:title', content: post.title },
@@ -16,10 +18,11 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
     { name: 'twitter:title', content: post.title },
   ];
 
-  const videoLink = new URL(`/v/${medialink}`, page.url.origin).toString();
+  const video = embedded.find(m => isVideo(sort(m.variants)[0]));
 
-  if (collection.some(c => c.type === MediaType.SecureVideo || c.type === MediaType.PreviewVideo)) {
+  if (video) {
     // Video Post
+    const videoLink = new URL(getDownloadLink(medialink, video), page.url.origin).toString();
     properties.push({ name: 'og:type', content: 'video.other' });
     properties.push({ name: 'twitter:player', content: videoLink });
     properties.push({ name: 'og:video', content: videoLink });
@@ -27,7 +30,7 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
     properties.push({ name: 'og:video:secure_url', content: videoLink });
 
     // Video Object
-    const m = collection.find(c => c.type === MediaType.SecureVideo || c.type === MediaType.PreviewVideo)!.variants[0];
+    const m = sort(video.variants)[0];
     properties.push({ name: 'og:video:type', content: 'video/mp4' });
     if (m.dimension) {
       properties.push({ name: 'og:video:width', content: m.dimension.width.toString() });
@@ -37,16 +40,13 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
         properties.push({ name: 'twitter:player:height', content: m.dimension.height.toString() });
       }
     }
-  } else if (collection.some(c => c.type === MediaType.Gallery)) {
-    // Gallery Post
-    const gallery = collection.filter(c => c.type === MediaType.Gallery);
-    for (const media of gallery) {
+  } else {
+    // Gallery and Single Image posts
+    properties.push({ name: 'og:type', content: 'website' });
+    properties.push({ name: 'twitter:card', content: 'summary_large_image' });
+    for (const media of embedded) {
       pushImage(properties, media, medialink);
     }
-  } else {
-    // Single Image post
-    const media = collection.find(c => c.type === MediaType.PreviewImage) || collection.find(c => c.type === MediaType.Thumbnail || c.type === MediaType.Overridden)!;
-    pushImage(properties, media, medialink);
   }
 
   return properties;
@@ -54,20 +54,21 @@ export function getOpenGraphProperties(post: Post, collection: MediaCollection):
 
 
 function pushImage(properties: OGPProperty[], media: Media, mediaPath: string) {
-  const gifLink = new URL(`/g/${mediaPath}`, page.url.origin).toString();
-  const imageLink = new URL(`/i/${mediaPath}`, page.url.origin).toString();
+  const m = sort(media.variants)[0];
+  const isImage = m.type === VariantType.Image;
+  const imageLink = new URL(getDownloadLink(mediaPath, media, !isImage), page.url.origin).toString();
 
-  properties.push({ name: 'og:type', content: 'website' });
-  properties.push({ name: 'og:image', content: gifLink });
-
-  const m = media.variants[0];
-  properties.push({ name: 'og:image:type', content: m.mime });
+  properties.push({ name: 'og:image', content: imageLink });
+  properties.push({ name: 'og:image:type', content: isImage ? m.mime : 'image/gif' });
   if (m.dimension) {
     properties.push({ name: 'og:image:width', content: m.dimension.width.toString() });
     if (m.dimension.height)
       properties.push({ name: 'og:image:height', content: m.dimension.height.toString() });
   }
 
-  properties.push({ name: 'twitter:card', content: 'summary_large_image' });
-  properties.push({ name: 'twitter:image:src', content: m.type === VariantType.Image ? imageLink : gifLink });
+  properties.push({ name: 'twitter:image:src', content: imageLink });
+}
+
+function isVideo(variant: Variant): boolean {
+  return variant.type === VariantType.Video || variant.type === VariantType.PartialVideo;
 }
