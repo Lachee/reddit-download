@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { getOpenGraphProperties } from "$lib/reddit/OpenGraph";
+  import { getDiscordComponent } from "$lib/reddit/Discord";
   import SearchBar from "$lib/components/SearchBar.svelte";
   import OpenGraph from "$lib/components/OpenGraph.svelte";
+  import DiscordComponent from '$lib/components/DiscordComponent.svelte';
   import Badge from "$lib/components/Badge.svelte";
   import Media from "$lib/components/media/Media.svelte";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte";
@@ -61,6 +63,7 @@
 </script>
 
 <OpenGraph properties={getOpenGraphProperties(post, collection)}/>
+<DiscordComponent component={getDiscordComponent(post, collection)} />
 
 <main class="max-w-225 mx-auto sm:p-0 md:p-8">
     <div class="sm:mb-0 md:mb-8">
