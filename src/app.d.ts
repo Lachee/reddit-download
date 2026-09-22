@@ -17,6 +17,9 @@ declare global {
 
 	interface Window {
 		showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>;
+		umami?: {
+			track(event: string, data?: Record<string, string | number | boolean>): void;
+		};
 	}
 }
 

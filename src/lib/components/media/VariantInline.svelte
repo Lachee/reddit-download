@@ -2,6 +2,7 @@
   import type { Post } from "$lib/reddit/schema/postSchema";
   import { type Media, type Variant, VariantType } from "$lib/reddit/Media";
   import { download } from "$lib/reddit/Download";
+  import { Events, getFormat, track } from "$lib/Analytics";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte"
 
@@ -27,6 +28,10 @@
 
   async function onDownloadClick(event: MouseEvent, href: string) {
     event.preventDefault();
+
+    const format = getFormat(href);
+    track(Events.Download, { format, converted: format === 'gif' && type !== VariantType.GIF, layout: 'list' });
+
     downloading = href;
     try {
       await download(href, media.id);

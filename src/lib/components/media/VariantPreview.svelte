@@ -2,6 +2,7 @@
   import type { Post } from "$lib/reddit/schema/postSchema";
   import { type Media, type Variant, VariantType } from "$lib/reddit/Media";
   import { download, getDownloadLink } from "$lib/reddit/Download";
+  import { Events, getFormat, track } from "$lib/Analytics";
   import DownloadIcon from "$lib/components/icons/DownloadIcon.svelte"
   import GifIcon from "$lib/components/icons/GifIcon.svelte"
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte"
@@ -53,9 +54,12 @@
 
 
   async function onDownloadClick() {
+    const href = getDownloadLink(medialink, media, asGif);
+    track(Events.Download, { format: getFormat(href), converted: asGif, layout: 'gallery' });
+
     downloading = true;
     try {
-      await download(getDownloadLink(medialink, media, asGif), media.id);
+      await download(href, media.id);
     } finally {
       downloading = false;
     }
@@ -63,6 +67,7 @@
 
   function onGifClick() {
     asGif = !asGif;
+    track(Events.GifPreview, { state: asGif ? 'on' : 'off' });
   }
 
 </script>

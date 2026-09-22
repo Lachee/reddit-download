@@ -12,6 +12,7 @@
   import { findPresentedMedia } from "$lib/reddit/Media";
   import { getDownloadLink, getExtension } from "$lib/reddit/Download";
   import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
+  import { Events, track } from "$lib/Analytics";
 
   let { data }: { data: PageData } = $props();
   let { post, type, collection } = $derived(data);
@@ -29,10 +30,13 @@
 
   async function onSaveAllClick() {
     const directory = await window.showDirectoryPicker({ mode: 'readwrite' }).catch(() => null);
-    if (!directory)
+    if (!directory) {
+      track(Events.DownloadAll, { status: 'cancelled', count: presented.length });
       return;
+    }
 
     saving = true;
+    let saved = 0;
     try {
       const padding = String(presented.length).length;
       for (const [ index, media ] of presented.entries()) {
@@ -44,12 +48,14 @@
         const filename = `${post.id}-${prefix}-${media.id}.${getExtension(response)}`;
         const file = await directory.getFileHandle(filename, { create: true });
         await response.body.pipeTo(await file.createWritable());
+        saved++;
 
         // Try to enforce date ordering for sites like discord
         await new Promise(resolve => setTimeout(resolve, 250));
       }
     } finally {
       saving = false;
+      track(Events.DownloadAll, { status: 'completed', count: presented.length, saved });
     }
   }
 </script>
