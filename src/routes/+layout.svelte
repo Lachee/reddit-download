@@ -6,15 +6,19 @@
     import LoadingBar from "$lib/components/loaders/LoadingBar.svelte";
     import ThemeToggle from "$lib/components/ThemeToggle.svelte";
     import DisplayToggle from "$lib/components/DisplayToggle.svelte";
-    let { children } = $props();
+    import Umami from "$lib/components/Umami.svelte";
+    let { children, data } = $props();
 
     let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
 </script>
 
 <svelte:head>
-    {@html webManifestLink}
     <meta name="theme-color" content="#FF5700" />
     <link rel="icon" href="/favicon.png" />
+    {@html webManifestLink}
+    {#if data.umami}
+        <Umami host={data.umami.host} website={data.umami.website} />
+    {/if}
 </svelte:head>
 
 <LoadingBar />
