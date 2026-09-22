@@ -12,13 +12,14 @@
     let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
 </script>
 
+{#if data.umami}
+    <Umami host={data.umami.host} website={data.umami.website} />
+{/if}
+
 <svelte:head>
+    {@html webManifestLink}
     <meta name="theme-color" content="#FF5700" />
     <link rel="icon" href="/favicon.png" />
-    {@html webManifestLink}
-    {#if data.umami}
-        <Umami host={data.umami.host} website={data.umami.website} />
-    {/if}
 </svelte:head>
 
 <LoadingBar />
