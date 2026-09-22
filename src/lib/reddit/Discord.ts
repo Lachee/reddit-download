@@ -4,10 +4,11 @@ import { page } from '$app/state';
 import { normalizeMedialink } from "$lib/reddit/Utilities";
 import { getDownloadLink } from "$lib/reddit/Download";
 
-export type ComponentType = 12 | 17;
+export type ComponentType = 2 | 9 | 10 | 12 | 17;
 
 const MAX_GALLERY_ITEMS = 10;
 const MAX_DESCRIPTION = 1024;
+const MAX_TITLE = 20;
 const ACCENT_COLOR = 0xff4500;
 
 export interface UnfurledMediaItem {
@@ -27,7 +28,35 @@ export interface MediaGalleryComponent {
   items: MediaGalleryItem[];
 }
 
-export type ContainerChildComponent = MediaGalleryComponent;
+export interface ButtonEmoji {
+  id?: string;
+  name?: string;
+  animated?: boolean;
+}
+
+export interface LinkButtonComponent {
+  type: 2;
+  style: 5;
+  url: string;
+  /** Max 80 characters. */
+  label: string;
+  emoji?: ButtonEmoji;
+  disabled?: boolean;
+}
+
+export interface TextDisplayComponent {
+  type: 10;
+  content: string;
+}
+
+export interface SectionComponent {
+  type: 9;
+  /** 1–3 text displays. */
+  components: TextDisplayComponent[];
+  accessory: LinkButtonComponent;
+}
+
+export type ContainerChildComponent = MediaGalleryComponent | SectionComponent;
 export interface ContainerComponent {
   type: 17;
   components: ContainerChildComponent[];
@@ -62,11 +91,31 @@ export function getDiscordComponent(post: Post, collection: MediaCollection): Co
     galleries[gindex].items.push(items[i]);
   }
 
+  const title = post.title.length > MAX_TITLE ? post.title.substring(0, MAX_TITLE - 3) + '...' : post.title;
+  const header : SectionComponent = {
+    type:  9,
+    components: [
+      {
+        type: 10,
+        content: title
+      }
+    ],
+    accessory: {
+      "type": 2,
+      "style": 5,
+      "label": "View on Reddit",
+      "url": `https://reddit.com${post.permalink}`
+    }
+  }
+
   return {
     component: {
       type: 17,
       accent_color: ACCENT_COLOR,
-      components: galleries,
+      components: [
+        header,
+        ...galleries
+      ],
     },
   };
 }
