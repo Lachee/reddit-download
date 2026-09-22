@@ -13,7 +13,7 @@
 </script>
 
 {#if data.umami}
-    <Umami host={data.umami.host} website={data.umami.website} />
+    <Umami host={data.umami.host} website={data.umami.website} performance={true} />
 {/if}
 
 <svelte:head>
