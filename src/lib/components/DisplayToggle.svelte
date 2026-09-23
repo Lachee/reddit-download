@@ -4,7 +4,7 @@
 
     import GalleryIcon from "$lib/components/icons/DensityImage.svelte";
     import ListIcon from "$lib/components/icons/TableRows.svelte";
-    import {Events, track} from "$lib/Analytics";
+    import {Events, track, trackOnce} from "$lib/Analytics";
     import {
         display,
         initDisplayMode,
@@ -13,30 +13,14 @@
 
     const REPORTED_KEY = "display-reported";
 
-    function reportPreference() {
-        try {
-            if (sessionStorage.getItem(REPORTED_KEY) === display.mode) return;
-            sessionStorage.setItem(REPORTED_KEY, display.mode);
-        } catch {
-            return;
-        }
-
-        track(Events.DisplayMode, {mode: display.mode, source: "session"});
-    }
-
     function onToggleClick() {
         toggleDisplayMode();
         track(Events.DisplayMode, {mode: display.mode, source: "toggle"});
-
-        try {
-            sessionStorage.setItem(REPORTED_KEY, display.mode);
-        } catch {
-        }
     }
 
     onMount(() => {
         initDisplayMode();
-        reportPreference();
+        trackOnce(REPORTED_KEY, Events.DisplayMode, {mode: display.mode, source: "session"});
     });
 </script>
 

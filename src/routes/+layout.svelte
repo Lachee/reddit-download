@@ -7,7 +7,23 @@
     import ThemeToggle from "$lib/components/ThemeToggle.svelte";
     import DisplayToggle from "$lib/components/DisplayToggle.svelte";
     import Umami from "$lib/components/Umami.svelte";
+    import { onMount } from "svelte";
+    import { Events, trackOnce } from "$lib/Analytics";
     let { children, data } = $props();
+
+    const DISPLAY_MODES = ["fullscreen", "minimal-ui", "standalone"];
+
+    function getDisplayMode(): string {
+        if ("standalone" in navigator && navigator.standalone)
+            return "standalone";
+
+        return DISPLAY_MODES.find((mode) => window.matchMedia(`(display-mode: ${mode})`).matches) ?? "browser";
+    }
+
+    onMount(() => {
+        const mode = getDisplayMode();
+        trackOnce("pwa-reported", Events.Pwa, { mode, installed: mode !== "browser" });
+    });
 
     let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "");
 </script>
