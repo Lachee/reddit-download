@@ -8,6 +8,7 @@ import { redirect } from "@sveltejs/kit";
 import { query } from "$lib/reddit/server";
 import { normalizeMedialink } from "$lib/reddit/Utilities";
 import { env } from "$env/dynamic/private";
+import { track } from "$lib/server/Analytics";
 
 const CONTENT_TTL = +(env.CACHE_GIF_TTL ?? 3600);
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
@@ -23,7 +24,7 @@ type CachedResponse = ({
 
 export const trailingSlash = 'always';
 
-export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
+export const GET: RequestHandler = async ({ url, params, fetch, request, getClientAddress }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
   const { post, collection } = await query({ permalink: params.permalink, fetch });
@@ -57,6 +58,14 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
         console.log('The best is a video, converting to a gif...', opts);
         const buffer = await convert(opts);
         const filename = `${post.id}-${video.id}.gif`
+
+        track('gif-convert', {
+          subreddit: post.subreddit ?? '',
+          duration:  Math.round(duration),
+          scale,
+          bytes:     buffer.byteLength,
+        }, { url, request, address: getClientAddress() });
+
         return {
           content: buffer,
           mime:    'image/gif',
