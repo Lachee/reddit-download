@@ -7,6 +7,33 @@ type Visitor = {
   address: string,
 };
 
+/** Agents that identify themselves in the user agent, matched case-insensitively. */
+const KNOWN_AGENTS = [
+  'ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'Anthropic-AI',
+  'GPTBot', 'ChatGPT-User', 'OAI-SearchBot',
+  'PerplexityBot', 'Perplexity-User',
+  'Gemini', 'Google-Extended', 'GoogleOther',
+  'meta-externalagent', 'MistralAI-User', 'DuckAssistBot', 'cohere-ai',
+  'Bytespider', 'Amazonbot', 'Applebot-Extended', 'CCBot', 'YouBot',
+];
+
+/** Keeps a self declared name short and boring, so it cannot pollute the reports. */
+function sanitize(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9 ._-]/g, '').trim().slice(0, 40);
+}
+
+/** Identifies an LLM either by the agent it declares, or by a user agent we recognise. */
+export function detectAgent(url: URL, request: Request): { name: string, declared: boolean } | undefined {
+  const declared = sanitize(url.searchParams.get('agent') ?? '');
+  if (declared)
+    return { name: declared, declared: true };
+
+  const userAgent = (request.headers.get('User-Agent') ?? '').toLowerCase();
+  const known = KNOWN_AGENTS.find(agent => userAgent.includes(agent.toLowerCase()));
+
+  return known ? { name: known.toLowerCase(), declared: false } : undefined;
+}
+
 /** Sends an event to umami as the visitor who caused it, never failing the request that triggered it. */
 export function track(event: string, data: EventData, visitor: Visitor): void {
   if (!env.UMAMI_HOST || !env.UMAMI_WEBSITE_ID)

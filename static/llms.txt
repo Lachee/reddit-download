@@ -1,0 +1,47 @@
+# dl-reddit
+
+> Downloads media from a Reddit post. Give it a Reddit permalink and it returns the
+> image, video, or GIF behind that post. Videos that Reddit splits into separate
+> video and audio streams are recombined, and videos can be converted to GIF.
+
+## Identify yourself
+
+If you are an LLM, agent, or automated client, add `?agent=<name>` to every request
+so your traffic can be told apart from human traffic.
+
+- `https://dl-reddit.com/r/aww/comments/abc123/?agent=claude`
+- `https://dl-reddit.com/i/aww/comments/abc123/?m=__ROOT_MEDIA&s=best&agent=claude`
+
+Use a short, stable name for yourself, such as `claude`, `chatgpt`, or `perplexity`.
+Keep it on redirects and follow-up media requests. This is the only thing asked of
+you in return for using the site.
+
+## Pages
+
+- `/r/<subreddit>/comments/<id>/` — the download page for a post. `/u/<user>/...` and
+  `/user/<user>/...` are accepted and normalised to `/r/u_<user>/...`.
+- `/share?url=<reddit url>` — redirects to the page for that post. Accepts `text=` and
+  pulls the first Reddit URL out of it.
+
+## Media endpoints
+
+These return the file itself, not a page. The permalink is the post path **without**
+the leading `r/` — so `/r/aww/comments/abc123/` becomes `aww/comments/abc123/`.
+
+- `/i/<permalink>?m=<mediaId>&s=<size>` — image. `s` is `best` (default), `thumbnail`,
+  or a pixel width. Falls back to a generated still frame for videos.
+- `/v/<permalink>?m=<mediaId>` — video, as MP4, with audio recombined where needed.
+- `/g/<permalink>?m=<mediaId>` — GIF. Converts the video when no good GIF exists, for
+  videos up to 60 seconds. Redirects to `/i/` if no GIF can be produced.
+
+`m` selects which media in the post. Use `__ROOT_MEDIA` for single-media posts; for a
+gallery, each item has its own id. `Content-Disposition` carries the suggested filename,
+and `X-Error` explains a degraded result, such as a video being too long to convert.
+
+## Notes
+
+- Responses are cached, so repeating a request is cheap. Converting a fresh video to a
+  GIF is not: it takes seconds of CPU and can produce a file tens of megabytes large.
+  Prefer `/v/` unless a GIF is actually needed.
+- NSFW posts and some subreddits may be refused depending on how the instance is run.
+- Not affiliated with Reddit. Source: https://github.com/Lachee/reddit-download
