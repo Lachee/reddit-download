@@ -6,11 +6,18 @@ export const Events = {
   Download: 'download',
   DownloadAll: 'download-all',
   Pwa: 'pwa',
+  View: 'view',
 } as const;
 
 export type Format = 'gif' | 'video' | 'image';
 
 export function track(event: string, data: EventData = {}) {
+  // The tracker script is deferred, so events sent during hydration wait for it to load.
+  if (!window.umami && document.readyState !== 'complete') {
+    window.addEventListener('load', () => window.umami?.track(event, data), { once: true });
+    return;
+  }
+
   window.umami?.track(event, data);
 }
 

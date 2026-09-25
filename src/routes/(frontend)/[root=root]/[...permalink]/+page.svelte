@@ -28,6 +28,11 @@
     supportsFileSystem = 'showDirectoryPicker' in window;
   });
 
+  // Re-runs on client navigation, so every viewed permalink is counted as a post or comment.
+  $effect(() => {
+    track(Events.View, { kind: comment ? 'comment' : 'post', type });
+  });
+
   async function onSaveAllClick() {
     const directory = await window.showDirectoryPicker({ mode: 'readwrite' }).catch(() => null);
     if (!directory) {
