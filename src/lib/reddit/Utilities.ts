@@ -4,7 +4,7 @@ const USER_PERMALINK = /^(?:user|u)\/([^/]+)(\/.*)?$/i;
 
 /** Normalizes the permalink into a r/ form, stripping unnessary information. */
 export function normalizePermalink(rawPermalink: string): string {
-  let permalink = rawPermalink.trim();
+  let permalink = rawPermalink.trim().replace(/[?#].*$/, '');
 
   // - strip the origin
   if (permalink.startsWith('http')) {
