@@ -1,0 +1,719 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TEST-POSTS > http://localhost:5173/r/IDONTGIVEASWAG/comments/1fln5rl/19_meme_dump_with_surprise_at_the_end/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "828x750",
+        "href": "https://preview.redd.it/xpfwz5ss81qd1.jpg",
+        "type": "image",
+      },
+      "id": "xpfwz5ss81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1080x1334",
+        "href": "https://preview.redd.it/ciss5fxs81qd1.png",
+        "type": "image",
+      },
+      "id": "ciss5fxs81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "466x502",
+        "href": "https://preview.redd.it/uggbtgzs81qd1.jpg",
+        "type": "image",
+      },
+      "id": "uggbtgzs81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 4,
+      },
+    },
+    {
+      "best": {
+        "dimension": "828x840",
+        "href": "https://preview.redd.it/e22o4u0t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "e22o4u0t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1170x1104",
+        "href": "https://preview.redd.it/5so6gb3t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "5so6gb3t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "933x1146",
+        "href": "https://preview.redd.it/q2nqy95t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "q2nqy95t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1004x991",
+        "href": "https://preview.redd.it/j7nn1w6t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "j7nn1w6t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 6,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1080x1076",
+        "href": "https://preview.redd.it/uke3v88t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "uke3v88t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "681x579",
+        "href": "https://preview.redd.it/3xq6yl9t81qd1.jpg",
+        "type": "image",
+      },
+      "id": "3xq6yl9t81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1242x1104",
+        "href": "https://preview.redd.it/5qc7qzat81qd1.jpg",
+        "type": "image",
+      },
+      "id": "5qc7qzat81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "585x443",
+        "href": "https://preview.redd.it/qeugjact81qd1.jpg",
+        "type": "image",
+      },
+      "id": "qeugjact81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 4,
+      },
+    },
+    {
+      "best": {
+        "dimension": "844x1702",
+        "href": "https://preview.redd.it/7qr1oeet81qd1.jpg",
+        "type": "image",
+      },
+      "id": "7qr1oeet81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1169x1100",
+        "href": "https://preview.redd.it/k716kqft81qd1.jpg",
+        "type": "image",
+      },
+      "id": "k716kqft81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "749x749",
+        "href": "https://preview.redd.it/dy2ogbht81qd1.jpg",
+        "type": "image",
+      },
+      "id": "dy2ogbht81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1280x720",
+        "href": "https://preview.redd.it/g68dr7jt81qd1.jpg",
+        "type": "image",
+      },
+      "id": "g68dr7jt81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "316x506",
+        "href": "https://i.redd.it/ttfedrkt81qd1.gif",
+        "type": "gif",
+      },
+      "id": "ttfedrkt81qd1",
+      "type": "gallery",
+      "variants": {
+        "gif": 1,
+        "image": 2,
+      },
+    },
+    {
+      "best": {
+        "dimension": "794x960",
+        "href": "https://preview.redd.it/303szzot81qd1.jpg",
+        "type": "image",
+      },
+      "id": "303szzot81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "640x690",
+        "href": "https://preview.redd.it/8hulakqt81qd1.jpg",
+        "type": "image",
+      },
+      "id": "8hulakqt81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "702x315",
+        "href": "https://preview.redd.it/8d2zc6st81qd1.jpg",
+        "type": "image",
+      },
+      "id": "8d2zc6st81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1920x1080",
+        "href": "https://preview.redd.it/43xpfgut81qd1.png",
+        "type": "image",
+      },
+      "id": "43xpfgut81qd1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x126",
+        "href": "https://b.thumbs.redditmedia.com/EdNHc-Agf6D78XtlZgab1MVQQ8sdQydbpED9W4ugZLM.jpg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/IDONTGIVEASWAG/comments/1fln5rl/",
+  "type": "gallery",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/ClaudeAI/comments/1wol22c/comment/pbo3njw/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "1280x720",
+        "href": "https://v.redd.it/x82rhbd0xcrh1/CMAF_720.mp4",
+        "type": "video_only",
+      },
+      "id": "x82rhbd0xcrh1",
+      "type": "comment_video",
+      "variants": {
+        "audio_only": 2,
+        "video_only": 5,
+      },
+    },
+  ],
+  "permalink": "r/ClaudeAI/comments/1wol22c/comment/pbo3njw/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/TopCharacterTropes/comments/1tx5ku4/using_powers_for_mundane_tasks 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "450x224",
+        "href": "https://i.redd.it/cglr4q330d5h1.gif",
+        "type": "gif",
+      },
+      "id": "cglr4q330d5h1",
+      "type": "gallery",
+      "variants": {
+        "gif": 1,
+        "image": 3,
+      },
+    },
+    {
+      "best": {
+        "dimension": "640x939",
+        "href": "https://preview.redd.it/b543wd330d5h1.jpg",
+        "type": "image",
+      },
+      "id": "b543wd330d5h1",
+      "type": "gallery",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x69",
+        "href": "https://preview.redd.it/cglr4q330d5h1.gif",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/TopCharacterTropes/comments/1tx5ku4/",
+  "type": "gallery",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/doohickeycorporation/comments/1tyia4w/the_sound_department_collaborated_with_the_sweets/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "480x854",
+        "href": "https://v.redd.it/1crojqtv6o5h1/CMAF_480.mp4",
+        "type": "video_only",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "secure_video",
+      "variants": {
+        "audio_only": 2,
+        "video": 1,
+        "video_only": 4,
+      },
+    },
+    {
+      "best": {
+        "dimension": "404x719",
+        "href": "https://external-preview.redd.it/N3R4bnN2dXY2bzVoMdJ1FzHFYvrrychBfB8E7qDRW_v0zoRvW6DT-q2ze71m.png",
+        "type": "image",
+      },
+      "id": "N3R4bnN2dXY2bzVoMdJ1FzHFYvrrychBfB8E7qDRW_v0zoRvW6DT-q2ze71m",
+      "type": "preview_image",
+      "variants": {
+        "image": 4,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x140",
+        "href": "https://external-preview.redd.it/N3R4bnN2dXY2bzVoMdJ1FzHFYvrrychBfB8E7qDRW_v0zoRvW6DT-q2ze71m.png",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/doohickeycorporation/comments/1tyia4w/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/ffxiv/comments/124meh9/microwaved_lalashark/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "720x720",
+        "href": "https://v.redd.it/fb7cz4ycygqa1/DASH_720.mp4",
+        "type": "video_only",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "secure_video",
+      "variants": {
+        "video": 1,
+        "video_only": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "882x882",
+        "href": "https://external-preview.redd.it/3Lndeo-RlDQElpb2BxWqSJJWuknZY4aDBl-aaPSkdak.png",
+        "type": "image",
+      },
+      "id": "lPGECRX08YjnisXZwbBtWVaGUwtVs3kgG7VWfWSbsVI",
+      "type": "preview_image",
+      "variants": {
+        "image": 5,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x140",
+        "href": "https://a.thumbs.redditmedia.com/ts5QbCVEk0MEBMvFSccVbmiReQWHAUKqkkLj0A94cT4.jpg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/ffxiv/comments/124meh9/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/formula1/comments/1txxsby/charles_driving_to_perfection_in_fp1/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "1559x786",
+        "href": "https://preview.redd.it/1yldhey16j5h1.gif",
+        "type": "gif",
+      },
+      "id": "1yldhey16j5h1",
+      "type": "preview_image",
+      "variants": {
+        "gif": 7,
+        "image": 7,
+        "video": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x70",
+        "href": "https://preview.redd.it/1yldhey16j5h1.gif",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+    {
+      "best": {
+        "dimension": undefined,
+        "href": "https://i.redd.it/1yldhey16j5h1.gif",
+        "type": "gif",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "overridden",
+      "variants": {
+        "gif": 1,
+      },
+    },
+  ],
+  "permalink": "r/formula1/comments/1txxsby/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/gameofthrones/comments/1ty4uj0/the_cast_then_and_now/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "720x1078",
+        "href": "https://v.redd.it/6mogcahcpk5h1/CMAF_720.mp4",
+        "type": "video",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "secure_video",
+      "variants": {
+        "video": 1,
+      },
+    },
+  ],
+  "permalink": "r/gameofthrones/comments/1ty4uj0/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/hobart/comments/qxs8w2/hobart_town_hall/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "3120x4160",
+        "href": "https://preview.redd.it/oh6oslwrym081.jpg",
+        "type": "image",
+      },
+      "id": "kTOwb7kEOvDYNEiUOOLQ1JTbF7zVmLjvhZosC_v0cvk",
+      "type": "preview_image",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x140",
+        "href": "https://b.thumbs.redditmedia.com/UEALWiY2bwbRT-nvJoVxtSI310gO4OIguanQglrMCzk.jpg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+    {
+      "best": {
+        "dimension": undefined,
+        "href": "https://i.redd.it/oh6oslwrym081.jpg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "overridden",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/hobart/comments/qxs8w2/",
+  "type": "image",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/nba/comments/1ty68vr/karlanthony_towns_if_you_lose_a_parentyou_just/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "600x338",
+        "href": "https://cdn-cf-east.streamable.com/image/3f56eg.jpg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "secure_video",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/nba/comments/1ty68vr/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/rupaulsdragrace/comments/1ty81bn/i_need_old_untucked_back 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "1927x1080",
+        "href": "https://preview.redd.it/6d8e2ootgl5h1.png",
+        "type": "image",
+      },
+      "id": "6d8e2ootgl5h1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1937x1080",
+        "href": "https://preview.redd.it/0s7hvootgl5h1.png",
+        "type": "image",
+      },
+      "id": "0s7hvootgl5h1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1918x1080",
+        "href": "https://preview.redd.it/nqzu0ootgl5h1.png",
+        "type": "image",
+      },
+      "id": "nqzu0ootgl5h1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "1918x1080",
+        "href": "https://preview.redd.it/2dycfootgl5h1.png",
+        "type": "image",
+      },
+      "id": "2dycfootgl5h1",
+      "type": "gallery",
+      "variants": {
+        "image": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x78",
+        "href": "https://preview.redd.it/6d8e2ootgl5h1.png",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/rupaulsdragrace/comments/1ty81bn/",
+  "type": "gallery",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/r/spaceporn/comments/1tywwwh/oc_just_updated_my_giantimpact_hypothesis_sim/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "1920x1080",
+        "href": "https://preview.redd.it/l454954w4r5h1.gif",
+        "type": "gif",
+      },
+      "id": "l454954w4r5h1",
+      "type": "preview_image",
+      "variants": {
+        "gif": 7,
+        "image": 7,
+        "video": 7,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x78",
+        "href": "https://preview.redd.it/l454954w4r5h1.gif",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+    {
+      "best": {
+        "dimension": undefined,
+        "href": "https://i.redd.it/l454954w4r5h1.gif",
+        "type": "gif",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "overridden",
+      "variants": {
+        "gif": 1,
+      },
+    },
+  ],
+  "permalink": "r/spaceporn/comments/1tywwwh/",
+  "type": "video",
+}
+`;
+
+exports[`TEST-POSTS > https://www.reddit.com/user/Lachee/comments/1wjkzx1/this_is_a_test_profile_post/ 1`] = `
+{
+  "media": [
+    {
+      "best": {
+        "dimension": "488x680",
+        "href": "https://preview.redd.it/x11bymxpu8qh1.jpeg",
+        "type": "image",
+      },
+      "id": "x11bymxpu8qh1",
+      "type": "preview_image",
+      "variants": {
+        "image": 4,
+      },
+    },
+    {
+      "best": {
+        "dimension": "140x140",
+        "href": "https://preview.redd.it/x11bymxpu8qh1.jpeg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "thumbnail",
+      "variants": {
+        "image": 1,
+      },
+    },
+    {
+      "best": {
+        "dimension": undefined,
+        "href": "https://i.redd.it/x11bymxpu8qh1.jpeg",
+        "type": "image",
+      },
+      "id": "__ROOT_MEDIA",
+      "type": "overridden",
+      "variants": {
+        "image": 1,
+      },
+    },
+  ],
+  "permalink": "r/u_Lachee/comments/1wjkzx1/",
+  "type": "image",
+}
+`;

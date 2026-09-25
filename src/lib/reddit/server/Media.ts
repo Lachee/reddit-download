@@ -204,7 +204,7 @@ export async function queryMediaCollection(svelteFetch: typeof window.fetch, col
           type:     c.type,
           variants: [
             ...c.variants,
-            ...await c.query(fetch)
+            ...await c.query(svelteFetch)
           ]
         })
       )
@@ -355,6 +355,11 @@ async function fetchDashMediaFromRedditVideo(fetch: typeof window.fetch, redditV
 
 async function fetchDashMedia(fetch: typeof window.fetch, dashUrl: string): Promise<Variant[]> {
   const response = await fetch(dashUrl);
+  if (!response.ok) {
+    console.warn('Failed to fetch DASH playlist', dashUrl, response.status);
+    return [];
+  }
+
   const dash = await response.text();
   const url = new URL(response.url);
   const basePath = url.pathname.substring(0, url.pathname.lastIndexOf('/'));

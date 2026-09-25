@@ -10,7 +10,9 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"gen": "svelte-kit sync"
+		"gen": "svelte-kit sync",
+		"test": "vitest run",
+		"test:record": "RECORD=true vitest run"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
@@ -23,7 +25,8 @@
 		"svelte-check": "^4.7.5",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
-		"vite": "^8.2.1"
+		"vite": "^8.2.1",
+		"vitest": "^5.0.1"
 	},
 	"dependencies": {
 		"@ffmpeg/ffmpeg": "^0.12.15",

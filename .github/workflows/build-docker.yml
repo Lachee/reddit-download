@@ -16,7 +16,25 @@ permissions:
   packages: write
   
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: 🧪 Test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: 📦 Install dependencies
+        run: pnpm ci
+
+      - name: 🧪 Run tests
+        run: pnpm test
+
   build-docker:
+    needs: test
     runs-on: ubuntu-latest
     name: 🐳 Build Docker Image
     steps:

@@ -137,3 +137,25 @@ Go to [old.reddit.com/prefs/](https://old.reddit.com/prefs/) and change:
 > To verify: go to any NSFW post and follow the prompts. 
 >
 > 
+
+## Testing
+The tests in `tests/posts.test.ts` run each post from `TEST-POSTS.md` through the same path as the site (search bar → `query()` → media collection) and compare the result against a snapshot.
+They replay Reddit responses recorded in `tests/fixtures/`, so they run offline and need no credentials.
+
+```shell
+pnpm test
+```
+
+### Adding a new test
+1. Add the post URL to `POSTS` in `tests/posts.test.ts`, and to `TEST-POSTS.md` with a note on what it covers.
+2. Record it from Reddit. This needs the Reddit credentials in your `.env`. The `-t` filter only records tests whose URL matches, so the others are left alone:
+   ```shell
+   pnpm test:record -t 1abcdef
+   ```
+3. Check the new entry in `tests/__snapshots__/posts.test.ts.snap` is what the page should show (the media, their type, and the best variant).
+4. Commit the new file in `tests/fixtures/` along with the snapshot.
+
+### When Reddit changes
+`pnpm test:record` fetches every post live and compares it against the existing snapshots, so a failure means Reddit now responds differently.
+Once you have fixed the code (or confirmed the change is fine), accept the new results with `pnpm test:record -u`.
+A deleted post keeps working from its recording in `pnpm test`, but re-recording it captures the deleted version. Replace it with a live post that covers the same case.
