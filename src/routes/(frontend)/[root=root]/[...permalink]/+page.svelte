@@ -11,13 +11,13 @@
   import SpinnerIcon from "$lib/components/icons/SpinnerIcon.svelte";
   import { findPresentedMedia } from "$lib/reddit/Media";
   import { getDownloadLink, getExtension } from "$lib/reddit/Download";
-  import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
+  import { normalizeMedialink } from "$lib/reddit/Utilities";
   import { Events, track } from "$lib/Analytics";
 
   let { data }: { data: PageData } = $props();
-  let { post, type, collection } = $derived(data);
+  let { post, comment, permalink, type, collection } = $derived(data);
 
-  let medialink = $derived(normalizeMedialink(post.permalink));
+  let medialink = $derived(normalizeMedialink(permalink));
 
   let presented = $derived(findPresentedMedia(collection));
 
@@ -60,12 +60,12 @@
   }
 </script>
 
-<OpenGraph properties={getOpenGraphProperties(post, collection)}/>
-<DiscordComponent component={getDiscordComponent(post, collection)} />
+<OpenGraph properties={getOpenGraphProperties(post, collection, permalink)}/>
+<DiscordComponent component={getDiscordComponent(post, collection, permalink)} />
 
 <main class="max-w-225 mx-auto sm:p-0 md:p-8">
     <div class="sm:mb-0 md:mb-8">
-        <SearchBar value={post.permalink} forceRounded={false}/>
+        <SearchBar value={permalink} forceRounded={false}/>
     </div>
     <article
             class="md:border-2 border-b-2 border-gray-200 md:rounded-2xl p-8 bg-white dark:bg-cliff-800 dark:border-cliff-950 dark:text-gray-300"
@@ -74,11 +74,11 @@
             <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                 <span>{post.subreddit_name_prefixed ?? `r/${post.subreddit}`}</span>
                 <span>•</span>
-                <span>u/{post.author}</span>
+                <span>u/{comment?.author ?? post.author}</span>
                 <span>•</span>
                 <span>
                         <a
-                                href={`https://www.reddit.com/${normalizePermalink(post.permalink)}`}
+                                href={`https://www.reddit.com/${permalink}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 class="hover:underline "
@@ -90,9 +90,16 @@
 
             <h1 class="text-2xl font-bold my-3 leading-tight">{post.title}</h1>
 
+            {#if comment?.body}
+                <p class="my-3 border-l-4 border-orange-500 pl-3 text-sm whitespace-pre-line line-clamp-4">{comment.body}</p>
+            {/if}
+
             <div class="flex flex-wrap my-3 gap-2 items-center">
                 <div class="flex flex-wrap gap-2 text-gray-500 text-sm">
                     <Badge theme="orange">{type}</Badge>
+                    {#if comment}
+                        <Badge theme="blue">Comment</Badge>
+                    {/if}
                     {#if post.over_18}
                         <Badge theme="purple">NSFW</Badge>
                     {/if}
@@ -121,7 +128,9 @@
 
         <div class="mt-6 flex flex-col flex-wrap justify-center gap-4">
             {#each presented as media}
-                <Media {post} {media}/>
+                <Media {post} {media} {medialink}/>
+            {:else}
+                <p class="text-center text-gray-500">This post has no media to download.</p>
             {/each}
         </div>
     </article>

@@ -1,5 +1,5 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
-import { type Media, type QueryableMedia, VariantType } from "$lib/reddit/Media";
+import { type Media, MediaType, type QueryableMedia, VariantType } from "$lib/reddit/Media";
 
 export enum PostType {
   Video   = 'video',
@@ -24,4 +24,14 @@ export function getPostType(post: Post, collections: (Media | QueryableMedia)[])
   }
 
   return type;
+}
+
+export function getCommentType(collection: Media[]): PostType {
+  if (collection.some(c => c.type === MediaType.CommentVideo))
+    return PostType.Video;
+  if (collection.length > 1)
+    return PostType.Gallery;
+  if (collection.some(c => c.variants.some(v => v.type === VariantType.GIF)))
+    return PostType.GIF;
+  return PostType.Image;
 }

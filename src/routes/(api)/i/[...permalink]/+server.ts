@@ -54,7 +54,8 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
     if (best === undefined || best.type === VariantType.Video || best.type === VariantType.PartialVideo) {
       console.log('Failed to find any suitable image to generating a thumbnail from the video if available')
       let video = collection
-        .filter(m => m.type === MediaType.SecureVideo)
+        .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId)
+        .filter(m => m.type === MediaType.SecureVideo || m.type === MediaType.CommentVideo)
         .flatMap(m => m.variants)
         .filter(v => v.type === VariantType.PartialVideo || v.type === VariantType.Video)[0];
 

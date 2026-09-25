@@ -5,6 +5,7 @@ type Fetch = typeof window.fetch;
 
 export enum MediaType {
   SecureVideo  = 'secure_video',
+  CommentVideo = 'comment_video',
   PreviewVideo = 'preview_video',
   PreviewImage = 'preview_image',
   Gallery      = 'gallery',

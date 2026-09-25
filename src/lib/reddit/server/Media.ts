@@ -1,4 +1,5 @@
 import { type Post } from "$lib/reddit/schema/postSchema";
+import { type Comment } from "$lib/reddit/schema/commentSchema";
 import { type MediaMetadataItem } from "$lib/reddit/schema/mediaMetadataItemSchema";
 import { XMLParser } from 'fast-xml-parser';
 import MpdDocumentSchema, { type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
@@ -17,6 +18,27 @@ import {
 } from "$lib/reddit/Media";
 
 export const RootMediaId = '__ROOT_MEDIA';
+
+const COMMENT_VIDEO = /https?:\/\/(?:www\.)?reddit\.com\/link\/[a-z0-9]+\/video\/([a-z0-9]+)/gi;
+
+/** Gets the media attached to a comment, which are either inline images or linked videos in the body. */
+export function getCommentMediaCollection(comment: Comment): QueryableMediaCollection {
+  const media: QueryableMediaCollection = [];
+  if (comment.media_metadata)
+    media.push(...getMediaCollectionFromMetadata(comment.media_metadata));
+
+  const videos = new Set([ ...(comment.body ?? '').matchAll(COMMENT_VIDEO) ].map(match => match[1]));
+  for (const id of videos) {
+    media.push({
+      id,
+      type:     MediaType.CommentVideo,
+      variants: [],
+      query:    (fetch) => fetchDashMedia(fetch, `https://v.redd.it/${id}/DASHPlaylist.mpd`)
+    });
+  }
+
+  return media;
+}
 
 export function getMediaCollection(post: Post): QueryableMediaCollection {
   if (post === undefined)
@@ -328,7 +350,11 @@ async function fetchDashMediaFromRedditVideo(fetch: typeof window.fetch, redditV
   if (!redditVideo.dash_url)
     throw new Error('SecureMedia does not contain a dash_url');
 
-  const response = await fetch(redditVideo.dash_url);
+  return fetchDashMedia(fetch, redditVideo.dash_url);
+}
+
+async function fetchDashMedia(fetch: typeof window.fetch, dashUrl: string): Promise<Variant[]> {
+  const response = await fetch(dashUrl);
   const dash = await response.text();
   const url = new URL(response.url);
   const basePath = url.pathname.substring(0, url.pathname.lastIndexOf('/'));

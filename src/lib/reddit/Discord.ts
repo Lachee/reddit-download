@@ -1,7 +1,7 @@
 import type { Post } from "$lib/reddit/schema/postSchema";
 import { findEmbeddedMedia, type Media, type MediaCollection } from "$lib/reddit/Media";
 import { page } from '$app/state';
-import { normalizeMedialink } from "$lib/reddit/Utilities";
+import { normalizeMedialink, normalizePermalink } from "$lib/reddit/Utilities";
 import { getDownloadLink } from "$lib/reddit/Download";
 
 export type ComponentType = 2 | 9 | 10 | 12 | 17;
@@ -77,8 +77,8 @@ export interface ComponentEmbed {
 }
 
 
-export function getDiscordComponent(post: Post, collection: MediaCollection): ComponentEmbed {
-  const medialink = normalizeMedialink(post.permalink);
+export function getDiscordComponent(post: Post, collection: MediaCollection, permalink: string): ComponentEmbed {
+  const medialink = normalizeMedialink(permalink);
   const items: MediaGalleryItem[] = findEmbeddedMedia(collection)
     .map(media => galleryItem(mediaUrl(media, medialink), post.title));
 
@@ -104,7 +104,7 @@ export function getDiscordComponent(post: Post, collection: MediaCollection): Co
       "type": 2,
       "style": 5,
       "label": "View on Reddit",
-      "url": `https://reddit.com${post.permalink}`
+      "url": `https://reddit.com/${normalizePermalink(permalink)}`
     }
   }
 

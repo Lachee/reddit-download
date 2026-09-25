@@ -6,9 +6,9 @@ import { normalizePermalink, normalizeMedialink } from "$lib/reddit/Utilities";
 import { getDownloadLink } from "$lib/reddit/Download";
 
 
-export function getOpenGraphProperties(post: Post, collection: MediaCollection): OGPProperty[] {
-  const permalink = normalizePermalink(post.permalink);
-  const medialink = normalizeMedialink(post.permalink);
+export function getOpenGraphProperties(post: Post, collection: MediaCollection, rawPermalink: string): OGPProperty[] {
+  const permalink = normalizePermalink(rawPermalink);
+  const medialink = normalizeMedialink(rawPermalink);
   const embedded = findEmbeddedMedia(collection);
   const properties: OGPProperty[] = [
     { name: 'og:site_name', content: post.url ?? post.title },

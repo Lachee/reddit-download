@@ -20,6 +20,8 @@ you in return for using the site.
 
 - `/r/<subreddit>/comments/<id>/` — the download page for a post. `/u/<user>/...` and
   `/user/<user>/...` are accepted and normalised to `/r/u_<user>/...`.
+- `/r/<subreddit>/comments/<id>/comment/<commentId>/` — the download page for the media
+  in a comment. Falls back to the post's media when the comment has none.
 - `/share?url=<reddit url>` — redirects to the page for that post. Accepts `text=` and
   pulls the first Reddit URL out of it.
 

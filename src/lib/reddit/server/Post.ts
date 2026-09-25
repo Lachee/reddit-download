@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { authenticate } from "$lib/reddit/server/Authentication";
 import postSchema, { type Post } from "$lib/reddit/schema/postSchema";
+import commentSchema, { type Comment } from "$lib/reddit/schema/commentSchema";
 import { follow } from "$lib/reddit/server/Links";
 import { error } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
+import { getCommentId } from "$lib/reddit/Utilities";
 import { DENY_NSFW, DENY_SUBREDDIT, DENY_YOUTUBE, NOT_FOUND } from "$lib/Errors";
 
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
@@ -31,7 +33,27 @@ const listingSchema = z.object({
 
 export const postResponseSchema = z.array(listingSchema)
 
-export async function fetchPost(fetch: typeof window.fetch, path: string): Promise<Post> {
+export type Thread = {
+  post: Post,
+  comment?: Comment,
+}
+
+function findComment(listings: z.infer<typeof postResponseSchema>, id: string): Comment | undefined {
+  for (const listing of listings) {
+    for (const child of listing.data.children) {
+      if (child.kind !== 't1')
+        continue;
+
+      const comment = commentSchema.safeParse(child.data);
+      if (comment.success && comment.data.id === id)
+        return comment.data;
+    }
+  }
+
+  return undefined;
+}
+
+export async function fetchPost(fetch: typeof window.fetch, path: string): Promise<Thread> {
   const { access_token } = await authenticate(fetch);
   const { pathname } = await follow(fetch, path);
   const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
@@ -93,5 +115,7 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
   if (DENY_SUBREDDITS.some(pattern => matchSubreddit(pattern, post.subreddit)))
     throw error(451, DENY_SUBREDDIT + ': The post is in a subreddit that is not allowed.')
 
-  return post;
+  const commentId = getCommentId(pathname);
+  const comment = commentId ? findComment(validation.data, commentId) : undefined;
+  return { post, comment };
 }

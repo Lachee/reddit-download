@@ -15,7 +15,7 @@ function extractRedditUrl(text: string): string {
 
 async function resolveShortLink(fetch: typeof window.fetch, id: string): Promise<string> {
     try {
-        const post = await fetchPost(fetch, `comments/${id}`);
+        const { post } = await fetchPost(fetch, `comments/${id}`);
         return normalizePermalink(post.permalink);
     } catch (error) {
         console.warn('Failed to resolve short link', id, error);

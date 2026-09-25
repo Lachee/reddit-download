@@ -25,3 +25,6 @@ Here is a variety of posts to test with:
 
 ## Profile Posts
 - https://www.reddit.com/user/Lachee/comments/1wjkzx1/this_is_a_test_profile_post/
+
+## Comment
+- https://www.reddit.com/r/ClaudeAI/comments/1wol22c/comment/pbo3njw/
