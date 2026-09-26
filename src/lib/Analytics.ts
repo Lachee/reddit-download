@@ -7,6 +7,7 @@ export const Events = {
   DownloadAll: 'download-all',
   Pwa: 'pwa',
   View: 'view',
+  ThirdParty: 'third-party',
 } as const;
 
 export type Format = 'gif' | 'video' | 'image';

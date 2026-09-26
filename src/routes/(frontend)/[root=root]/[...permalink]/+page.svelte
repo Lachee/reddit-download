@@ -15,7 +15,7 @@
   import { Events, track } from "$lib/Analytics";
 
   let { data }: { data: PageData } = $props();
-  let { post, comment, permalink, type, collection } = $derived(data);
+  let { post, comment, permalink, type, provider, collection } = $derived(data);
 
   let medialink = $derived(normalizeMedialink(permalink));
 
@@ -31,6 +31,11 @@
   // Re-runs on client navigation, so every viewed permalink is counted as a post or comment.
   $effect(() => {
     track(Events.View, { kind: comment ? 'comment' : 'post', type });
+  });
+
+  $effect(() => {
+    if (provider)
+      track(Events.ThirdParty, { provider, type });
   });
 
   async function onSaveAllClick() {
