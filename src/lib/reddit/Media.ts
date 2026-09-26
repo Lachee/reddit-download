@@ -10,6 +10,8 @@ export enum MediaType {
   PreviewImage = 'preview_image',
   Gallery      = 'gallery',
   Overridden   = 'overridden',
+  /** The original media from a third-party the post links to */
+  Linked       = 'linked',
   Thumbnail    = 'thumbnail',
 }
 

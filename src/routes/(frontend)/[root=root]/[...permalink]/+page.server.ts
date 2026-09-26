@@ -3,6 +3,7 @@ import { getCommentType, getPostType } from "$lib/reddit/PostType";
 import { query } from "$lib/reddit/server";
 import { normalizePermalink } from "$lib/reddit/Utilities";
 import { getOembedProvider } from "$lib/reddit/server/third-party";
+import { MediaType } from "$lib/reddit/Media";
 
 const link = (url : URL|string, rel = 'preload', as = 'image', priority = 'auto') : string => `<${url}>; rel=${rel}; as=${as}; fetchpriority="${priority}"`;
 
@@ -14,7 +15,10 @@ export const load: PageServerLoad = async ({ setHeaders, params, fetch }) => {
 
   // Mirrors getMediaCollection, which only uses the oembed when there is no reddit video or comment media.
   const oembed = post.secure_media?.reddit_video ? undefined : post.secure_media?.oembed;
-  const provider = !comment && oembed ? getOembedProvider(oembed) : undefined;
+  const linked = collection.some(m => m.type === MediaType.Linked);
+  const provider = comment ? undefined
+    : linked ? 'Imgur'
+    : oembed ? getOembedProvider(oembed) : undefined;
 
   // const links = [
   //   ...collection.map(m =>  link(`/i/${toMediaPath(post.permalink)}?m=${m.id}&s=thumbnail`, 'preload', 'image', 'high')),

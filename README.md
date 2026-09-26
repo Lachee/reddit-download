@@ -62,7 +62,8 @@ Firstly there are the reddit related configuration:
 | `REDDIT_USERNAME` | Your Reddit username | -                      |
 | `REDDIT_PASSWORD` | Your Reddit password | -                      |
 | `ALLOW_NSFW` | Allows NSFW posts from being looked up.  | `'true'` or `'false'`  |
-| `ALLOW_OEMBED` | A comma-separated list of allowed oembed providers. Any that are not lisited will be excluded from "valid variants" and not be downloadable. | `'Streamable,RedGIFs'` |
+| `ALLOW_OEMBED` | A comma-separated list of allowed third-party providers. Any that are not lisited will be excluded from "valid variants" and not be downloadable. | `'Streamable,RedGIFs,Imgur'` |
+| `IMGUR_CLIENT_ID` | Optional: An [Imgur client ID](https://api.imgur.com/oauth2/addclient), required for the `Imgur` provider to download the original media and full albums. | - |
 | `DENY_SUBREDDITS` | A comma-seperated list of banned subreddits. Lookup of posts on these subreddits will be blocked | `'aiArt,generativeAI'` |
 | `UMAMI_HOST` | Optional: The host of your [Umami](https://umami.is/) instance | `https://umami.lachee.dev` |
 | `UMAMI_WEBSITE_ID` | Optional: ID of your [Umami](https://umami.is/) website | `9eede8e5-1e15-4e2c-b400-7d5fa10b06ef` |

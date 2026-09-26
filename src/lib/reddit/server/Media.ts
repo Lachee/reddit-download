@@ -5,7 +5,7 @@ import { XMLParser } from 'fast-xml-parser';
 import MpdDocumentSchema, { type MpdPeriod } from "$lib/reddit/schema/mpdSchema";
 import type { Video } from "$lib/reddit/schema/videoSchema";
 import type { PreviewImage, PreviewImageVariant } from "$lib/reddit/schema/previewImageSchema";
-import { fetchOembedVariants } from "$lib/reddit/server/third-party/index";
+import { fetchImgurVariants, fetchOembedVariants, getImgurUrl } from "$lib/reddit/server/third-party/index";
 
 import {
   type Media,
@@ -186,7 +186,16 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
     }
   }
 
-  // TODO: Handle Imgur
+  // Imgur, which replaces all of the above once queried
+  const imgur = getImgurUrl(post);
+  if (imgur) {
+    media.push({
+      id:       RootMediaId,
+      type:     MediaType.Linked,
+      variants: [],
+      query:    (fetch) => fetchImgurVariants(fetch, imgur)
+    });
+  }
 
   return media;
 }
@@ -212,7 +221,25 @@ export async function queryMediaCollection(svelteFetch: typeof window.fetch, col
 
   const media = await Promise.all(queryable);
   media.push(...collection.filter(c => !('query' in c)));
-  return media;
+
+  // Linked media is the original, so it replaces Reddit's copies, keeping the thumbnail as embeds fall back to it.
+  // Albums come back as one set of variants, so they are split into a media per file.
+  const linked = media.find(m => m.type === MediaType.Linked);
+  if (linked === undefined)
+    return media;
+
+  const others = media.filter(m => m !== linked);
+  if (linked.variants.length === 0)
+    return others;
+
+  const files = new Map<string, Variant[]>();
+  for (const variant of linked.variants)
+    files.set(variant.id, [ ...files.get(variant.id) ?? [], variant ]);
+
+  return [
+    ...[ ...files ].map(([ id, variants ], sort) => ({ id, type: MediaType.Linked, sort, variants })),
+    ...others.filter(m => m.type === MediaType.Thumbnail),
+  ];
 }
 
 /**
