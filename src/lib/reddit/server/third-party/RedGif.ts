@@ -26,7 +26,7 @@ const gifResponseSchema = z.looseObject({
   niches: z.array(z.looseObject({})),
 })
 
-const streamable: OembedProvider = async (fetch, oembed): Promise<Variant[]> => {
+const streamable: OembedProvider = async (_fetch, oembed): Promise<Variant[]> => {
   // Extract the gif id from the iframe
   const iframe = oembed.html;
   if (!iframe) {
@@ -43,7 +43,7 @@ const streamable: OembedProvider = async (fetch, oembed): Promise<Variant[]> => 
   const gifId = redgifUrl.substring(redgifUrl.lastIndexOf('/') + 1);
 
   // Fetch the gif data from RedGIFs
-  const data = await request(fetch, `/v2/gifs/${gifId}`);
+  const data = await request(`/v2/gifs/${gifId}`);
   const validation = gifResponseSchema.safeParse(data);
   if (!validation.success) {
     console.error('[redgif] Failed to parse RedGIFs response:', validation.error);
@@ -86,7 +86,9 @@ const streamable: OembedProvider = async (fetch, oembed): Promise<Variant[]> => 
   ] satisfies Variant[];
 }
 
-async function login(fetch: typeof window.fetch) {
+// Uses the global fetch rather than SvelteKit's event fetch, as SvelteKit adds an
+// Origin header to cross-origin requests which RedGIFs rejects with a 400.
+async function login() {
   console.log('[redgif] logging in');
   const response = await fetch('https://api.redgifs.com/v2/auth/temporary', {
     headers: {
@@ -101,9 +103,9 @@ async function login(fetch: typeof window.fetch) {
   authToken = data.token;
 }
 
-async function request<T>(fetch: typeof window.fetch, endpoint: string): Promise<T> {
+async function request<T>(endpoint: string): Promise<T> {
   if (authToken == null)  // Auto Login, but if we fail then just give up
-    await login(fetch);
+    await login();
 
   // Make the request
   console.log('[redgif] making request to', `https://api.redgifs.com${endpoint}`);
@@ -117,7 +119,7 @@ async function request<T>(fetch: typeof window.fetch, endpoint: string): Promise
   if (response.status == 401) {
     console.warn('Failed to fetch the endpoint because we are unauthorised. Generating a new token');
     authToken = undefined;
-    return await request<T>(fetch, endpoint);
+    return await request<T>(endpoint);
   }
 
   if (response.status == 200)
