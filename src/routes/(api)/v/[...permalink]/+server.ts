@@ -110,7 +110,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   let { content, mime, filename } = response;
   let headers = {
     "Content-Type":        mime,
-    "Content-Disposition": `inline; filename="${filename}"`,
+    "Content-Disposition": `attachment; filename="${filename}"`,
     "Cache-Control":       "public, max-age=3600",
   }
 

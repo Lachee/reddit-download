@@ -105,7 +105,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
   let status = cached.status;
   let headers: Record<string, string> = {
     "Content-Type":        cached.mime,
-    "Content-Disposition": `inline; filename="${cached.filename}"`,
+    "Content-Disposition": `attachment; filename="${cached.filename}"`,
     "Cache-Control":       "public, max-age=3600",
   }
 
