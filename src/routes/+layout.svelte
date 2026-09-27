@@ -6,6 +6,7 @@
     import LoadingBar from "$lib/components/loaders/LoadingBar.svelte";
     import ThemeToggle from "$lib/components/ThemeToggle.svelte";
     import DisplayToggle from "$lib/components/DisplayToggle.svelte";
+    import InstallButton from "$lib/components/InstallButton.svelte";
     import Umami from "$lib/components/Umami.svelte";
     import { onMount } from "svelte";
     import { Events, trackOnce } from "$lib/Analytics";
@@ -50,6 +51,7 @@
             <div class="flex gap-6 text-sm font-medium dark:text-stone-50 items-center">
                 <DisplayToggle />
                 <ThemeToggle />
+                <InstallButton />
                 <a href="https://github.com/Lachee/reddit-download/" target="_blank" class="hover:text-orange-600">GitHub</a>
             </div>
         </nav>

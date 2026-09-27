@@ -8,6 +8,14 @@
 			} catch {
 				document.documentElement.removeAttribute("data-theme");
 			}
+
+			// Chrome can fire this before hydration, so hold onto it for the InstallButton.
+			window.addEventListener("beforeinstallprompt", (event) => {
+				event.preventDefault();
+				window.deferredInstallPrompt = event;
+				window.dispatchEvent(new Event("installpromptready"));
+			});
+			window.addEventListener("appinstalled", () => window.deferredInstallPrompt = null);
 		</script>
 
 		<meta charset="utf-8" />

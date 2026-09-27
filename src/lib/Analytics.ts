@@ -6,6 +6,7 @@ export const Events = {
   Download: 'download',
   DownloadAll: 'download-all',
   Pwa: 'pwa',
+  Install: 'install',
   View: 'view',
   ThirdParty: 'third-party',
 } as const;
