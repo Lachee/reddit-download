@@ -18,7 +18,7 @@ async function resolveShortLink(fetch: typeof window.fetch, id: string): Promise
         const { post } = await fetchPost(fetch, `comments/${id}`);
         return normalizePermalink(post.permalink);
     } catch (error) {
-        console.warn('Failed to resolve short link', id, error);
+        console.warn(`[share] failed to resolve redd.it/${id}, sending the visitor home`, error);
         return '';
     }
 }

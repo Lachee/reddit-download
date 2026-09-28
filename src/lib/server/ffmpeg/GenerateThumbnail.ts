@@ -35,7 +35,7 @@ export function generateThumbnailStream({ videoPath, seconds = 1, scale = -1 }: 
   ];
 
 
-  console.log('Running ffmpeg with args: ffmpeg ', args.join(' '));
+  const startAt = Date.now();
   const ffmpeg = spawn("ffmpeg", args, {
     stdio: [
       "ignore", // stdin
@@ -44,6 +44,8 @@ export function generateThumbnailStream({ videoPath, seconds = 1, scale = -1 }: 
     ],
   });
 
+  console.log(`[ffmpeg][thumbnail] pid ${ffmpeg.pid} started on ${videoPath}`);
+
   let stderr = "";
 
   ffmpeg.stderr.on("data", chunk => {
@@ -51,9 +53,10 @@ export function generateThumbnailStream({ videoPath, seconds = 1, scale = -1 }: 
   });
 
   ffmpeg.on("close", code => {
-    if (code !== 0) {
-      console.error(`ffmpeg exited with code ${code}\n${stderr}`);
-    }
+    if (code !== 0)
+      console.error(`[ffmpeg][thumbnail] pid ${ffmpeg.pid} exited with code ${code} after ${Date.now() - startAt}ms\n  ffmpeg ${args.join(' ')}\n${stderr}`);
+    else
+      console.log(`[ffmpeg][thumbnail] pid ${ffmpeg.pid} finished in ${Date.now() - startAt}ms`);
   });
 
   ffmpeg.on("error", error => {

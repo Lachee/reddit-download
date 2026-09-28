@@ -48,7 +48,7 @@ class Controller {
     this.settled = true;
     this.cleanup();
 
-    console.log("Cancelling stream");
+    console.log(`[stream] client cancelled after ${this.bytes()} bytes, killing pid ${this.readableProcess.pid}`);
     if (!this.readableProcess.killed) {
       this.readableProcess.kill("SIGTERM");
     }
@@ -77,21 +77,22 @@ class Controller {
   };
 
   private readonly onReadableError = (err: unknown) => {
-    console.log("Readable stream error", err);
+    console.error(`[stream] stdout of pid ${this.readableProcess.pid} errored after ${this.bytes()} bytes`, err);
     this.fail(err);
   };
 
   private readonly onProcessError = (err: unknown) => {
-    console.log("Stream process error", err);
+    console.error(`[stream] pid ${this.readableProcess.pid} errored after ${this.bytes()} bytes`, err);
     this.fail(err);
   };
 
   private readonly onProcessClose = (code: number | null, signal: NodeJS.Signals | null) => {
     this.processClosed = true;
 
-    console.log("Stream process closed", { code, signal });
-
     if (this.settled) return;
+
+    if (code !== 0)
+      console.warn(`[stream] pid ${this.readableProcess.pid} exited with code ${code}, signal ${signal} after ${this.bytes()} bytes`);
 
     if (code !== 0) {
       this.fail(new Error(`Stream process exited with code ${code}, signal ${signal}`));
@@ -138,6 +139,10 @@ class Controller {
     if (!this.readableProcess.killed) {
       this.readableProcess.kill("SIGTERM");
     }
+  }
+
+  private bytes(): number {
+    return this.chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
   }
 
   private cleanup() {

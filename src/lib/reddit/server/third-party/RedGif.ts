@@ -30,13 +30,13 @@ const streamable: OembedProvider = async (_fetch, oembed): Promise<Variant[]> =>
   // Extract the gif id from the iframe
   const iframe = oembed.html;
   if (!iframe) {
-    console.error('[redgif] oembed missing iframe')
+    console.error(`[redgif] oembed "${oembed.title ?? ''}" has no iframe html to read the gif from`)
     return [];
   }
 
   const redgifUrl = iframe.match(/src="([^"]+)"/)?.[1];
   if (!redgifUrl) {
-    console.error('[redgif] iframe is missing its src')
+    console.error('[redgif] oembed iframe has no src:', iframe)
     return [];
   }
 
@@ -46,13 +46,13 @@ const streamable: OembedProvider = async (_fetch, oembed): Promise<Variant[]> =>
   const data = await request(`/v2/gifs/${gifId}`);
   const validation = gifResponseSchema.safeParse(data);
   if (!validation.success) {
-    console.error('[redgif] Failed to parse RedGIFs response:', validation.error);
+    console.error(`[redgif] gif ${gifId} did not match the expected schema:`, validation.error.issues);
     return [];
   }
 
   const { gif } = validation.data;
 
-  console.log('[redgif] got gif data', gif);
+  console.log(`[redgif] found gif ${gifId} (${gif.width}x${gif.height})`);
   const aspect = gif.height / gif.width;
   return [
     {
@@ -89,7 +89,7 @@ const streamable: OembedProvider = async (_fetch, oembed): Promise<Variant[]> =>
 // Uses the global fetch rather than SvelteKit's event fetch, as SvelteKit adds an
 // Origin header to cross-origin requests which RedGIFs rejects with a 400.
 async function login() {
-  console.log('[redgif] logging in');
+  console.log('[redgif] requesting a temporary auth token');
   const response = await fetch('https://api.redgifs.com/v2/auth/temporary', {
     headers: {
       "User-Agent": USER_AGENT
@@ -108,7 +108,6 @@ async function request<T>(endpoint: string): Promise<T> {
     await login();
 
   // Make the request
-  console.log('[redgif] making request to', `https://api.redgifs.com${endpoint}`);
   const response = await fetch(`https://api.redgifs.com${endpoint}`, {
     headers: {
       'authorization': `Bearer ${authToken}`,
@@ -117,7 +116,7 @@ async function request<T>(endpoint: string): Promise<T> {
   });
 
   if (response.status == 401) {
-    console.warn('Failed to fetch the endpoint because we are unauthorised. Generating a new token');
+    console.warn(`[redgif] ${endpoint} returned 401, the token has likely expired. Retrying with a new token`);
     authToken = undefined;
     return await request<T>(endpoint);
   }
@@ -125,7 +124,7 @@ async function request<T>(endpoint: string): Promise<T> {
   if (response.status == 200)
     return (await response.json()) as T;
 
-  console.error('failed to fetch data!', response.status, response.statusText, await response.text());
+  console.error(`[redgif] ${endpoint} failed: ${response.status} ${response.statusText}`, await response.text());
   throw new Error('Failed to fetch request!');
 }
 

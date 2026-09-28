@@ -52,7 +52,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
 
     // We dont have an image, so lets generate one.
     if (best === undefined || best.type === VariantType.Video || best.type === VariantType.PartialVideo) {
-      console.log('Failed to find any suitable image to generating a thumbnail from the video if available')
+      console.log(`[image] ${post.id}/${mediaId || 'all'} has no ${size} image, generating a thumbnail from its video instead`)
       let video = collection
         .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId)
         .filter(m => m.type === MediaType.SecureVideo || m.type === MediaType.CommentVideo)
@@ -79,7 +79,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       return { status: 404, error: 'No image available.'}
 
     const { href, dimension } = best;
-    console.log("Fetching media from", href, dimension)
+    console.log(`[image] serving ${size} image for ${post.id}/${mediaId || 'all'} (${dimension?.width ?? '?'}x${dimension?.height ?? '?'}) from ${href}`)
     const response = await fetch(href, {
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });

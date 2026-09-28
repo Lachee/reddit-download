@@ -72,8 +72,6 @@ export function convertStream({
     "pipe:1",
   ];
 
-  console.log("Running ffmpeg with args:", "ffmpeg", args.join(" "));
-
   const startAt = Date.now();
   const ffmpeg = spawn("ffmpeg", args, {
     stdio: [
@@ -82,6 +80,8 @@ export function convertStream({
       "pipe",   // stderr
     ],
   }) as ChildProcessByStdio<null, Readable, Readable>;
+
+  console.log(`[ffmpeg][gif] pid ${ffmpeg.pid} started on ${videoPath}`);
 
   let stderr = "";
 
@@ -94,12 +94,13 @@ export function convertStream({
   });
 
   ffmpeg.on("close", code => {
-    const endAt = Date.now();
-    console.log(`ffmpeg took ${endAt - startAt}ms to convert ${videoPath}`);
     if (code !== 0) {
+      console.error(`[ffmpeg][gif] pid ${ffmpeg.pid} exited with code ${code} after ${Date.now() - startAt}ms\n  ffmpeg ${args.join(' ')}\n${stderr}`);
       ffmpeg.stdout.destroy(
         new Error(`ffmpeg exited with code ${code}\n${stderr}`),
       );
+    } else {
+      console.log(`[ffmpeg][gif] pid ${ffmpeg.pid} converted ${videoPath} in ${Date.now() - startAt}ms`);
     }
   });
 

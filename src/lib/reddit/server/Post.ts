@@ -58,7 +58,7 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
   const { pathname } = await follow(fetch, path);
   const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
 
-  console.log('Fetching post from:', url.toString());
+  console.log(`[reddit] fetching post ${pathname}`);
   const response = await fetch(url.toString(), {
     method:   'GET',
     redirect: 'follow',
@@ -71,15 +71,19 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
   if (response.status === 404)
     throw error(404, 'NOT_FOUND: The post could not be found.');
 
-  if (response.status !== 200)
+  if (response.status !== 200) {
+    console.warn(`[reddit] fetching post ${pathname} failed: ${response.status} ${response.statusText}`);
     throw error(response.status, "BAD_RESPONSE: Reddit responded with a bad status code. " + response.statusText);
+  }
 
   // Reddit for some reason breaks the node Response.json().
   const text = await response.text();
   const json = JSON.parse(text);
   const validation = postResponseSchema.safeParse(json);
-  if (!validation.success)
+  if (!validation.success) {
+    console.error(`[reddit] post ${pathname} did not match the expected schema:`, validation.error.issues);
     throw error(500, 'BAD_RESPONSE: Reddit responded with an invalid response.');
+  }
 
   // Find the first listing child that is a post
   let post: Post | undefined;

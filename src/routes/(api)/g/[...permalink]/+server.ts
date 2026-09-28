@@ -45,7 +45,6 @@ export const GET: RequestHandler = async ({ url, params, fetch, request, getClie
     if (shouldConvert && video) {
       // Ensure the video is not too long, otherwise we will not be able to convert it.
       // We will report back any discrepancies in the headers.
-      console.log('The best is a video, checking if its eligible for conversion...', video.href);
       const duration = await probeDuration(video.href);
       if (duration <= LongestVideoDuration) {
         const scale = video.dimension?.height || video.dimension?.width || 480;
@@ -59,7 +58,7 @@ export const GET: RequestHandler = async ({ url, params, fetch, request, getClie
           maxColors: 128,
         };
 
-        console.log('The best is a video, converting to a gif...', opts);
+        console.log(`[gif] converting ${post.id}/${mediaId || 'all'} (${Math.round(duration)}s, ${video.dimension?.width ?? '?'}x${video.dimension?.height ?? '?'}) to a gif at ${opts.fps}fps, scale ${opts.scale}`);
         const buffer = await convert(opts);
         const filename = `${post.id}-${video.id}.gif`
 
@@ -78,23 +77,26 @@ export const GET: RequestHandler = async ({ url, params, fetch, request, getClie
           error:   null,
         } satisfies CachedResponse;
       } else {
-        console.log('The best is a video, but its too long, skipping conversion', duration);
+        console.log(`[gif] not converting ${post.id}/${mediaId || 'all'}, it is ${Math.round(duration)}s which is over the ${LongestVideoDuration}s limit`);
         convertError = `Video is too long. Cannot convert above ${LongestVideoDuration} seconds.`
       }
     }
 
     // We did not convert a video, so we will use a fullback gif, otherwise let the image route handle it.
     if (!gif) {
-      console.log('failed to generate a gif so redirecting to i')
+      console.log(`[gif] ${post.id}/${mediaId || 'all'} has no gif${convertError ? ' and could not be converted' : ' or video'}, redirecting to the image`)
       return { redirect: `/i/${normalizeMedialink(permalink)}?m=${mediaId ?? ''}&s=best` } satisfies CachedResponse;
     }
 
     const { href } = gif;
-    console.log("Fetching media from", href)
+    console.log(`[gif] using reddit's gif for ${post.id}/${mediaId || 'all'} (${gif.dimension?.width ?? '?'}x${gif.dimension?.height ?? '?'}) from ${href}`)
     const response = await fetch(href, {
       redirect: 'follow',
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
     });
+
+    if (!response.ok)
+      console.warn(`[gif] fetching ${href} failed: ${response.status} ${response.statusText}`);
 
     const bytes = new Uint8Array(await response.arrayBuffer());
     return {

@@ -212,7 +212,7 @@
     try {
       data = sampleContext.getImageData(0, 0, cols, rows).data;
     } catch (error) {
-      console.warn('[bubble] thumbnail pixel sampling failed', error);
+      console.warn(`[pixels] could not sample ${thumbnail}, the canvas is likely tainted by CORS. Showing no pixels`, error);
       pixels = [];
       drawFallback();
       return;
@@ -464,7 +464,7 @@
         createPixels();
       })
       .catch((error) => {
-        console.warn('[bubble] thumbnail failed to load', error);
+        console.warn(`[pixels] failed to load thumbnail ${thumbnail}`, error);
         imageElement = undefined;
         pixels = [];
         drawFallback();

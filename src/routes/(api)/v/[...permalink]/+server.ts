@@ -36,7 +36,6 @@ export const GET: RequestHandler = async ({ url, params, fetch, request }) => {
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
   const response = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async () => {
-    console.log({ collection, filtered: collection.filter(m => !mediaId || m.id === mediaId) })
     const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
       .filter(
         v => v.type === VariantType.Video

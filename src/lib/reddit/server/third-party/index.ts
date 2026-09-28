@@ -22,7 +22,7 @@ export function getOembedProvider(oembed: OEmbed): ProviderName | undefined {
     return undefined;
 
   if (!ALLOWED_PROVIDERS.includes(oembed.provider_name)) {
-    console.warn(`Oembed provider "${oembed.provider_name}" is not allowed. Must be: ${ALLOWED_PROVIDERS.join(', ')}`);
+    console.warn(`[oembed] ignoring provider "${oembed.provider_name}" as it is not in ALLOWED_PROVIDERS (${ALLOWED_PROVIDERS.join(', ')})`);
     return undefined;
   }
 

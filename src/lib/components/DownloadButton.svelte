@@ -28,7 +28,7 @@
       ondownload && ondownload({ href });
       setTimeout(() => downloading = false, 1000);
     } catch (e) {
-      console.error(e);
+      console.error(`[download] failed to start the download of ${href}`, e);
       downloading = false;
       throw e;
     }

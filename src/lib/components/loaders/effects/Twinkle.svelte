@@ -270,7 +270,7 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     } catch (e) {
-      console.warn('[TwinkleThumbnail] WebGL unavailable, falling back to <img>:', e);
+      console.warn('[twinkle] WebGL is unavailable, falling back to a plain <img>', e);
       failed = true;
       return;
     }
@@ -310,7 +310,7 @@
           hasTex = true;
           if (!hidden) pump();   // draw it as soon as it's ready, if we're visible
         } catch (e) {
-          console.warn('[TwinkleThumbnail] texture upload failed (CORS?):', e);
+          console.warn(`[twinkle] could not upload ${img.src} as a texture, likely blocked by CORS`, e);
           failed = true;
         }
       };

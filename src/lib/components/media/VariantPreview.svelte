@@ -43,10 +43,6 @@
     loading = true;
   })
 
-  $effect(() => {
-    console.log('[media] post:', { post, media, variant, type, width, height });
-  })
-
   const isGifVideo = $derived(
     post.secure_media?.reddit_video?.is_gif ||
     post.preview?.reddit_video_preview?.is_gif ||

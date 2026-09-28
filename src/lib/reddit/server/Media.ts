@@ -196,7 +196,7 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
  * Any DASH manifests are downloaded and parsed.
  */
 export async function queryMediaCollection(svelteFetch: typeof window.fetch, collection: QueryableMediaCollection): Promise<MediaCollection> {
-  console.log('querying media collection', collection);
+  console.log(`[media] querying ${collection.length} media:`, collection.map(c => `${c.id} (${c.type}${'query' in c ? ', queried' : ''})`).join(', '));
   const queryable: Promise<Media>[] = collection.filter(c => 'query' in c)
     .map(c => Promise.resolve().then(
         async () => ({
@@ -356,7 +356,7 @@ async function fetchDashMediaFromRedditVideo(fetch: typeof window.fetch, redditV
 async function fetchDashMedia(fetch: typeof window.fetch, dashUrl: string): Promise<Variant[]> {
   const response = await fetch(dashUrl);
   if (!response.ok) {
-    console.warn('Failed to fetch DASH playlist', dashUrl, response.status);
+    console.warn(`[media] failed to fetch DASH manifest ${dashUrl}: ${response.status} ${response.statusText}`);
     return [];
   }
 

@@ -40,8 +40,10 @@ export class Cache {
   async wait(key: CacheKey): Promise<void> {
     const semaphore = this.semaphores.get(keyName(key));
     if (semaphore && !semaphore.completed) {
-      console.log('[cache] waiting for semaphore', keyName(key));
+      const startAt = Date.now();
+      console.log(`[cache] ${keyName(key)} is being computed by another request, waiting for it`);
       await semaphore.promise;
+      console.log(`[cache] ${keyName(key)} became available after waiting ${Date.now() - startAt}ms`);
     }
   }
 
@@ -53,7 +55,6 @@ export class Cache {
     await this.wait(key);
 
     // We are completed, so lokoup the value if possible.
-    console.log('[cache] fetching value', keyStr);
     const value = await this.store.get(keyStr);
     if (value === undefined) {
       await this.delete(key);
@@ -74,11 +75,14 @@ export class Cache {
       return cached;
 
     return await this.lock(key, async (store, abort) => {
+      const startAt = Date.now();
       try {
         const value = await valueFn();
+        console.log(`[cache] computed ${keyName(key)} in ${Date.now() - startAt}ms`);
         store(value);
         return value;
       } catch (e) {
+        console.warn(`[cache] computing ${keyName(key)} failed after ${Date.now() - startAt}ms, it will not be cached`);
         abort(e);
         throw e;
       }
@@ -92,7 +96,7 @@ export class Cache {
 
   async clean(): Promise<void> {
     // Clearup cache
-    console.log('[cache] cleaning cache');
+    const semaphores = this.semaphores.size;
     await this.store.clean();
 
     // Clearup semaphores
@@ -103,6 +107,8 @@ export class Cache {
         this.semaphores.delete(key);
       }
     }
+
+    console.log(`[cache] cleaned, ${semaphores - this.semaphores.size} stale locks released and ${this.semaphores.size} still in flight`);
   }
 
   async lock<TCacheData extends Cacheable, TReturn>(
@@ -152,7 +158,6 @@ export class Cache {
       return false;
 
     // Unlock the semaphore before deleting. Any references waiting for it should be "completed"
-    console.log('[cache] unlocking semaphore', keyStr);
     semaphore.completed = true;
     semaphore.promise = Promise.resolve(value)
     this.semaphores.delete(keyStr);

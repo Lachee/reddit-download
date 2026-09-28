@@ -13,20 +13,20 @@ function createStore() {
     case 'noop':
     case 'off':
     case 'false':
-      console.log('[cache] Cache is disabled');
+      console.log(`[cache] disabled (CACHE_STORE=${env.CACHE_STORE})`);
       return noopStore();
 
     case 'memory':
-      console.log('[cache] Using memory cache');
+      console.log('[cache] using the in-memory store, the cache will not survive a restart');
       return memoryStore();
 
     case 'redis':
-      console.log('[cache] Using redis cache');
+      console.log('[cache] using the redis store');
       return redisStore({ url: env.REDIS_URL ?? 'redis://localhost:6379' });
 
     default:
     case 'file':
-      console.log('[cache] Using file cache');
+      console.log(`[cache] using the file store in ${env.FILE_CACHE_DIR ?? './.cache'}${env.CACHE_STORE && env.CACHE_STORE !== 'file' ? ` (unknown CACHE_STORE "${env.CACHE_STORE}")` : ''}`);
       return fileStore({ directory: env.FILE_CACHE_DIR ?? './.cache' });
   }
 }

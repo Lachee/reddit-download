@@ -59,6 +59,6 @@ export function track(event: string, data: EventData, visitor: Visitor): void {
     },
     body:    JSON.stringify({ type: 'event', payload }),
   })
-    .then(response => response.ok || console.warn('[analytics] failed to track', event, response.status))
-    .catch(error => console.warn('[analytics] failed to track', event, error));
+    .then(response => response.ok || console.warn(`[analytics] umami rejected "${event}": ${response.status} ${response.statusText}`))
+    .catch(error => console.warn(`[analytics] could not reach umami at ${env.UMAMI_HOST} to track "${event}"`, error));
 }

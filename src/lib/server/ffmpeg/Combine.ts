@@ -35,7 +35,7 @@ export function combineStream({ videoPath, audioPath }: CombineOptions): Combine
   ];
 
 
-  console.log('Running ffmpeg with args: ffmpeg ', args.join(' '));
+  const startAt = Date.now();
   const ffmpeg = spawn("ffmpeg", args, {
     stdio: [
       "ignore", // stdin
@@ -44,6 +44,8 @@ export function combineStream({ videoPath, audioPath }: CombineOptions): Combine
     ],
   });
 
+  console.log(`[ffmpeg][combine] pid ${ffmpeg.pid} started on ${videoPath}`);
+
   let stderr = "";
 
   ffmpeg.stderr.on("data", chunk => {
@@ -51,9 +53,10 @@ export function combineStream({ videoPath, audioPath }: CombineOptions): Combine
   });
 
   ffmpeg.on("close", code => {
-    if (code !== 0) {
-      console.error(`ffmpeg exited with code ${code}\n${stderr}`);
-    }
+    if (code !== 0)
+      console.error(`[ffmpeg][combine] pid ${ffmpeg.pid} exited with code ${code} after ${Date.now() - startAt}ms\n  ffmpeg ${args.join(' ')}\n${stderr}`);
+    else
+      console.log(`[ffmpeg][combine] pid ${ffmpeg.pid} finished in ${Date.now() - startAt}ms`);
   });
 
   ffmpeg.on("error", error => {

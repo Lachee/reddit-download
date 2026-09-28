@@ -39,7 +39,7 @@ async function requestAuthentication(fetch: typeof window.fetch): Promise<Reddit
     throw new Error('Missing Reddit credentials. Set REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, and REDDIT_PASSWORD.');
   }
 
-  console.log('Authenticating with Reddit as ', REDDIT_USERNAME);
+  console.log(`[reddit] requesting a new access token for u/${REDDIT_USERNAME}`);
 
   const form = new FormData();
   form.append('grant_type', 'password');

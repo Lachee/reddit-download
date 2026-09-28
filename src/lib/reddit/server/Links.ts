@@ -14,7 +14,7 @@ export async function follow(fetch : typeof window.fetch, href: string): Promise
 
   const shareLinkRegex = /reddit\.com\/(?:r|user|u)\/[^/]+\/s\//i
   if (shareLinkRegex.test(url.toString())) {
-    console.log(`Following shorthand: ${url.toString()}`);
+    console.log(`[reddit] resolving share link ${url.pathname}`);
     const response = await fetch(`${url.origin}${url.pathname}`, {
       method: 'HEAD',
       redirect: 'follow',
@@ -23,6 +23,7 @@ export async function follow(fetch : typeof window.fetch, href: string): Promise
       }
     });
 
+    console.log(`[reddit] share link ${url.pathname} resolved to ${response.url} (${response.status})`);
     return await follow(fetch, response.url);
   }
 

@@ -31,13 +31,12 @@ export default function createStore({
       const path = getFilePath(key);
       let handle: fs.FileHandle | undefined;
       try {
-        console.log('[cache][fs] trying to read cache from ', path);
         handle = await fs.open(path, 'r');
 
         // If the cache is expired, close the handle and remove the file.
         const header = await readHeader(handle);
         if (!header || expired(header.expiresAt)) {
-          console.log('[cache][fs] cache-miss (expired) ', key);
+          console.log(`[cache][fs] miss (${header ? 'expired' : 'invalid header'}): ${key}`);
           await handle.close();
           handle = undefined;
           await this.delete(key);
@@ -46,30 +45,30 @@ export default function createStore({
 
         // Extract the payload from the file.
         if (header.payloadLength <= 0 || header.payloadLength > MAX_PAYLOAD_SIZE) {
-          console.error('[cache][fs] cache-read-error (header payload length exceeded max) ', key);
+          console.error(`[cache][fs] discarding ${key}, its header claims a ${header.payloadLength} byte payload (max ${MAX_PAYLOAD_SIZE}) in ${path}`);
           await handle.close();
           handle = undefined;
           await this.delete(key);
           return undefined;
         }
 
-        console.log('[cache][fs] cache-hit ', key);
         const payload = Buffer.alloc(header.payloadLength);
         const result = await handle.read(payload, 0, header.payloadLength, HEADER_SIZE);
         if (result.bytesRead !== header.payloadLength) {
-          console.error('[cache][fs] cache-read-error (read bytes do not match header) ', key);
+          console.error(`[cache][fs] discarding ${key}, the file is truncated (read ${result.bytesRead} of ${header.payloadLength} bytes) in ${path}`);
           await this.delete(key);
           return undefined;
         }
 
+        console.log(`[cache][fs] hit: ${key} (${header.payloadLength} bytes)`);
         return unpack(payload) as T;
       } catch (error: any) {
         if (error?.code !== 'ENOENT') {
-          console.log('[cache][fs] cache-read-error', key, error);
+          console.error(`[cache][fs] failed to read ${key} from ${path}, deleting it`, error);
           fs.rm(path, { force: true }).catch(() => undefined);
         }
 
-        console.log('[cache][fs] cache-miss', key);
+        console.log(`[cache][fs] miss: ${key}`);
         return undefined;
       } finally {
         await handle?.close().catch(() => undefined);
@@ -80,7 +79,6 @@ export default function createStore({
       const dir = path.dirname(filePath);
       await fs.mkdir(dir, { recursive: true });
 
-      console.log('[cache][fs] writting cache', key, filePath);
       const payload = pack(value);
       const expiresAt = ttl > 0 ? Date.now() + (ttl * 1000) : 0;
       const header = writeHeader({ expiresAt, payloadLength: payload.length });
@@ -98,9 +96,10 @@ export default function createStore({
       }
 
       await fs.rename(tempPath, filePath);
+      console.log(`[cache][fs] set: ${key} (ttl ${ttl > 0 ? `${ttl}s` : 'forever'}, ${payload.byteLength} bytes) in ${filePath}`);
     },
     async delete(key: string): Promise<void> {
-      console.log('[cache][fs] deleting ', key);
+      console.log(`[cache][fs] deleted: ${key}`);
       const filePath = getFilePath(key);
       await fs.rm(filePath, { force: true }).catch(() => undefined);
     },
