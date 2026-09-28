@@ -22,14 +22,18 @@ type CachedResponse = ({
   error: string | null,
 } | { redirect: string });
 
-export const trailingSlash = 'always';
+// Ignored so a trailing .gif is not redirected to .gif/, which would defeat the point of it.
+export const trailingSlash = 'ignore';
+
+/** Clients like Discord only treat a link as a gif when the path ends in .gif, so it is optionally accepted. */
+const GIF_EXTENSION = /\.gif\/?$/i;
 
 export const GET: RequestHandler = async ({ url, params, fetch, request, getClientAddress }) => {
   // Return the cached response if it exists / is currently being processed
   const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
-  const { post, collection, permalink } = await query({ permalink: params.permalink, fetch });
+  const { post, collection, permalink } = await query({ permalink: params.permalink.replace(GIF_EXTENSION, '/'), fetch });
 
-  const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId ?? '' ], async (): Promise<CachedResponse> => {
+  const cached = await cache().getSet<CachedResponse>([ 'GET', `/g/${normalizeMedialink(permalink)}`, mediaId ?? '' ], async (): Promise<CachedResponse> => {
     // Find the best available gif and video
     // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
     const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)

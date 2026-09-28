@@ -121,7 +121,13 @@ export function getDiscordComponent(post: Post, collection: MediaCollection, per
 }
 
 function mediaUrl(media: Media, mediaPath: string): string {
-  return new URL(getDownloadLink(mediaPath, media), page.url.origin).toString();
+  const url = new URL(getDownloadLink(mediaPath, media), page.url.origin);
+
+  // Discord only animates gifs whose path ends with the extension.
+  if (url.pathname.startsWith('/g/'))
+    url.pathname = url.pathname.replace(/\/$/, '.gif');
+
+  return url.toString();
 }
 
 function galleryItem(url: string, description: string): MediaGalleryItem {
