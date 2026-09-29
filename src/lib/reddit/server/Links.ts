@@ -6,11 +6,22 @@ const REDDIT_DOMAINS = [
   'redditmedia.com',
 ];
 
+/** Finds the first reddit link in some shared text. Returns an empty string when there is none. */
+export function extractRedditUrl(text: string): string {
+  const match = text.match(/https?:\/\/(?:[a-z]+\.)?(?:reddit\.com\/(?:r|user|u)|redd\.it)\/[^\s]+/i);
+  return match?.[0] ?? '';
+}
+
 /** Follows the shortened links */
 export async function follow(fetch : typeof window.fetch, href: string): Promise<URL> {
   const url = validateUrl(href.trim(), REDDIT_DOMAINS);
   if (url === null)
     throw new Error('cannot follow an invalid URL');
+
+  // redd.it/<id> short links only redirect to /comments/<id>, which is enough to fetch the post.
+  const shortLink = url.hostname.match(/^(?:www\.)?redd\.it$/i) && url.pathname.match(/^\/([a-z0-9]+)\/?$/i);
+  if (shortLink)
+    return new URL(`/comments/${shortLink[1]}/`, 'https://www.reddit.com');
 
   const shareLinkRegex = /reddit\.com\/(?:r|user|u)\/[^/]+\/s\//i
   if (shareLinkRegex.test(url.toString())) {
