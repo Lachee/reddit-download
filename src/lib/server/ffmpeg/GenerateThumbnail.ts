@@ -21,15 +21,21 @@ export function generateThumbnail(options: GenerateOption): Promise<Buffer<Array
     return readStream(stream, ffmpeg);
 }
 
+/** Generates a blurred square thumbnail labelled "+<more>". */
+export function generateMoreThumbnail({ more, ...options }: GenerateOption & { more: number }): Promise<Buffer<ArrayBuffer>> {
+    const { stream, ffmpeg } = generateThumbnailStream(options, `crop='min(iw,ih)':'min(iw,ih)',scale=512:512,gblur=sigma=24,eq=brightness=-0.3,drawtext=text='+${more}':font=sans:fontsize=120:fontcolor=white:shadowcolor=black@0.4:shadowy=2:x=(w-tw)/2:y=(h-th)/2`);
+    return readStream(stream, ffmpeg);
+}
+
 /** Combines the video and audio into a single ReadableStream. */
-export function generateThumbnailStream({ videoPath, seconds = 1, scale = -1 }: GenerateOption): GenerateStreamResponse {
+export function generateThumbnailStream({ videoPath, seconds = 1, scale = -1 }: GenerateOption, filter = `scale=${scale}:-2`): GenerateStreamResponse {
   const args = [
     '-y',
     '-ss', `${seconds}`,
     '-i', videoPath,
     '-an',
     '-vframes', `1`,
-    '-vf', `scale=${scale}:-2`,
+    '-vf', filter,
     '-f', 'mjpeg',
     'pipe:1',
   ];

@@ -79,16 +79,15 @@ export interface ComponentEmbed {
 
 export function getDiscordComponent(post: Post, collection: MediaCollection, permalink: string): ComponentEmbed {
   const medialink = normalizeMedialink(permalink);
-  const items: MediaGalleryItem[] = findEmbeddedMedia(collection)
+  const media = findEmbeddedMedia(collection);
+  const items: MediaGalleryItem[] = media
+    .slice(0, MAX_GALLERY_ITEMS)
     .map(media => galleryItem(mediaUrl(media, medialink), post.title));
 
-  // Split the items into multiples of 10 media galleries.
-  const galleries : MediaGalleryComponent[] = [];
-  for (let i = 0; i < items.length; i++) {
-    const gindex = Math.floor(i / MAX_GALLERY_ITEMS);
-    if (gindex >= galleries.length) 
-      galleries[gindex] = { type: 12, items: [] };
-    galleries[gindex].items.push(items[i]);
+  const overflow = media.length > MAX_GALLERY_ITEMS;
+  if (overflow) {
+    const more = new URL(`/i/${medialink}?m=${media[MAX_GALLERY_ITEMS].id}&s=best&more=${media.length - MAX_GALLERY_ITEMS + 1}`, page.url.origin);
+    items[MAX_GALLERY_ITEMS - 1] = galleryItem(more.toString(), post.title);
   }
 
   const title = post.title.length > MAX_TITLE ? post.title.substring(0, MAX_TITLE - 3) + '...' : post.title;
@@ -108,13 +107,30 @@ export function getDiscordComponent(post: Post, collection: MediaCollection, per
     }
   }
 
+  const footer : SectionComponent = {
+    type: 9,
+    components: [
+      {
+        type: 10,
+        content: `${media.length} items`
+      }
+    ],
+    accessory: {
+      type: 2,
+      style: 5,
+      label: "View Gallery",
+      url: new URL(normalizePermalink(permalink), page.url.origin).toString()
+    }
+  }
+
   return {
     component: {
       type: 17,
       accent_color: ACCENT_COLOR,
       components: [
         header,
-        ...galleries
+        ...(items.length > 0 ? [{ type: 12, items } satisfies MediaGalleryComponent] : []),
+        ...(overflow ? [footer] : []),
       ],
     },
   };

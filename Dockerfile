@@ -18,7 +18,7 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # Install ffmpeg for video processing
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg font-dejavu
 
 # Copy only the necessary files from the build stage
 COPY --from=build /app/build ./build

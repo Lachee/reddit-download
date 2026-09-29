@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { findBiggestVariant, findClosestToSize, findSmallestVariant, MediaType, VariantType } from "$lib/reddit/Media";
+import { findBiggestVariant, findClosestToSize, findEmbeddedMedia, findSmallestVariant, MediaType, VariantType } from "$lib/reddit/Media";
 import { cache } from "$lib/server/cache";
 import type { Cacheable } from "$lib/server/cache/Cache";
 import { range } from "$lib/server/Range";
@@ -7,7 +7,7 @@ import { query } from "$lib/reddit/server";
 import { env } from "$env/dynamic/private";
 import { dev } from '$app/environment'
 import { error } from "@sveltejs/kit";
-import { generateThumbnail } from "$lib/server/ffmpeg/GenerateThumbnail";
+import { generateMoreThumbnail, generateThumbnail } from "$lib/server/ffmpeg/GenerateThumbnail";
 import { RootMediaId } from "$lib/reddit/server/Media";
 
 
@@ -29,14 +29,19 @@ export const trailingSlash = 'always';
  * - 'best' will return the best image available
  * - 'thumbnail' will return the smallest image available
  * - '<px value>' will return the image with the closest width to the given value
+ * @query-param more Renders the image as a blurred square labelled "+<more>". Must not exceed the number of media in the post.
  */
 export const GET: RequestHandler = async ({ url, params, request }) => {
   const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
   const size = url.searchParams.get('size') ?? url.searchParams.get('s') ?? 'best';
+  const more = Math.max(0, Math.floor(+(url.searchParams.get('more') ?? 0) || 0));
   const cacheBust = dev ? url.searchParams.get('v') ?? '' : '';
   const { post, collection } = await query({ permalink: params.permalink, fetch });
 
-  const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId, size + cacheBust], async () => {
+  if (more < 0 || (more > 0 && more > findEmbeddedMedia(collection).length))
+    return error(400, 'invalid range for more');
+
+  const cached = await cache().getSet<CachedResponse>([ 'GET', url.pathname, mediaId, size + cacheBust, more], async () => {
     const filterOutThumbnails = collection.some(m => m.type === MediaType.PreviewImage);
     const variants = collection
       .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId) // Filter for the image we care about
@@ -60,10 +65,12 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
         .filter(v => v.type === VariantType.PartialVideo || v.type === VariantType.Video)[0];
 
       if (video) {
-        const thumb = await generateThumbnail({
-          videoPath: video.href,
-          scale:     size === 'thumbnail' ? 108 : -2 // NOTE: We specifically dont scale to the `size` as that is unvalidated user input.
-        });
+        const thumb = more > 0
+          ? await generateMoreThumbnail({ videoPath: video.href, more })
+          : await generateThumbnail({
+            videoPath: video.href,
+            scale:     size === 'thumbnail' ? 108 : -2 // NOTE: We specifically dont scale to the `size` as that is unvalidated user input.
+          });
 
         return {
           status:   200,
@@ -79,6 +86,15 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       return { status: 404, error: 'No image available.'}
 
     const { href, dimension } = best;
+    if (more > 0) {
+      return {
+        status:   200,
+        content:  await generateMoreThumbnail({ videoPath: href, seconds: 0, more }),
+        mime:     'image/jpeg',
+        filename: `${post.id}-${best.id}-more.jpeg`
+      } satisfies CachedResponse;
+    }
+
     console.log(`[image] serving ${size} image for ${post.id}/${mediaId || 'all'} (${dimension?.width ?? '?'}x${dimension?.height ?? '?'}) from ${href}`)
     const response = await fetch(href, {
       headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
