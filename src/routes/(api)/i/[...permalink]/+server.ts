@@ -47,6 +47,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId) // Filter for the image we care about
       .filter(m => !filterOutThumbnails || m.type !== MediaType.Thumbnail) // Filter out thumbnails if we can
       .flatMap(m => m.variants)
+      .filter(v => v.type === VariantType.Image || v.type === VariantType.GIF || v.type === VariantType.Blur) // Never serve videos, they can't go in an <img>
 
     // Find the best available image
     let best = size === 'best'
@@ -56,11 +57,10 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
                    : findClosestToSize(variants, +size)
 
     // We dont have an image, so lets generate one.
-    if (best === undefined || best.type === VariantType.Video || best.type === VariantType.PartialVideo) {
+    if (best === undefined) {
       console.log(`[image] ${post.id}/${mediaId || 'all'} has no ${size} image, generating a thumbnail from its video instead`)
       let video = collection
         .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId)
-        .filter(m => m.type === MediaType.SecureVideo || m.type === MediaType.CommentVideo)
         .flatMap(m => m.variants)
         .filter(v => v.type === VariantType.PartialVideo || v.type === VariantType.Video)[0];
 

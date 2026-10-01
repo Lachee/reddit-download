@@ -40,13 +40,15 @@ export const GET: RequestHandler = async ({ url, fetch, request, getClientAddres
       permalink,
       media:     findPresentedMedia(collection).map(m => {
         const download = getDownloadLink(medialink, m);
+        const kind = getFormat(download);
         const dimension = findBiggestVariant(m.variants.filter(v => v.type !== VariantType.PartialAudio))?.dimension;
         return {
           id:        m.id,
-          kind:      getFormat(download),
+          kind,
           width:     dimension?.width,
           height:    dimension?.height,
-          thumbnail: new URL(`/i/${medialink}?m=${m.id}&s=${THUMBNAIL_AREA}`, url).href,
+          // Same as the post page, gifs are shown from /g/ as /i/ may serve their mp4 variant.
+          thumbnail: new URL(kind === 'gif' ? download : `/i/${medialink}?m=${m.id}&s=${THUMBNAIL_AREA}`, url).href,
           download:  new URL(download, url).href,
         };
       }),
