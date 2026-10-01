@@ -25,6 +25,8 @@ export async function follow(fetch : typeof window.fetch, href: string): Promise
 
   const shareLinkRegex = /reddit\.com\/(?:r|user|u)\/[^/]+\/s\//i
   if (shareLinkRegex.test(url.toString())) {
+    // Normalized user permalinks are r/u_<name>, but reddit only resolves user share links under /user/<name>/s/.
+    url.pathname = url.pathname.replace(/^\/r\/u_([^/]+)\/s\//i, '/user/$1/s/');
     console.log(`[reddit] resolving share link ${url.pathname}`);
     const response = await fetch(`${url.origin}${url.pathname}`, {
       method: 'HEAD',
