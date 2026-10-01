@@ -83,7 +83,8 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
           dimension: post.secure_media.reddit_video.width || post.secure_media.reddit_video.height ? {
             width:  post.secure_media.reddit_video.width ?? 0,
             height: post.secure_media.reddit_video.height ?? 0
-          } : undefined
+          } : undefined,
+          duration:  post.secure_media.reddit_video.duration,
         });
       }
 
@@ -131,7 +132,8 @@ export function getMediaCollection(post: Post): QueryableMediaCollection {
           dimension: post.preview.reddit_video_preview.width || post.preview.reddit_video_preview.height ? {
             width:  post.preview.reddit_video_preview.width ?? 0,
             height: post.preview.reddit_video_preview.height ?? 0
-          } : undefined
+          } : undefined,
+          duration:  post.preview.reddit_video_preview.duration,
         })
       }
       media.push(previewMedia);
@@ -350,7 +352,8 @@ async function fetchDashMediaFromRedditVideo(fetch: typeof window.fetch, redditV
   if (!redditVideo.dash_url)
     throw new Error('SecureMedia does not contain a dash_url');
 
-  return fetchDashMedia(fetch, redditVideo.dash_url);
+  const variants = await fetchDashMedia(fetch, redditVideo.dash_url);
+  return variants.map(v => v.type === VariantType.PartialVideo ? { ...v, duration: redditVideo.duration } : v);
 }
 
 async function fetchDashMedia(fetch: typeof window.fetch, dashUrl: string): Promise<Variant[]> {

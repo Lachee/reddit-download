@@ -1,6 +1,6 @@
 import type { Readable } from "node:stream";
 import { type ChildProcessByStdio, spawn } from "node:child_process";
-import {readStream} from "./Utilities.ts";
+import {readStream, teeStream, type TeeResult} from "./Utilities.ts";
 
 type ScalerFlags = 'fast_bilinear'
                     | 'bilinear'
@@ -23,10 +23,11 @@ type ScalerFlags = 'fast_bilinear'
 export type ConvertOptions = {
   videoPath: string;
   fps?: number;
-  scale?: number;
+  /** Longest edge of the gif in pixels. Smaller videos are never upscaled. */
+  maxSize?: number;
   filtering?: ScalerFlags;
   maxColors?: number;
-  dithering?: 'sierra2'|'bayer'|'floyd_stainberg'|`bayer:bayer_scale=${number}`
+  dithering?: 'sierra2'|'bayer'|'floyd_steinberg'|`bayer:bayer_scale=${number}`
   threads?: number;
 };
 
@@ -43,29 +44,43 @@ export function convert(options: ConvertOptions): Promise<Buffer<ArrayBuffer>> {
   return readStream(stream, ffmpeg);
 }
 
+/** Converts the video to a GIF, streaming the frames as they are encoded while also collecting the whole GIF. */
+export function convertTee(options: ConvertOptions): TeeResult {
+  const { stream, ffmpeg } = convertStream(options);
+  return teeStream(stream, ffmpeg);
+}
+
 /** Converts the video to a GIF and returns the result as a ReadableStream. */
 export function convertStream({
                                 videoPath,
                                 fps = 15,
-                                scale = 480,
-    filtering = 'lanczos',
+                                maxSize = 480,
+    filtering = 'bicubic',
     maxColors = 256,
-    dithering = 'floyd_stainberg',
+    dithering = 'floyd_steinberg',
     threads = 0,
                               }: ConvertOptions): ConvertStreamResult {
+  const scale = `scale='min(${maxSize},iw)':'min(${maxSize},ih)':force_original_aspect_ratio=decrease:flags=${filtering}`;
+
+  // The palette is built from a second decode of only the keyframes (input 1).
+  // That finishes long before the full decode, so paletteuse can emit frames as they are decoded,
+  // instead of the usual split/palettegen which has to see every frame before outputting the first.
+  // diff_mode=rectangle only re-dithers the part of each frame that changed.
   const filter = [
-    `fps=${fps}`,
-    `scale=${scale}:-1:flags=${filtering}`,
-    `split[s0][s1]`,
-    `[s0]palettegen=max_colors=${maxColors}[p]`,
-    `[s1][p]paletteuse=dither=${dithering}`,
-  ].join(",");
+    `[1:v]${scale},palettegen=max_colors=${maxColors}[p]`,
+    `[0:v]fps=${fps},${scale}[v]`,
+    `[v][p]paletteuse=dither=${dithering}:diff_mode=rectangle`,
+  ].join(";");
 
   const args = [
     "-hide_banner",
     "-y",
+    "-threads", `${threads}`,
+    "-i", videoPath,
+    "-skip_frame", "nokey",
     "-i", videoPath,
     "-filter_complex", filter,
+    "-an", "-sn", "-dn",
     "-loop", "0",
     "-threads", `${threads}`,
     "-f", "gif",

@@ -46,6 +46,8 @@ export type Variant = {
   type: VariantType
   href: string
   dimension?: { width: number, height: number }
+  /** Length of the video in seconds, when the source reports it. */
+  duration?: number
 }
 
 

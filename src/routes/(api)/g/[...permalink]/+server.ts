@@ -1,26 +1,9 @@
 import type { RequestHandler } from './$types';
-import { findBiggestVariant, type Variant, VariantType } from "$lib/reddit/Media";
-import { convert, type ConvertOptions } from "$lib/server/ffmpeg/Gif";
-import { cache } from "$lib/server/cache";
-import { probeDuration } from "$lib/server/ffmpeg/Probe";
+import { resolveGif, type CachedGif } from "$lib/server/Gif";
 import { range } from "$lib/server/Range";
 import { redirect } from "@sveltejs/kit";
 import { query } from "$lib/reddit/server";
-import { normalizeMedialink } from "$lib/reddit/Utilities";
-import { env } from "$env/dynamic/private";
 import { track } from "$lib/server/Analytics";
-
-const CONTENT_TTL = +(env.CACHE_GIF_TTL ?? 3600);
-const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
-const LongestVideoDuration = 60;
-
-type CachedResponse = ({
-  content: Uint8Array<ArrayBuffer>,
-  mime: string,
-  filename: string,
-  status: number,
-  error: string | null,
-} | { redirect: string });
 
 // Ignored so a trailing .gif is not redirected to .gif/, which would defeat the point of it.
 export const trailingSlash = 'ignore';
@@ -33,80 +16,32 @@ export const GET: RequestHandler = async ({ url, params, fetch, request, getClie
   const mediaId = url.searchParams.get('media') ?? url.searchParams.get('m') ?? false;
   const { post, collection, permalink } = await query({ permalink: params.permalink.replace(GIF_EXTENSION, '/'), fetch });
 
-  const cached = await cache().getSet<CachedResponse>([ 'GET', `/g/${normalizeMedialink(permalink)}`, mediaId ?? '' ], async (): Promise<CachedResponse> => {
-    // Find the best available gif and video
-    // We will determine if we should convert the video to a gif by checking if the video is wider than the gif.
-    const variants = collection.filter(m => !mediaId || m.id === mediaId).flatMap(m => m.variants)
-    const gif = findBiggestVariant(variants.filter(m => m.type === VariantType.GIF));
-    const video = findBiggestVariant(variants.filter(m => m.type === VariantType.Video || m.type === VariantType.PartialVideo));
-    const shouldConvert = video && (!gif || !gif.dimension || (video.dimension && video.dimension.width > gif.dimension.width));
-    let convertError = null;
+  let cached: CachedGif;
+  const result = await resolveGif({ post, collection, permalink, mediaId, fetch });
+  if ('body' in result) {
+    result.done.then(({ content }) => track('gif-convert', {
+      subreddit: post.subreddit ?? '',
+      duration:  Math.round(result.duration),
+      scale:     result.size,
+      bytes:     content.byteLength,
+    }, { url, request, address: getClientAddress() })).catch(() => {});
 
-    if (shouldConvert && video) {
-      // Ensure the video is not too long, otherwise we will not be able to convert it.
-      // We will report back any discrepancies in the headers.
-      const duration = await probeDuration(video.href);
-      if (duration <= LongestVideoDuration) {
-        const scale = video.dimension?.height || video.dimension?.width || 480;
-        const opts: ConvertOptions = {
-          videoPath: video.href,
-          fps:       scale > 360 ? 10 : 24,
-          scale:     scale,
-
-          filtering: scale > 480 ? 'neighbor' : 'bicubic',
-          dithering: 'bayer:bayer_scale=5',
-          maxColors: 128,
-        };
-
-        console.log(`[gif] converting ${post.id}/${mediaId || 'all'} (${Math.round(duration)}s, ${video.dimension?.width ?? '?'}x${video.dimension?.height ?? '?'}) to a gif at ${opts.fps}fps, scale ${opts.scale}`);
-        const buffer = await convert(opts);
-        const filename = `${post.id}-${video.id}.gif`
-
-        track('gif-convert', {
-          subreddit: post.subreddit ?? '',
-          duration:  Math.round(duration),
-          scale,
-          bytes:     buffer.byteLength,
-        }, { url, request, address: getClientAddress() });
-
-        return {
-          content: buffer,
-          mime:    'image/gif',
-          filename,
-          status:  200,
-          error:   null,
-        } satisfies CachedResponse;
-      } else {
-        console.log(`[gif] not converting ${post.id}/${mediaId || 'all'}, it is ${Math.round(duration)}s which is over the ${LongestVideoDuration}s limit`);
-        convertError = `Video is too long. Cannot convert above ${LongestVideoDuration} seconds.`
-      }
+    // Stream the gif as it is encoded. Ranges need the whole gif, so they wait for it to finish instead.
+    if (!request.headers.has('range')) {
+      return new Response(result.body, {
+        headers: {
+          "Content-Type":        result.mime,
+          "Content-Disposition": `attachment; filename="${result.filename}"`,
+          "Cache-Control":       "public, max-age=3600",
+        },
+      });
     }
 
-    // We did not convert a video, so we will use a fullback gif, otherwise let the image route handle it.
-    if (!gif) {
-      console.log(`[gif] ${post.id}/${mediaId || 'all'} has no gif${convertError ? ' and could not be converted' : ' or video'}, redirecting to the image`)
-      return { redirect: `/i/${normalizeMedialink(permalink)}?m=${mediaId ?? ''}&s=best` } satisfies CachedResponse;
-    }
-
-    const { href } = gif;
-    console.log(`[gif] using reddit's gif for ${post.id}/${mediaId || 'all'} (${gif.dimension?.width ?? '?'}x${gif.dimension?.height ?? '?'}) from ${href}`)
-    const response = await fetch(href, {
-      redirect: 'follow',
-      headers:  { 'origin': 'reddit.com', 'User-Agent': UserAgent }
-    });
-
-    if (!response.ok)
-      console.warn(`[gif] fetching ${href} failed: ${response.status} ${response.statusText}`);
-
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    return {
-      content:  bytes,
-      mime:     response.headers.get('Content-Type') ?? 'image/gif',
-      filename: `${post.id}-${(gif ?? variants[0]).id}.gif`,
-      status:   response.status,
-      error:    convertError,
-    } satisfies CachedResponse;
-  }, CONTENT_TTL);
+    result.body.cancel();
+    cached = await result.done;
+  } else {
+    cached = result;
+  }
 
   if ('redirect' in cached)
     throw redirect(308, cached.redirect);

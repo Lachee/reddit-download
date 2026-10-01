@@ -124,21 +124,24 @@ export class Cache {
     })
 
     // Hook into the semaphore event's to set the cache when completed.
+    // The lock is only released once the value is in the store, otherwise requests in between would miss it and recompute.
     const keyStr = keyName(key)
-    semaphore
-      .then(value => {
+    const stored = semaphore
+      .then(async value => {
+        await this.set(key, value, ttl)
+          .catch(e => console.warn(`[cache] failed to store ${keyStr}`, e));
         this.unlock(key, value);
-        this.set(key, value, ttl)
         return value;
-      })
-      .catch(() => {
+      }, async error => {
         this.unlock(key, undefined);
-        this.delete(key);
+        await this.delete(key);
+        throw error;
       });
+    stored.catch(() => undefined);
 
     // Store the pending semaphore and run the fn
     this.semaphores.set(keyStr, {
-      promise:   semaphore,
+      promise:   stored,
       expiresAt: ttl > 0 ? Date.now() + (ttl * 1000) : 0,
       completed: false,
     });
