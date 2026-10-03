@@ -8,6 +8,7 @@
     import DisplayToggle from "$lib/components/DisplayToggle.svelte";
     import InstallButton from "$lib/components/InstallButton.svelte";
     import Umami from "$lib/components/Umami.svelte";
+    import ApiNotice from "$lib/components/ApiNotice.svelte";
     import { onMount } from "svelte";
     import { Events, trackOnce } from "$lib/Analytics";
     let { children, data } = $props();
@@ -56,6 +57,8 @@
             </div>
         </nav>
     </header>
+
+    <ApiNotice />
 
     <main class="grow">
         {@render children()}
