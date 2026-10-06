@@ -1,0 +1,21 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "dltool",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs",
+    "externalEndpoints": {
+      "lookup": {
+        "endpoint": "/external/lookup",
+        "scopes": ["global"]
+      }
+    }
+  },
+  "permissions": {
+    "reddit": true
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  }
+}

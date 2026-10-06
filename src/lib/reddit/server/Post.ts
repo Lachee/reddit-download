@@ -7,6 +7,7 @@ import { error } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { getCommentId } from "$lib/reddit/Utilities";
 import { DENY_NSFW, DENY_SUBREDDIT, DENY_YOUTUBE, NOT_FOUND } from "$lib/Errors";
+import { fetchDevvitThread, isDevvitConfigured } from "$lib/reddit/server/devvit";
 
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36";
 
@@ -54,8 +55,33 @@ function findComment(listings: z.infer<typeof postResponseSchema>, id: string): 
 }
 
 export async function fetchPost(fetch: typeof window.fetch, path: string): Promise<Thread> {
-  const { access_token } = await authenticate(fetch);
   const { pathname } = await follow(fetch, path);
+  const thread = isDevvitConfigured()
+    ? await fetchDevvitThread(fetch, pathname)
+    : await fetchOAuthThread(fetch, pathname);
+
+  assertAllowed(thread.post);
+  return thread;
+}
+
+/** Throws if the site's configuration doesn't allow the post to be downloaded. */
+function assertAllowed(post: Post) {
+  // Don't allow youtube videos. This isn't a YouTube downloader.
+  if (post.secure_media?.oembed?.provider_url === 'https://www.youtube.com/')
+    throw error(400, DENY_YOUTUBE + ': The post contains a youtube video.')
+
+  // Ensure the post is not NSFW if we do not allow it
+  if (!ALLOW_NSFW && post.over_18)
+    throw error(451, DENY_NSFW + ': The post is NSFW and NSFW posts are not allowed.');
+
+  // Ensure the post is not in the deny listed subreddit
+  if (DENY_SUBREDDITS.some(pattern => matchSubreddit(pattern, post.subreddit)))
+    throw error(451, DENY_SUBREDDIT + ': The post is in a subreddit that is not allowed.')
+}
+
+/** Reads the post (and comment) from the .json endpoint, authenticated as the script app's user. */
+async function fetchOAuthThread(fetch: typeof window.fetch, pathname: string): Promise<Thread> {
+  const { access_token } = await authenticate(fetch);
   const url = new URL(`${pathname}.json?raw_json=1`, 'https://oauth.reddit.com');
 
   console.log(`[reddit] fetching post ${pathname}`);
@@ -106,18 +132,6 @@ export async function fetchPost(fetch: typeof window.fetch, path: string): Promi
 
   if (post === undefined || post === null)
     throw error(404, NOT_FOUND + ': The post could not be found.');
-
-  // Don't allow youtube videos. This isn't a YouTube downloader.
-  if (post.secure_media?.oembed?.provider_url === 'https://www.youtube.com/')
-    throw error(400, DENY_YOUTUBE + ': The post contains a youtube video.')
-
-  // Ensure the post is not NSFW if we do not allow it
-  if (!ALLOW_NSFW && post.over_18)
-    throw error(451, DENY_NSFW + ': The post is NSFW and NSFW posts are not allowed.');
-
-  // Ensure the post is not in the deny listed subreddit
-  if (DENY_SUBREDDITS.some(pattern => matchSubreddit(pattern, post.subreddit)))
-    throw error(451, DENY_SUBREDDIT + ': The post is in a subreddit that is not allowed.')
 
   const commentId = getCommentId(pathname);
   const comment = commentId ? findComment(validation.data, commentId) : undefined;

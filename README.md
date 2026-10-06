@@ -61,6 +61,8 @@ Firstly there are the reddit related configuration:
 | `REDDIT_CLIENT_SECRET` | Your Reddit client secret | -                      | 
 | `REDDIT_USERNAME` | Your Reddit username | -                      |
 | `REDDIT_PASSWORD` | Your Reddit password | -                      |
+| `DEVVIT_URL` | Optional: the external URL of your Devvit app install. When set (with `DEVVIT_TOKEN`), posts are read through Devvit instead of the `REDDIT_*` account. See [Reading posts through Devvit](#reading-posts-through-devvit-experimental) | `https://dltool-2th52-external.devvit.net` |
+| `DEVVIT_TOKEN` | Optional: a managed Devvit app token | `devvit_at_...` |
 | `ALLOW_NSFW` | Allows NSFW posts from being looked up.  | `'true'` or `'false'`  |
 | `ALLOW_OEMBED` | A comma-separated list of allowed oembed providers. Any that are not lisited will be excluded from "valid variants" and not be downloadable. | `'Streamable,RedGIFs'` |
 | `DENY_SUBREDDITS` | A comma-seperated list of banned subreddits. Lookup of posts on these subreddits will be blocked | `'aiArt,generativeAI'` |
@@ -138,9 +140,59 @@ Go to [old.reddit.com/prefs/](https://old.reddit.com/prefs/) and change:
 >
 > 
 
+## Reading posts through Devvit (experimental)
+Instead of a script app and a bot account's password, the site can read posts through a [Devvit](https://developers.reddit.com) app.
+The app lives in `devvit/`. It has one [external endpoint](https://developers.reddit.com/docs/capabilities/server/external-endpoints), `POST /external/lookup`, which reads a post (and comment) with `reddit.getPostById()` as the app's own account and returns it.
+The site calls it with a managed app token and converts the result back into the shape the `.json` endpoint gives.
+
+```
+dl-reddit server --(bearer devvit_at_...)--> https://dltool-<subreddit id>-external.devvit.net/external/lookup --> reddit.getPostById()
+```
+
+### What it can and can't read
+This is from reading the Devvit SDK (0.14.7). It has not been checked against the live API yet.
+- **Public posts in any subreddit**, not only the one the app is installed in. `getPostById()` is a plain `/api/info` lookup with no subreddit filter.
+- **Not private subreddits.** The app reads as its own account (`u/dltool`), never as you. Devvit only lets an app act as the user to submit posts and comments or subscribe, so a private subreddit is readable only if the app account itself is approved there.
+- **Less media than the `.json` endpoint.** Devvit's post model keeps the reddit video DASH manifest, oEmbed, thumbnail and the full size gallery items, but drops the preview resolutions, the mp4 versions of gifs, `reddit_video_preview` and comment `media_metadata`.
+  - Videos, Streamable/RedGIFs and comment videos are unaffected.
+  - Images and galleries only have their full size version.
+  - Gif posts only have the gif, not the mp4 (`tests/devvit.test.ts` snapshots show what each test post ends up with).
+  - Comment images are read from the links in the comment's body instead.
+- External endpoints are rate limited (5 requests per second at the time of writing), so keep `CACHE_STORE` enabled.
+
+### Setup
+1. Request access to External Endpoints. It needs Reddit's approval: [request form](https://docs.google.com/forms/d/e/1FAIpQLScLU2m-IH9xtt4hqFBNy5AlrswY0pvfvoyTiQREbq_9xDQJkQ/viewform).
+2. Log in and upload the app. The app name in `devvit/devvit.json` must be one your account owns. Rename it if `dltool` is taken.
+   ```shell
+   cd devvit
+   npm install
+   npx devvit login   # add --copy-paste on a machine without a browser
+   npm run deploy     # builds and runs devvit upload
+   ```
+3. Install it on a subreddit you moderate, eg your own test subreddit: `npx devvit install <subreddit>`. It does not need to be the subreddit you download from.
+4. In the [developer settings](https://developers.reddit.com), create a managed **App Token** and copy the `devvit_at_...` secret. It is shown only once.
+5. Find the subreddit's id. Open `https://www.reddit.com/r/<subreddit>/about.json` while logged in and take `name` without the `t5_` prefix, eg `t5_2th52` is `2th52`.
+6. Set the site's environment:
+   ```shell
+   DEVVIT_URL=https://dltool-2th52-external.devvit.net
+   DEVVIT_TOKEN=devvit_at_...
+   ```
+   The `REDDIT_*` variables are then unused. Share links (`/s/...`) are still resolved by asking reddit.com for the redirect.
+
+Check it works with:
+```shell
+curl -X POST "$DEVVIT_URL/external/lookup" \
+  -H "Authorization: bearer $DEVVIT_TOKEN" -H "Content-Type: application/json" \
+  -d '{"postId":"1ty68vr"}'
+```
+`npx devvit logs <subreddit>` shows the app's logs.
+
+The app's own checks are `npm run check`, `npm test` and `npm run build` in `devvit/`.
+
 ## Testing
 The tests in `tests/posts.test.ts` run each post from `TEST-POSTS.md` through the same path as the site (search bar → `query()` → media collection) and compare the result against a snapshot.
 They replay Reddit responses recorded in `tests/fixtures/`, so they run offline and need no credentials.
+`tests/devvit.test.ts` runs the same posts with `DEVVIT_URL` set. There are no recordings of the Devvit app yet, so its responses are simulated from the same recordings.
 
 ```shell
 pnpm test

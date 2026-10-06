@@ -8,8 +8,8 @@
 		"build": "vite build",
 		"preview": "vite preview --port 4173",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --config ./svelte.config.js",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --config ./svelte.config.js --watch",
 		"gen": "svelte-kit sync",
 		"test": "vitest run",
 		"test:record": "RECORD=true vitest run"
