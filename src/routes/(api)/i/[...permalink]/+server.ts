@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       .filter(m => mediaId === RootMediaId || mediaId === false || m.id === mediaId) // Filter for the image we care about
       .filter(m => !filterOutThumbnails || m.type !== MediaType.Thumbnail) // Filter out thumbnails if we can
       .flatMap(m => m.variants)
-      .filter(v => v.type === VariantType.Image || v.type === VariantType.GIF || v.type === VariantType.Blur) // Never serve videos, they can't go in an <img>
+      .filter(v => v.type === VariantType.Image || v.type === VariantType.GIF) // Never serve videos (they can't go in an <img>) or blurred previews
 
     // Find the best available image
     let best = size === 'best'
